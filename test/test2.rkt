@@ -2,17 +2,6 @@
 
 (require minikanren-ee)
 
-(require (submod minikanren-ee/core private)
-         (for-syntax syntax/parse syntax-generic2)
-         syntax-generic2/define)
-
-(define-syntax/generics (rkt-term2 e)
-  [(core-term)
-   this-syntax]
-  [(compile)
-   (syntax/loc #'e (invariant-assertion mk-value? e))]
-  [(map-transform f) (f this-syntax)])
-
 (define-relation (appendo l1 l2 l3)
   (conde
    [(== l1 '()) (== l3 l2)]  ; base case
@@ -36,8 +25,7 @@
   (check-equal?
     (run 1 (q) (== (rkt-term (make-list 5 "a")) q))
     (racket-quote (("a" "a" "a" "a" "a"))))
-  (check-equal?
-    (run 1 (q) (== (rkt-term2 (make-list 5 "a")) q))
-    (racket-quote (("a" "a" "a" "a" "a"))))
 
   )
+
+(relation-code appendo)

@@ -9,12 +9,10 @@
    [conj conj2]
    [disj disj2]
    [fresh fresh1]
-   [run run-core])
-
-  (submod "core.rkt" private)
+   [run run-core]
+   [run* run*-core])
   
   (for-syntax
-   syntax-generic2
    (except-in racket/base compile)
    syntax/parse
    (only-in syntax/parse [define/syntax-parse def/stx])
@@ -26,7 +24,7 @@
 (provide
  (except-out
   (all-from-out "core.rkt")
-  conj2 disj2 fresh1 run-core)
+  conj2 disj2 fresh1 run-core run*-core)
  conj disj fresh conde run quasiquote unquote matche)           
 
 (define-syntax run
