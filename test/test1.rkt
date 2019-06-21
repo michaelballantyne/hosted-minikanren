@@ -91,23 +91,25 @@
 
   (check-equal?
     (run 1 (q) (eval-expo q '() q))
-    (racket-quote
-      ((((lambda (_.0) (list _.0 (list 'quote _.0))) '(lambda (_.0) (list _.0 (list 'quote _.0)))) (=/= ((_.0 closure)) ((_.0 list)) ((_.0 quote))) (sym _.0)))))
+    '((((lambda (_.0) (list _.0 (list 'quote _.0))) '(lambda (_.0) (list _.0 (list 'quote _.0)))) (=/= ((_.0 closure)) ((_.0 list)) ((_.0 quote))) (sym _.0))))
 
   (check-equal?
     (run 2 (q) (appendo '(a b) '(c) q))
-    (racket-quote ((a b c))))
+    '((a b c)))
+
+  (check-equal?
+    (run* (l1 l2) (appendo l1 l2 '(1 2 3)))
+    '((() (1 2 3)) ((1) (2 3)) ((1 2) (3)) ((1 2 3) ())))
 
   (check-equal?
     (run 2 (q) (appendo2 '(a b) '(c) q))
-    (racket-quote ((a b c))))
+    '((a b c)))
 
   (check-equal?
     (run 2 (q) (appendo3 '(a b) '(c) q))
-    (racket-quote ((a b c))))
+    '((a b c)))
 
   (check-equal?
     (run 10 (q) (naturals q))
-    (racket-quote (0 1 2 3 4 5 6 7 8 9)))
+    '(0 1 2 3 4 5 6 7 8 9))
   )
-

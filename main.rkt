@@ -11,6 +11,8 @@
    [fresh fresh1]
    [run run-core]
    [run* run*-core])
+
+  (rename-in racket/base [quasiquote rkt:quasiquote])
   
   (for-syntax
    (except-in racket/base compile)
@@ -25,7 +27,7 @@
  (except-out
   (all-from-out "core.rkt")
   conj2 disj2 fresh1 run-core run*-core)
- conj disj fresh conde run quasiquote unquote matche)           
+ conj disj fresh conde run run* quasiquote unquote matche)         
 
 (define-syntax run
   (syntax-parser
@@ -33,6 +35,13 @@
       "(run <number> (<id> ...+) <goal> ...+)"
       (_ n:number b:bindings+/c g+:goal/c ...+))
      #'(run-core n (b.x ...) (conj g+ ...))]))
+
+(define-syntax run*
+  (syntax-parser
+    [(~describe
+      "(run* (<id> ...+) <goal> ...+)"
+      (_ b:bindings+/c g+:goal/c ...+))
+     #'(run*-core (b.x ...) (conj g+ ...))]))
 
 (define-goal-macro conj
   (syntax-parser
@@ -81,21 +90,30 @@
            (conj c1.g+ ...)
            (conde c* ...))])]))
 
-(define-term-macro unquote
-  (lambda (stx)
-    (raise-syntax-error 'unquote "only valid within quasiquote" stx)))
+(begin-for-syntax
+  (struct term+expression [term-transformer orig-name]
+    #:methods gen:term-macro
+    [(define (term-macro-transform s stx)
+       ((term+expression-term-transformer s) stx))]
+    #:property prop:procedure
+    (lambda (s stx)
+      (syntax-parse stx
+        [(_ . r)
+         #`(#,(term+expression-orig-name s) . r)]))))
 
-(define-term-macro quasiquote
-  (syntax-parser 
-    [(_ q)
-     (let recur ([stx #'q])
-       (syntax-parse stx #:datum-literals (unquote)
-         [(unquote e) #'e]
-         [(unquote . rest)
-          (raise-syntax-error 'unquote "bad unquote syntax" stx)]
-         [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
-         [(~or* v:identifier v:number) #'(quote v)]
-         [() #'(quote ())]))]))
+(define-syntax quasiquote
+  (term+expression
+   (syntax-parser 
+     [(_ q)
+      (let recur ([stx #'q])
+        (syntax-parse stx #:datum-literals (unquote)
+          [(unquote e) #'e]
+          [(unquote . rest)
+           (raise-syntax-error 'unquote "bad unquote syntax" stx)]
+          [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
+          [(~or* v:identifier v:number) #'(quote v)]
+          [() #'(quote ())]))])
+   #'rkt:quasiquote))
 
 (define-goal-macro matche
   (lambda (stx)    
@@ -174,8 +192,8 @@
                                [(fresh (x^ ...) c ... (== `[pat^ ...] ls) g ...)]
                                ...)])
                #'(fresh (ls)
-                   (== ls `(,v ...))
-                   body)))))]
+                        (== ls `(,v ...))
+                        body)))))]
       [(matche v (pat g ...) ...)
        #'(matche (v) ([pat] g ...) ...)])))
 

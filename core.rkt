@@ -32,7 +32,9 @@
          #%rkt-ref apply-relation rkt-term
          define-goal-macro define-term-macro
          mk-value? relation-value?
-         relation-code)
+         relation-code
+         
+         (for-syntax gen:term-macro gen:goal-macro))
 
 ; Runtime
 
