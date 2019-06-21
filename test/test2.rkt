@@ -13,18 +13,14 @@
 
 (module+ test
   (require
-    rackunit
-    (only-in
-      racket/base
-      [quote racket-quote]
-      [cons racket-cons]))
+    rackunit)
 
   (check-equal?
     (run 2 (q) (appendo `(1 2 3) `(4 5) q))
-    (racket-quote ((1 2 3 4 5))))
+    '((1 2 3 4 5)))
   (check-equal?
     (run 1 (q) (== (rkt-term (make-list 5 "a")) q))
-    (racket-quote (("a" "a" "a" "a" "a"))))
+    '(("a" "a" "a" "a" "a")))
 
   )
 
