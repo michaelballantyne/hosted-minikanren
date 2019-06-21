@@ -3,17 +3,17 @@
 (require minikanren-ee)
 
 (define-relation (appendo l1 l2 l3)
-    (conde
-     [(== l1 '()) (== l3 l2)]  ; base case
-     [(fresh (head rest result) ; recursive case
-        (== `(,head . ,rest) l1)
-        (== `(,head . ,result) l3)
-        (appendo rest l2 result))]))
+  (conde
+   [(== l1 '()) (== l3 l2)]  ; base case
+   [(fresh (head rest result) ; recursive case
+      (== `(,head . ,rest) l1)
+      (== `(,head . ,result) l3)
+      (appendo rest l2 result))]))
 
 (define-relation (appendo2 l1 l2 l3)
   (matche [l1 l3]
-          [[() ,_] (== l3 l2)]
-          [[(,head . ,rest) (,head . ,result)] (appendo2 rest l2 result)]))
+    [[() ,_] (== l3 l2)]
+    [[(,head . ,rest) (,head . ,result)] (appendo2 rest l2 result)]))
 
 (define-relation (eval-expo exp env val)
   (conde
@@ -81,35 +81,30 @@
 (define-relation (naturals n)
   (apply-relation (make-naturals 0) n))
 
-
 (module+ test
   (require rackunit)
-  (require
-    (only-in
-      racket/base
-      [quote racket-quote]))
 
   (check-equal?
-    (run 1 (q) (eval-expo q '() q))
-    '((((lambda (_.0) (list _.0 (list 'quote _.0))) '(lambda (_.0) (list _.0 (list 'quote _.0)))) (=/= ((_.0 closure)) ((_.0 list)) ((_.0 quote))) (sym _.0))))
+   (run 1 (q) (eval-expo q '() q))
+   '((((lambda (_.0) (list _.0 (list 'quote _.0))) '(lambda (_.0) (list _.0 (list 'quote _.0)))) (=/= ((_.0 closure)) ((_.0 list)) ((_.0 quote))) (sym _.0))))
 
   (check-equal?
-    (run 2 (q) (appendo '(a b) '(c) q))
-    '((a b c)))
+   (run 2 (q) (appendo '(a b) '(c) q))
+   '((a b c)))
 
   (check-equal?
-    (run* (l1 l2) (appendo l1 l2 '(1 2 3)))
-    '((() (1 2 3)) ((1) (2 3)) ((1 2) (3)) ((1 2 3) ())))
+   (run* (l1 l2) (appendo l1 l2 '(1 2 3)))
+   '((() (1 2 3)) ((1) (2 3)) ((1 2) (3)) ((1 2 3) ())))
 
   (check-equal?
-    (run 2 (q) (appendo2 '(a b) '(c) q))
-    '((a b c)))
+   (run 2 (q) (appendo2 '(a b) '(c) q))
+   '((a b c)))
 
   (check-equal?
-    (run 2 (q) (appendo3 '(a b) '(c) q))
-    '((a b c)))
+   (run 2 (q) (appendo3 '(a b) '(c) q))
+   '((a b c)))
 
   (check-equal?
-    (run 10 (q) (naturals q))
-    '(0 1 2 3 4 5 6 7 8 9))
+   (run 10 (q) (naturals q))
+   '(0 1 2 3 4 5 6 7 8 9))
   )
