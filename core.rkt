@@ -176,15 +176,6 @@
   (define-syntax-class binary-goal-constructor
     #:literal-sets (mk-literals)
     (pattern (~or conj disj)))
-
-  (define/hygienic (expand-relation stx) #:expression
-    (syntax-parse stx
-      #:literals (relation)
-      [(relation (x:id ...) g)
-       (define sc (make-scope))
-       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
-       (def/stx g^ (expand-goal (add-scope #'g sc)))
-       (qstx/rc (relation (x^ ...) g^))]))
     
   (define/hygienic (expand-goal stx) #:expression
     (syntax-parse stx
@@ -234,6 +225,15 @@
           #f
           "not a goal constructor or relation name;\n   expected a relation application or other goal form\n"
           stx)]))
+
+  (define/hygienic (expand-relation stx) #:expression
+    (syntax-parse stx
+      #:literals (relation)
+      [(relation (x:id ...) g)
+       (define sc (make-scope))
+       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+       (def/stx g^ (expand-goal (add-scope #'g sc)))
+       (qstx/rc (relation (x^ ...) g^))]))
   
   ; Optimization pass
   
@@ -275,7 +275,9 @@
 
   
   ; Code generation
+  
   (define compiled-names (make-free-id-table))
+  
   (define constraint-impls
     (make-free-id-table
      (hash #'symbolo #'mk:symbolo
@@ -283,6 +285,8 @@
            #'== #'mk:==
            #'=/= #'mk:=/=
            #'absento #'mk:absento)))
+
+  (define expanded-relation-code (make-free-id-table))
 
   (define/hygienic (generate-code stx) #:expression
     (syntax-parse stx
@@ -333,7 +337,6 @@
     (define compiled (generate-code reordered))
     compiled)
 
-  (define expanded-relation-code (make-free-id-table))
   )
 
 ; run, run*, and define-relation are the interface with Racket
@@ -369,7 +372,7 @@
     [(~describe
       "(relation (<id> ...) <goal>)"
       (_ b:bindings/c g:goal/c))
-           
+     ; some awkwardness to let us capture the expanded and optimized mk code
      (ee-lib-boundary
       (define expanded (expand-relation this-syntax))
       (define reordered (reorder-conjunctions expanded))
@@ -412,5 +415,11 @@
   (syntax-parser
     [(_ name)
      (if (eq? 'expression (syntax-local-context))
-         #`#'#,(free-id-table-ref expanded-relation-code #'name)
+         (ee-lib-boundary
+          (when (not (relation-binding? (lookup #'name)))
+            (raise-syntax-error #f "not bound to a relation" #'name))
+          (define code (free-id-table-ref expanded-relation-code #'name #f))
+          (when (not code)
+            (error 'relation-code "can only access code of relations defined in the current module"))
+          #`#'#,code)
          #'(#%expression (relation-code name)))]))
