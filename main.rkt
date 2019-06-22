@@ -20,6 +20,8 @@
    (only-in syntax/parse [define/syntax-parse def/stx])
    "syntax-classes.rkt"
    racket/syntax
+   racket/list
+   syntax/stx
    )
   )
 
@@ -104,7 +106,9 @@
 (define-syntax quasiquote
   (term+expression
    (syntax-parser 
-     [(_ q)
+     [(~describe
+       "`<datum>"
+       (_ q))
       (let recur ([stx #'q])
         (syntax-parse stx #:datum-literals (unquote)
           [(unquote e) #'e]
@@ -115,85 +119,74 @@
           [() #'(quote ())]))])
    #'rkt:quasiquote))
 
+(begin-for-syntax
+  ; p is a pattern expression
+  
+  ; p^ is an expression to be unified with a portion of a corresponding argument
+  ; c  is a predicate application to be added to the compiled goal
+  ; x  is a fresh logic variable to lift
+
+  ; apply compile-pattern to each pattern a group, and accumulate p^s, cs, and xs
+  (define (compile-patterns ps)
+    (syntax-parse ps
+      [() #'[() () ()]]
+      [(p p* ...)
+       (def/stx [p^ (c ...) (x ...)] (compile-pattern #'p))
+       (def/stx [(p^* ...) (c* ...) (x* ...)] (compile-patterns #'(p* ...)))
+       #'[(p^ p^* ...) (c ... c* ...) (x ... x* ...)]]))
+
+  (define (compile-pattern p)
+    (define (loop p)
+      (syntax-parse p
+        #:literals (unquote)
+        ; Previous implementations use ?? for wildcard as _ isn't legal in R6.
+        ; Do the same here, and raise an error on use of _ to avoid confusion.
+        [(unquote . rest)
+         (syntax-parse p
+           #:datum-literals (?? ?)
+           [(_ sym)
+            #:when (or (eq? (syntax-e #'sym) '_) (eq? (syntax-e #'sym) '?))
+            (raise-syntax-error #f "use ?? for wildcard" #'sym)]
+           [(_ ??)
+            (with-syntax ([_new ((make-syntax-introducer) #'?_)]) ; fresh but has scopes for #%lv-ref
+              #'[(unquote _new) () (_new)])]
+           [(_ x:id)
+            #'[(unquote x) () (x)]]
+           [(_ (? c:id x:id))
+            #'[(unquote x) ((c x)) (x)]])]
+        [(p1 . p2)
+         (def/stx (p1^ (c1 ...) (x1 ...)) (loop #'p1))
+         (def/stx (p2^ (c2 ...) (x2 ...)) (loop #'p2))
+         #'[(p1^ . p2^) (c1 ... c2 ...) (x1 ... x2 ...)]]
+        [lit #'[lit () ()]]))
+    (loop p))
+
+  (define (compile-clause clause)
+    (def/stx [(p ...) g ...] clause)
+    (def/stx [(p^ ...) (c ...) (x ...)]
+      (compile-patterns #'[p ...]))
+    (def/stx (x^ ...) (remove-duplicates (syntax->list #'[x ...]) free-identifier=?))
+    #`[(fresh (x^ ...) c ... (== `[p^ ...] ls) g ...)])
+  
+  (define-syntax-class (pattern-group vars)
+    #:description #f
+    (pattern (p ...)
+             #:do [(define expected (length (syntax->list vars)))
+                   (define actual (length (syntax->list #'(p ...))))]
+             #:fail-unless (= expected actual)
+             (format "wrong number of patterns; expected ~a and got ~a" expected actual))))
+
 (define-goal-macro matche
-  (lambda (stx)    
-    (syntax-case stx ()
-      [(matche (v ...) ([pat ...] g ...) ...)
-       (let ()
-         (define remove-duplicates
-           (lambda (ls eq-pred)
-             (cond
-               [(null? ls) '()]
-               [(memf (lambda (x) (eq-pred (car ls) x)) (cdr ls))
-                (remove-duplicates (cdr ls) eq-pred)]
-               [else (cons (car ls) (remove-duplicates (cdr ls) eq-pred))])))
-         (define parse-pattern
-           (lambda (args pat)
-             (syntax-case #`(#,args #,pat) ()
-               [(() ()) #'(() () ())]
-               [((a args ...) [p pat ...])
-                (with-syntax ([(p^ (c ...) (x ...))
-                               (parse-patterns-for-arg #'a #'p)])
-                  (with-syntax ([([pat^ ...] (c^ ...) (x^ ...))
-                                 (parse-pattern #'(args ...) #'[pat ...])])
-                    #'([p^ pat^ ...] (c ... c^ ...) (x ... x^ ...))))]
-               [x (error 'parse-pattern "bad syntax ~s ~s" args pat)])))
-         (define parse-patterns-for-arg
-           (lambda (v pat)
-             (define loop
-               (lambda (pat)
-                 (syntax-case pat (unquote ?? ?) ; ?? is the new _, since _ isn't legal in R6
-                   [(unquote ??)
-                    (with-syntax ([_new (generate-temporary #'?_)])
-                      #'((unquote _new) () (_new)))]
-                   [(unquote x)
-                    (when (free-identifier=? #'x v)
-                      (error 'matche "argument ~s appears in pattern at an invalid depth"
-                             (syntax->datum #'x)))
-                    #'((unquote x) () (x))]
-                   [(unquote (? c x))
-                    (when (free-identifier=? #'x v)
-                      (error 'matche "argument ~s appears in pattern at an invalid depth"
-                             (syntax->datum #'x)))
-                    #'((unquote x) ((c x)) (x))]
-                   [(a . d)
-                    (with-syntax ([((pat1 (c1 ...) (x1 ...))
-                                    (pat2 (c2 ...) (x2 ...)))
-                                   (map loop (syntax->list #'(a d)))])
-                      #'((pat1 . pat2) (c1 ... c2 ...) (x1 ... x2 ...)))]
-                   [x #'(x () ())])))
-             (syntax-case pat (unquote ?)
-               [(unquote u)
-                (cond
-                  [(and (identifier? #'u)
-                        (free-identifier=? v #'u))
-                   #'((unquote u) () ())]
-                  [else (loop pat)])]
-               [(unquote (? c u))
-                (cond
-                  [(and (identifier? #'u)
-                        (free-identifier=? v #'u))
-                   #'((unquote u) ((c x)) ())]
-                  [else (loop pat)])]
-               [else (loop pat)])))
-         (unless
-             (andmap (lambda (y) (= (length (syntax->datum #'(v ...))) (length y)))
-                     (syntax->datum #'([pat ...] ...)))
-           (error 'matche "pattern wrong length blah"))
-         (with-syntax ([(([pat^ ...] (c ...) (x ...)) ...)
-                        (map (lambda (y) (parse-pattern #'(v ...) y))
-                             (syntax->list #'([pat ...] ...)))])
-           (with-syntax ([((x^ ...) ...)
-                          (map (lambda (ls)
-                                 (remove-duplicates (syntax->list ls) free-identifier=?))
-                               (syntax->list #'((x ...) ...)))])
-             (with-syntax ([body
-                            #'(conde
-                               [(fresh (x^ ...) c ... (== `[pat^ ...] ls) g ...)]
-                               ...)])
-               #'(fresh (ls)
-                        (== ls `(,v ...))
-                        body)))))]
-      [(matche v (pat g ...) ...)
-       #'(matche (v) ([pat] g ...) ...)])))
+  (syntax-parser
+    [(~describe
+      "(matche (<id> ...n) [(<pat> ...n) <goal> ...] ...)"
+      (_ (arg:id ...) [(~var pats (pattern-group #'(arg ...))) g:goal/c ...] ...))
+     #`(fresh (ls)
+              (== ls `(,arg ...))
+              (conde
+               #,@(stx-map compile-clause  #'((pats g ...) ...))))]
+    [(~describe
+      "(matche <id> [<pat> <goal> ...] ...)"
+      (_ v:id [pat g:goal/c ...] ...))
+     #'(matche (v) [(pat) g ...] ...)]))
 

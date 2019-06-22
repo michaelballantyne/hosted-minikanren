@@ -12,7 +12,7 @@
 
 (define-relation (appendo2 l1 l2 l3)
   (matche [l1 l3]
-    [[() ,_] (== l3 l2)]
+    [[() ,??] (== l3 l2)]
     [[(,head . ,rest) (,head . ,result)] (appendo2 rest l2 result)]))
 
 (define-relation (eval-expo exp env val)
