@@ -203,10 +203,10 @@
       [(c:binary-goal-constructor g1 g2)
        (qstx/rc (c #,(expand-goal #'g1) #,(expand-goal #'g2)))]
       [(fresh (x:id ...) g)
-       (define sc (make-scope))
-       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
-       (def/stx g^ (expand-goal (add-scope #'g sc)))
-       (qstx/rc (fresh (x^ ...) g^))]
+       (with-scope sc
+         (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+         (def/stx g^ (expand-goal (add-scope #'g sc)))
+         (qstx/rc (fresh (x^ ...) g^)))]
       [(apply-relation e t ...)
        (def/stx e^ (local-expand #'e 'expression null))
        (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))]
@@ -232,10 +232,10 @@
     (syntax-parse stx
       #:literals (relation)
       [(relation (x:id ...) g)
-       (define sc (make-scope))
-       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
-       (def/stx g^ (expand-goal (add-scope #'g sc)))
-       (qstx/rc (relation (x^ ...) g^))]))
+       (with-scope sc
+         (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+         (def/stx g^ (expand-goal (add-scope #'g sc)))
+         (qstx/rc (relation (x^ ...) g^)))]))
   
   ; Optimization pass
   
@@ -344,22 +344,16 @@
 
 ; run, run*, and define-relation are the interface with Racket
 
-(begin-for-syntax
-  (define-syntax-rule
-    (compile-bindings+body bindings body bindings^ body^)
-    (begin
-      (define sc (make-scope))
-      (def/stx bindings^ (bind-logic-vars! (add-scope #'bindings sc)))
-      (def/stx body^ (compile-goal (add-scope #'body sc))))))
-
 (define-syntax run
   (syntax-parser
     [(~describe
       "(run <number> (<id> ...+) <goal>)"
       (_ n:number b:bindings+/c g:goal/c))
      (ee-lib-boundary
-      (compile-bindings+body (b.x ...) g (x^ ...) g^)
-      #'(mk:run n (x^ ...) g^))]))
+      (with-scope sc
+        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
+        (def/stx g^ (compile-goal (add-scope #'g sc)))
+        #'(mk:run n (x^ ...) g^)))]))
 
 (define-syntax run*
   (syntax-parser
@@ -367,8 +361,10 @@
       "(run* (<id> ...+) <goal>)"
       (_ b:bindings+/c g:goal/c))
      (ee-lib-boundary
-      (compile-bindings+body (b.x ...) g (x^ ...) g^)
-      #'(mk:run* (x^ ...) g^))]))
+      (with-scope sc
+        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
+        (def/stx g^ (compile-goal (add-scope #'g sc)))
+        #'(mk:run* (x^ ...) g^)))]))
 
 (define-syntax relation
   (syntax-parser
