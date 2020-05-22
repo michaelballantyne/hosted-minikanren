@@ -124,7 +124,7 @@
        stx)))
   
   (define (bind-logic-var! name)
-    (bind! name #'(logic-var-binding-rep)))
+    (bind! name (logic-var-binding-rep)))
   (define (bind-logic-vars! names)
     (for/list ([x (syntax->list names)])
       (bind-logic-var! x)))
@@ -349,22 +349,20 @@
     [(~describe
       "(run <number> (<id> ...+) <goal>)"
       (_ n:number b:bindings+/c g:goal/c))
-     (ee-lib-boundary
-      (with-scope sc
-        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-        (def/stx g^ (compile-goal (add-scope #'g sc)))
-        #'(mk:run n (x^ ...) g^)))]))
+     (with-scope sc
+       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
+       (def/stx g^ (compile-goal (add-scope #'g sc)))
+       #'(mk:run n (x^ ...) g^))]))
 
 (define-syntax run*
   (syntax-parser
     [(~describe
       "(run* (<id> ...+) <goal>)"
       (_ b:bindings+/c g:goal/c))
-     (ee-lib-boundary
-      (with-scope sc
-        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-        (def/stx g^ (compile-goal (add-scope #'g sc)))
-        #'(mk:run* (x^ ...) g^)))]))
+     (with-scope sc
+       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
+       (def/stx g^ (compile-goal (add-scope #'g sc)))
+       #'(mk:run* (x^ ...) g^))]))
 
 (define-syntax relation
   (syntax-parser
@@ -372,17 +370,16 @@
       "(relation (<id> ...) <goal>)"
       (_ b:bindings/c g:goal/c))
      ; some awkwardness to let us capture the expanded and optimized mk code
-     (ee-lib-boundary
-      (define expanded (expand-relation this-syntax))
-      (define reordered (reorder-conjunctions expanded))
-      (define name (syntax-property this-syntax 'name))
-      (when name
-        (free-id-table-set! expanded-relation-code
-                            name
-                            reordered))
-      (syntax-parse reordered
-        [(_ (x^ ...) g^)
-         #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))]))
+     (define expanded (expand-relation this-syntax))
+     (define reordered (reorder-conjunctions expanded))
+     (define name (syntax-property this-syntax 'name))
+     (when name
+       (free-id-table-set! expanded-relation-code
+                           name
+                           reordered))
+     (syntax-parse reordered
+       [(_ (x^ ...) g^)
+        #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))])]))
 
 (define-syntax define-relation
   (syntax-parser 
@@ -414,11 +411,11 @@
   (syntax-parser
     [(_ name)
      (if (eq? 'expression (syntax-local-context))
-         (ee-lib-boundary
-          (when (not (relation-binding? (lookup #'name)))
-            (raise-syntax-error #f "not bound to a relation" #'name))
-          (define code (free-id-table-ref expanded-relation-code #'name #f))
-          (when (not code)
-            (error 'relation-code "can only access code of relations defined in the current module"))
-          #`#'#,code)
+         (let ()
+           (when (not (relation-binding? (lookup #'name)))
+             (raise-syntax-error #f "not bound to a relation" #'name))
+           (define code (free-id-table-ref expanded-relation-code #'name #f))
+           (when (not code)
+             (error 'relation-code "can only access code of relations defined in the current module"))
+           #`#'#,code)
          #'(#%expression (relation-code name)))]))

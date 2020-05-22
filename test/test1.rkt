@@ -1,6 +1,6 @@
 #lang racket
 
-(require minikanren-ee)
+(require "../main.rkt")
 
 (define-relation (appendo l1 l2 l3)
   (conde
