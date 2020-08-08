@@ -138,7 +138,7 @@
       #:literals (quote cons)
       ; core terms
       [(#%lv-ref v:id)
-       (unless (logic-var-binding? (lookup #'v))
+       (unless (lookup #'v logic-var-binding?)
          (raise-syntax-error #f "unbound logic variable" #'v))
        this-syntax]
       [(~describe "(rkt-term <exp>)" (rkt-term e))
@@ -152,13 +152,13 @@
       
       ; term macros
       [(head:id . rest)
-       #:do [(define binding (lookup #'head))]
-       #:when (term-macro? binding)
+       #:do [(define binding (lookup #'head term-macro?))]
+       #:when binding
        (expand-term (term-macro-transform binding stx))]
       
       ; interposition points
       [var:id
-       #:when (logic-var-binding? (lookup #'var))
+       #:when (lookup #'var logic-var-binding?)
        (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)])
          (expand-term (qstx/rc (#%lv-ref var))))]
       [var:id
@@ -189,8 +189,8 @@
       [(c:binary-constraint t1 t2)
        (qstx/rc (c #,(expand-term #'t1) #,(expand-term #'t2)))]
       [(#%rel-app n:id t ...)
-       (define binding (lookup #'n))
-       (unless (relation-binding? binding)
+       (define binding (lookup #'n relation-binding?))
+       (unless binding
          (raise-syntax-error #f "unbound relation" #'n))
        (let ([expected (relation-argument-count binding)]
              [actual (length (syntax->list #'(t ...)))])
@@ -214,13 +214,13 @@
       
       ; goal macros
       [(head:id . rest)
-       #:do [(define binding (lookup #'head))]
-       #:when (goal-macro? binding)
+       #:do [(define binding (lookup #'head goal-macro?))]
+       #:when binding
        (expand-goal (goal-macro-transform binding stx))]
 
       ; interposition points
       [(head:id . rest)
-       #:when (relation-binding? (lookup #'head))
+       #:when (lookup #'head relation-binding?)
        (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
          (expand-goal (qstx/rc (#%rel-app head . rest))))]
       
@@ -413,7 +413,7 @@
     [(_ name)
      (if (eq? 'expression (syntax-local-context))
          (let ()
-           (when (not (relation-binding? (lookup #'name)))
+           (when (not (lookup #'name relation-binding?))
              (raise-syntax-error #f "not bound to a relation" #'name))
            (define code (free-id-table-ref expanded-relation-code #'name #f))
            (when (not code)
