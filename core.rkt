@@ -12,6 +12,7 @@
   ee-lib/define
   ee-lib/errors
   syntax/parse/define
+  racket/math
   (prefix-in mk: minikanren)
   (for-syntax
    syntax/stx
@@ -41,6 +42,11 @@
 
 (struct relation-value [proc])
 
+(define (check-natural val blame-stx)
+  (if (natural? val)
+      val
+      (raise-argument-error/stx 'run "natural?" val blame-stx)))
+
 (define (check-relation val blame-stx)
   (if (relation-value? val)
       val
@@ -55,6 +61,7 @@
       (string? v)
       (number? v)
       (null? v)
+      (boolean? v)
       (and (pair? v)
            (mk-value? (car v))
            (mk-value? (cdr v)))))
@@ -348,12 +355,12 @@
 (define-syntax run
   (syntax-parser
     [(~describe
-      "(run <number> (<id> ...+) <goal>)"
-      (_ n:number b:bindings+/c g:goal/c))
+      "(run <numeric-expr> (<id> ...+) <goal>)"
+      (_ n:expr b:bindings+/c g:goal/c))
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
        (def/stx g^ (compile-goal (add-scope #'g sc)))
-       #'(mk:run n (x^ ...) g^))]))
+       #'(mk:run (check-natural n #'n) (x^ ...) g^))]))
 
 (define-syntax run*
   (syntax-parser
@@ -383,10 +390,10 @@
         #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))])]))
 
 (define-syntax define-relation
-  (syntax-parser 
+  (syntax-parser
     [(~describe
       "(define-relation (<name:id> <arg:id> ...) <goal>)"
-      (_ h:define-header/c g:goal/c))
+      (_ h:define-header/c (~or* (~seq g:goal/c) (~seq ~! (~fail "body should be a single goal")))))
      #`(begin
          ; Bind static information for expansion
          (define-syntax h.name
