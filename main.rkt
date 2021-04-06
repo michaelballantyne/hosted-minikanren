@@ -34,8 +34,8 @@
 (define-syntax run
   (syntax-parser
     [(~describe
-      "(run <number> (<id> ...+) <goal> ...+)"
-      (_ n:number b:bindings+/c g+:goal/c ...+))
+      "(run <numeric-expr> (<id> ...+) <goal> ...+)"
+      (_ n:expr b:bindings+/c g+:goal/c ...+))
      #'(run-core n (b.x ...) (conj g+ ...))]))
 
 (define-syntax run*
