@@ -152,6 +152,8 @@
       [(~describe "(rkt-term <exp>)" (rkt-term e))
        (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
       [(#%term-datum l:number) this-syntax]
+      [(#%term-datum l:boolean) this-syntax]
+      [(#%term-datum l:string) this-syntax]
       [(~describe "(quote <datum>)" (quote d)) this-syntax]
       [(~describe
         "(cons <term> <term>)"
@@ -172,7 +174,7 @@
       [var:id
        (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
          (expand-term (qstx/rc (rkt-term var))))]
-      [(~or* l:number l:boolean)
+      [(~or* l:number l:boolean l:string)
        (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
          (expand-term (qstx/rc (#%term-datum l))))]
       
@@ -311,6 +313,10 @@
       [(rkt-term e)
        #'(check-term e #'e)]
       [(#%term-datum l:number)
+       #'(quote l)]
+      [(#%term-datum l:string)
+       #'(quote l)]
+      [(#%term-datum l:boolean)
        #'(quote l)]
       [(quote d)
        #'(quote d)]
