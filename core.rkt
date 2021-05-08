@@ -29,7 +29,7 @@
 (provide run run* relation define-relation
          (rename-out [define-relation defrel])
          quote cons #%term-datum #%lv-ref
-         absento symbolo numbero =/= ==
+         absento symbolo stringo numbero =/= ==
          conj disj fresh #%rel-app
          #%rkt-ref apply-relation rkt-term
          define-goal-macro define-term-macro
@@ -82,6 +82,7 @@
    =/=
    absento
    symbolo
+   stringo
    numbero
    #%term-datum
    #%lv-ref
@@ -179,7 +180,7 @@
 
   (define-syntax-class unary-constraint
     #:literal-sets (mk-literals)
-    (pattern (~or symbolo numbero)))
+    (pattern (~or symbolo stringo numbero)))
   (define-syntax-class binary-constraint
     #:literal-sets (mk-literals)
     (pattern (~or == =/= absento)))
@@ -292,6 +293,7 @@
   (define constraint-impls
     (make-free-id-table
      (hash #'symbolo #'mk:symbolo
+           #'stringo #'mk:stringo
            #'numbero #'mk:numbero
            #'== #'mk:==
            #'=/= #'mk:=/=
