@@ -29,7 +29,7 @@
 (provide run run* relation define-relation
          (rename-out [define-relation defrel])
          quote cons #%term-datum #%lv-ref
-         absento symbolo numbero =/= ==
+         absento symbolo stringo numbero =/= ==
          conj disj fresh #%rel-app
          #%rkt-ref apply-relation rkt-term
          define-goal-macro define-term-macro
@@ -82,6 +82,7 @@
    =/=
    absento
    symbolo
+   stringo
    numbero
    #%term-datum
    #%lv-ref
@@ -151,6 +152,8 @@
       [(~describe "(rkt-term <exp>)" (rkt-term e))
        (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
       [(#%term-datum l:number) this-syntax]
+      [(#%term-datum l:boolean) this-syntax]
+      [(#%term-datum l:string) this-syntax]
       [(~describe "(quote <datum>)" (quote d)) this-syntax]
       [(~describe
         "(cons <term> <term>)"
@@ -171,7 +174,7 @@
       [var:id
        (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
          (expand-term (qstx/rc (rkt-term var))))]
-      [(~or* l:number l:boolean)
+      [(~or* l:number l:boolean l:string)
        (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
          (expand-term (qstx/rc (#%term-datum l))))]
       
@@ -179,7 +182,7 @@
 
   (define-syntax-class unary-constraint
     #:literal-sets (mk-literals)
-    (pattern (~or symbolo numbero)))
+    (pattern (~or symbolo stringo numbero)))
   (define-syntax-class binary-constraint
     #:literal-sets (mk-literals)
     (pattern (~or == =/= absento)))
@@ -292,6 +295,7 @@
   (define constraint-impls
     (make-free-id-table
      (hash #'symbolo #'mk:symbolo
+           #'stringo #'mk:stringo
            #'numbero #'mk:numbero
            #'== #'mk:==
            #'=/= #'mk:=/=
@@ -309,6 +313,10 @@
       [(rkt-term e)
        #'(check-term e #'e)]
       [(#%term-datum l:number)
+       #'(quote l)]
+      [(#%term-datum l:string)
+       #'(quote l)]
+      [(#%term-datum l:boolean)
        #'(quote l)]
       [(quote d)
        #'(quote d)]
