@@ -4,6 +4,7 @@
 
 (provide (all-defined-out))
 
+;; why are goal and term empty?
 (define-syntax-class goal/c
   #:description "goal expression"
   (pattern _))

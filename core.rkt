@@ -97,15 +97,18 @@
   
   (define-generics term-macro
     (term-macro-transform term-macro stx))
+  ;; define an interface and a method that accepts a macro and syntax
   (define-generics goal-macro
     (goal-macro-transform goal-macro stx))
   (define-generics relation-binding
     (relation-argument-count relation-binding))
   (define-generics logic-var-binding)
+  ;; the logic-var-binding interface doesn't have any associated methods,
+  ;; but does introduce a predicate
   
   (struct term-macro-rep [transformer]
     #:methods gen:term-macro
-    [(define (term-macro-transform s stx)
+    [(define (term-macro-transform s stx) ;; call the transformer on the syntax, crazy
        ((term-macro-rep-transformer s) stx))])
   (struct goal-macro-rep [transformer]
     #:methods gen:goal-macro
@@ -124,7 +127,10 @@
   (struct logic-var-binding-rep []
     #:methods gen:logic-var-binding []
     #:property prop:set!-transformer
-    (lambda (stx)
+    ;; prohibiting mutation of logic variables?
+    ;; Makes sense, because from the perspective of the compiler, there's just
+    ;; syntax identifiers (and references), and we don't know how they're implemented.
+    (lambda (stx) 
       (raise-syntax-error
        #f
        (string-append
@@ -132,6 +138,7 @@
         ", and not across foreign language boundaries")
        stx)))
   
+  ;; these methods just put the name in the compile-time env, marking them as logic vars
   (define (bind-logic-var! name)
     (bind! name (logic-var-binding-rep)))
   (define (bind-logic-vars! names)
@@ -140,49 +147,65 @@
 
   ; Expander
   
+  ;; terms in the minikanren sense are treated as expressions, hence...
+  ;; the expander enforces syntax and makes necessary syntax transformations
   (define/hygienic (expand-term stx) #:expression
     (syntax-parse stx
-      #:literal-sets (mk-literals)
-      #:literals (quote cons)
+      #:literal-sets (mk-literals) ;; the things that are getting matched literally
+      #:literals (quote cons) ;; additional literals
       ; core terms
       [(#%lv-ref v:id)
        (unless (lookup #'v logic-var-binding?)
          (raise-syntax-error #f "unbound logic variable" #'v))
-       this-syntax]
+       this-syntax] ;; why would you use this-syntax instead of stx?
       [(~describe "(rkt-term <exp>)" (rkt-term e))
        (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
       [(#%term-datum l:number) this-syntax]
       [(#%term-datum l:boolean) this-syntax]
       [(#%term-datum l:string) this-syntax]
       [(~describe "(quote <datum>)" (quote d)) this-syntax]
+      [(~describe "(rkt-term <exp>)" (rkt-term e)) ;; fully expand the inner term
+       (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))] ;; what the :f: is qstx/rc
+      [(#%term-datum l:number) this-syntax] ;; numbers are just returned, they're already term-datum's (--> how do they get annotated with #%term-datum?)
+      [(~describe "(quote <datum>)" (quote d)) this-syntax] ;; quoted expressions also left alone
       [(~describe
         "(cons <term> <term>)"
-        (cons t1:term/c t2:term/c))
+        (cons t1:term/c t2:term/c)) ;; expand the two internal terms, and call qstx
+       ;; are those contracts? what's going on here?
        (qstx/rc (cons #,(expand-term #'t1) #,(expand-term #'t2)))]
       
-      ; term macros
+      ; term macros -> we allow for macros over terms? interesting . . . how? what's an example?
       [(head:id . rest)
        #:do [(define binding (lookup #'head term-macro?))]
        #:when binding
        (expand-term (term-macro-transform binding stx))]
+      ;; things to search for here:
+      ;; 1. reminder of what lookup does -> look up the binding in the compile-time env
+      ;; 2. what does term-macro? do? -> predicate for instances of structs w/this interface
+      ;; 3. what does term-macro-transform do? -> method associated with structs implementing the interface
       
       ; interposition points
       [var:id
-       #:when (lookup #'var logic-var-binding?)
-       (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)])
+       #:when (lookup #'var logic-var-binding?) ;; if it's a logic variable, do the thing
+       (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)]) ;; backtracking
+         ;; hold on -- I thought #%lv-ref was an annotation, not a syntax object?
+         ;; why do you need to call expand-term again?
          (expand-term (qstx/rc (#%lv-ref var))))]
-      [var:id
+      [var:id ;; if it isn't a logic variable, it must be a racket term
+       ;; why no #%?
        (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
          (expand-term (qstx/rc (rkt-term var))))]
-      [(~or* l:number l:boolean l:string)
+      [(~or* l:number l:boolean l:string) ;; if it's a number or boolean (or string), mark it as such and expand it
        (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
          (expand-term (qstx/rc (#%term-datum l))))]
       
+      ;; what's the point of annotating them and expanding them separately?
       [_ (raise-syntax-error #f "not a term expression" stx)]))
 
   (define-syntax-class unary-constraint
     #:literal-sets (mk-literals)
-    (pattern (~or symbolo stringo numbero)))
+    (pattern (~or symbolo stringo numbero))) ;; define a syntax class for symbolo or numbero
+  ;; rest work the same way
   (define-syntax-class binary-constraint
     #:literal-sets (mk-literals)
     (pattern (~or == =/= absento)))
@@ -195,7 +218,7 @@
       #:literal-sets (mk-literals)
       ; core goals
       [(c:unary-constraint t)
-       (qstx/rc (c #,(expand-term #'t)))]
+       (qstx/rc (c #,(expand-term #'t)))] ;; structural recursion
       [(c:binary-constraint t1 t2)
        (qstx/rc (c #,(expand-term #'t1) #,(expand-term #'t2)))]
       [(#%rel-app n:id t ...)
@@ -210,27 +233,27 @@
             (format "wrong number of arguments to relation. Expected ~a; Given ~a"
                     expected actual)
             this-syntax)))
-       (qstx/rc (#%rel-app n #,@(stx-map expand-term #'(t ...))))]
+       (qstx/rc (#%rel-app n #,@(stx-map expand-term #'(t ...))))] ;; what does the `@` do
       [(c:binary-goal-constructor g1 g2)
        (qstx/rc (c #,(expand-goal #'g1) #,(expand-goal #'g2)))]
       [(fresh (x:id ...) g)
-       (with-scope sc
+       (with-scope sc ;; need to introduce a scope because we're introducing scopes for this identifier
          (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
          (def/stx g^ (expand-goal (add-scope #'g sc)))
-         (qstx/rc (fresh (x^ ...) g^)))]
+         (qstx/rc (fresh (x^ ...) g^)))] ;; we add the scope to the forms and construct a new corresponding fresh object with the scopes attached
       [(apply-relation e t ...)
        (def/stx e^ (local-expand #'e 'expression null))
-       (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))]
+       (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))] ;; when does apply-relation even show up?
       
       ; goal macros
       [(head:id . rest)
        #:do [(define binding (lookup #'head goal-macro?))]
        #:when binding
-       (expand-goal (goal-macro-transform binding stx))]
+       (expand-goal (goal-macro-transform binding stx))] ;; same as term macro
 
       ; interposition points
       [(head:id . rest)
-       #:when (lookup #'head relation-binding?)
+       #:when (lookup #'head relation-binding?) ;; if it isn't a goal macro, then it must be a relation reference
        (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
          (expand-goal (qstx/rc (#%rel-app head . rest))))]
       
@@ -246,7 +269,7 @@
        (with-scope sc
          (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
          (def/stx g^ (expand-goal (add-scope #'g sc)))
-         (qstx/rc (relation (x^ ...) g^)))]))
+         (qstx/rc (relation (x^ ...) g^)))])) ;; same as fresh, basically
   
   ; Optimization pass
   
@@ -286,6 +309,26 @@
         [((~or conj fresh) . _) (reorder-conjunction this-syntax)]
         [_ this-syntax]))
     (map-transform maybe-reorder stx))
+
+  ;; do fresh lifting before this pass
+  (define (conj->unify g)
+    (syntax-parse g #:literal-sets (mk-literals)
+     [(disj g1 g2)
+      #`(disj #,(conj->unify #'g1) #,(conj->unify #'g2))]
+     [(conj g1 g2)
+      (define g1^ (conj->unify #'g1))
+      (define g2^ (conj->unify #'g2))
+      (syntax-parse #`(g1^ g2^) #:literal-sets (mk-literals)
+        [((== g1^-a g1^-b) (== g2^-a g2^-b))
+         #`(== (cons #,#'g1^-a #,#'g2^-a)
+               (cons #,#'g1^-b #,#'g2^-b))]
+        [_ this-syntax])]
+     [(fresh (x ...) g)
+      #`(fresh (x ...) #,(conj->unify #'g))]
+     [(c:unary-constraint _) this-syntax]
+     [(c:binary-constraint _ _) this-syntax]
+     [(apply-relation e t ...) this-syntax]
+     [(#%rel-app _ _ ...) this-syntax]))
 
   
   ; Code generation
@@ -349,11 +392,14 @@
       
       ))
 
+  ;; here's where I get a little bit confused: how do we get access to the racket code?
+
   ; Compiler entry point
   (define (compile-goal stx)
     (define expanded (expand-goal stx))
     (define reordered (reorder-conjunctions expanded))
-    (define compiled (generate-code reordered))
+    (define conj->unified (conj->unify reordered))
+    (define compiled (generate-code conj->unified))
     compiled)
 
   )
