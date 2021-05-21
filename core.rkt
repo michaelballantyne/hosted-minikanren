@@ -327,7 +327,7 @@
       #`(fresh (x ...) #,(conj->unify #'g))]
      [(c:unary-constraint _) this-syntax]
      [(c:binary-constraint _ _) this-syntax]
-     [(apply-relation e t ...) this-syntax]
+     [(apply-relation _ _ ...) this-syntax]
      [(#%rel-app _ _ ...) this-syntax]))
 
   
@@ -392,6 +392,49 @@
       
       ))
 
+  (define (remove-unused-vars g)
+    (syntax-parse g #:literal-sets (mk-literals)
+     [(disj g1 g2)
+      #`(disj #,(remove-unused-vars #'g1) #,(remove-unused-vars #'g2))]
+     [(conj g1 g2)
+      #`(conj #,(remove-unused-vars #'g1) #,(remove-unused-vars #'g2))]
+     [(fresh (x ...) g)
+      (define stripped-goal (remove-unused-vars #'g))
+      (define used-lvs (filter (λ (lv) (var-referenced? lv stripped-goal)) (syntax->list #'(x ...))))
+      ;; suspicious
+      (with-syntax ([(lv ...) used-lvs])
+        #`(fresh (lv ...) #,stripped-goal))]
+     [_ this-syntax]))
+
+  (define (var-referenced-in-term? lv t)
+    (syntax-parse t #:literal-sets (mk-literals)
+     [(#%lv-ref v) (free-identifier=? lv #'v)]
+     [(cons t1 t2) (or (var-referenced-in-term? lv #'t1)
+                       (var-referenced-in-term? lv #'t2))]
+     [_ #f]))
+
+  (define (var-referenced? lv g)
+    (syntax-parse g #:literal-sets (mk-literals)
+     [(disj g1 g2)
+      (or (var-referenced? lv #'g1)
+          (var-referenced? lv #'g2))]
+     [(conj g1 g2)
+      (or (var-referenced? lv #'g1)
+          (var-referenced? lv #'g2))]
+     [(fresh (x ...) g)
+      (define freshed-vars (syntax->list #'(x ...)))
+      (define lv-in-vars (ormap (λ (x) (bound-identifier=? lv x)) freshed-vars))
+      ;; can swap the order of these clauses if we know the goal has been stripped
+      (and (var-referenced? lv #'g) (not lv-in-vars))]
+     [(c:unary-constraint t) (var-referenced-in-term? lv #'t)]
+     [(c:binary-constraint t1 t2)
+      (or (var-referenced-in-term? lv #'t1)
+          (var-referenced-in-term? lv #'t2))]
+     [(apply-relation e t ...)
+      (ormap (λ (t) (var-referenced-in-term? lv t)) (syntax->list #'(t ...)))]
+     [(#%rel-app e t ...)
+      (ormap (λ (t) (var-referenced-in-term? lv t)) (syntax->list #'(t ...)))]))
+
   ;; here's where I get a little bit confused: how do we get access to the racket code?
 
   ; Compiler entry point
@@ -399,12 +442,17 @@
     (define expanded (expand-goal stx))
     (define reordered (reorder-conjunctions expanded))
     (define conj->unified (conj->unify reordered))
-    (define compiled (generate-code conj->unified))
+    (define vars-removed (remove-unused-vars conj->unified))
+    (define compiled (generate-code vars-removed))
     compiled)
 
   )
 
 ; run, run*, and define-relation are the interface with Racket
+
+;; remove unused fresh vars -> (ask michael about bound-identifier=?)
+;; partial evaluation of relations always invoked with the same arguments
+;; -> confirm that an LV is being used linearly or is atomic when aliasing
 
 (define-syntax run
   (syntax-parser
