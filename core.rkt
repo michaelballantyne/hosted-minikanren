@@ -106,11 +106,27 @@
   (struct term-macro-rep [transformer]
     #:methods gen:term-macro
     [(define (term-macro-transform s stx)
-       ((term-macro-rep-transformer s) stx))])
+       ((term-macro-rep-transformer s) stx))]
+    #:property prop:set!-transformer
+    (lambda (stx)
+      (raise-syntax-error
+       #f
+       (string-append
+        "may only be used where a miniKanren term is expected, "
+        "and not as a Racket expression")
+       stx)))
   (struct goal-macro-rep [transformer]
     #:methods gen:goal-macro
     [(define (goal-macro-transform s stx)
-       ((goal-macro-rep-transformer s) stx))])
+       ((goal-macro-rep-transformer s) stx))]
+    #:property prop:set!-transformer
+    (lambda (stx)
+      (raise-syntax-error
+       #f
+       (string-append
+        "may only be used where a miniKanren goal is expected, "
+        "and not as a Racket expression")
+       stx)))
   (struct relation-binding-rep [argument-count]
     #:methods gen:relation-binding
     [(define (relation-argument-count s)
