@@ -1,0 +1,61 @@
+#lang racket/base
+
+(provide (all-defined-out))
+(require racket/generic
+         ee-lib)
+
+; Interfaces for bindings
+
+(define-generics term-macro
+  (term-macro-transform term-macro stx))
+(define-generics goal-macro
+  (goal-macro-transform goal-macro stx))
+(define-generics relation-binding
+  (relation-argument-count relation-binding))
+(define-generics logic-var-binding)
+
+(struct term-macro-rep [transformer]
+  #:methods gen:term-macro
+  [(define (term-macro-transform s stx)
+     ((term-macro-rep-transformer s) stx))]
+  #:property prop:set!-transformer
+  (lambda (stx)
+    (raise-syntax-error
+     #f
+     (string-append
+      "may only be used where a miniKanren term is expected, "
+      "and not as a Racket expression")
+     stx)))
+(struct goal-macro-rep [transformer]
+  #:methods gen:goal-macro
+  [(define (goal-macro-transform s stx)
+     ((goal-macro-rep-transformer s) stx))]
+  #:property prop:set!-transformer
+  (lambda (stx)
+    (raise-syntax-error
+     #f
+     (string-append
+      "may only be used where a miniKanren goal is expected, "
+      "and not as a Racket expression")
+     stx)))
+(struct relation-binding-rep [argument-count]
+  #:methods gen:relation-binding
+  [(define (relation-argument-count s)
+     (relation-binding-rep-argument-count s))]
+  #:property prop:set!-transformer
+  (lambda (stx)
+    (raise-syntax-error
+     #f
+     "relations may only be used in the context of a miniKanren goal"
+     stx)))
+(struct logic-var-binding-rep []
+  #:methods gen:logic-var-binding []
+  #:property prop:set!-transformer
+  (lambda (stx)
+    (raise-syntax-error
+     #f
+     (string-append
+      "logic variables may only be used in miniKanren terms"
+      ", and not across foreign language boundaries")
+     stx)))
+
