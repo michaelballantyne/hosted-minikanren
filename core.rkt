@@ -24,7 +24,7 @@
    racket/generic
    (only-in syntax/parse [define/syntax-parse def/stx])
    "private/syntax-classes.rkt"
-   (for-template "forms.rkt")
+   (for-template "private/forms.rkt")
    ))
 
 (provide run run* relation define-relation

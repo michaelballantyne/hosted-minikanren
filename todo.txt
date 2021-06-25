@@ -1,17 +1,19 @@
 # Structure
 
 
-/ -|
-   |
-   | test / 
-   | compile-alt-str.rkt
-   | compile.rkt
-   | env-reps.rkt
-   | expand.rkt
-   | forms.rkt
-   | leftrec-check.rkt
-   | runtime.rkt
-   | syntax-classes.rkt
+/ private/ -|
+|           |
+|           |-test / 
+|           |-compile-alt-str.rkt
+|           |-compile.rkt
+|           |-env-reps.rkt
+|           |-expand.rkt
+|           |-forms.rkt
+|           |-leftrec-check.rkt
+|           |-runtime.rkt
+|           |-syntax-classes.rkt
+|
+|-core.rkt
 
 * test / 
 * syntax-classes.rkt
