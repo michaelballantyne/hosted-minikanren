@@ -14,6 +14,7 @@
   syntax/parse/define
   racket/math
   (prefix-in mk: minikanren)
+  "private/forms.rkt"
   (for-syntax
    syntax/stx
    racket/syntax
@@ -23,9 +24,7 @@
    syntax/parse
    racket/generic
    (only-in syntax/parse [define/syntax-parse def/stx])
-   "private/syntax-classes.rkt"
-   (for-template "private/forms.rkt")
-   ))
+   "private/syntax-classes.rkt"))
 
 (provide run run* relation define-relation
          (rename-out [define-relation defrel])
