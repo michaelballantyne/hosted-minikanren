@@ -23,7 +23,7 @@
    syntax/parse
    racket/generic
    (only-in syntax/parse [define/syntax-parse def/stx])
-   "syntax-classes.rkt"
+   "private/syntax-classes.rkt"
    (for-template "forms.rkt")
    ))
 

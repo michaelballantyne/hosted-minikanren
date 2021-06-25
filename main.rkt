@@ -18,7 +18,7 @@
    (except-in racket/base compile)
    syntax/parse
    (only-in syntax/parse [define/syntax-parse def/stx])
-   "syntax-classes.rkt"
+   "private/syntax-classes.rkt"
    racket/syntax
    racket/list
    syntax/stx
