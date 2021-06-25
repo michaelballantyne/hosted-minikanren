@@ -24,6 +24,7 @@
    racket/generic
    (only-in syntax/parse [define/syntax-parse def/stx])
    "syntax-classes.rkt"
+   (for-template "forms.rkt")
    ))
 
 (provide run run* relation define-relation
@@ -72,25 +73,6 @@
       (raise-argument-error/stx 'term "mk-value?" val blame-stx)))
 
 ; Syntax
-
-(define-literal-forms mk-literals
-  "miniKanren forms cannot be used in a Racket expression context"
-  [conj
-   disj
-   fresh
-   ==
-   =/=
-   absento
-   symbolo
-   stringo
-   numbero
-   #%term-datum
-   #%lv-ref
-   #%rkt-ref
-
-   #%rel-app
-   rkt-term
-   apply-relation])
 
 (begin-for-syntax
   ; Interfaces for bindings
