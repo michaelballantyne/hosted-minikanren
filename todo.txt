@@ -17,13 +17,12 @@
 
 * test / 
 * syntax-classes.rkt
-* runtime.rkt -- done, b/c faster-mk is it.
 * forms.rkt
+* env-reps.rkt
+* runtime.rkt -- runtime reps of stuff, not faster-mk
 compile-alt-str.rkt
 compile.rkt
-env-reps.rkt
 expand.rkt
-
 leftrec-check.rkt
 
 
