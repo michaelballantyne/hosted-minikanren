@@ -24,6 +24,7 @@
    syntax/parse
    racket/generic
    (only-in syntax/parse [define/syntax-parse def/stx])
+   "private/env-rep.rkt"
    "private/syntax-classes.rkt"))
 
 (provide run run* relation define-relation
@@ -35,7 +36,6 @@
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
-         
          (for-syntax gen:term-macro gen:goal-macro))
 
 ; Runtime
@@ -74,44 +74,6 @@
 ; Syntax
 
 (begin-for-syntax
-  ; Interfaces for bindings
-  
-  (define-generics term-macro
-    (term-macro-transform term-macro stx))
-  (define-generics goal-macro
-    (goal-macro-transform goal-macro stx))
-  (define-generics relation-binding
-    (relation-argument-count relation-binding))
-  (define-generics logic-var-binding)
-  
-  (struct term-macro-rep [transformer]
-    #:methods gen:term-macro
-    [(define (term-macro-transform s stx)
-       ((term-macro-rep-transformer s) stx))])
-  (struct goal-macro-rep [transformer]
-    #:methods gen:goal-macro
-    [(define (goal-macro-transform s stx)
-       ((goal-macro-rep-transformer s) stx))])
-  (struct relation-binding-rep [argument-count]
-    #:methods gen:relation-binding
-    [(define (relation-argument-count s)
-       (relation-binding-rep-argument-count s))]
-    #:property prop:set!-transformer
-    (lambda (stx)
-      (raise-syntax-error
-       #f
-       "relations may only be used in the context of a miniKanren goal"
-       stx)))
-  (struct logic-var-binding-rep []
-    #:methods gen:logic-var-binding []
-    #:property prop:set!-transformer
-    (lambda (stx)
-      (raise-syntax-error
-       #f
-       (string-append
-        "logic variables may only be used in miniKanren terms"
-        ", and not across foreign language boundaries")
-       stx)))
   
   (define (bind-logic-var! name)
     (bind! name (logic-var-binding-rep)))
@@ -272,7 +234,7 @@
   ; Code generation
   
   (define compiled-names (make-free-id-table))
-  
+
   (define constraint-impls
     (make-free-id-table
      (hash #'symbolo #'mk:symbolo
@@ -284,6 +246,11 @@
 
   (define expanded-relation-code (make-free-id-table))
 
+  (define/hygienic (generate-relation stx) #:expression
+    (syntax-parse stx
+      [(_ (x^ ...) g^)
+       #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))
+  
   (define/hygienic (generate-code stx) #:expression
     (syntax-parse stx
       #:literal-sets (mk-literals)
@@ -374,9 +341,7 @@
        (free-id-table-set! expanded-relation-code
                            name
                            reordered))
-     (syntax-parse reordered
-       [(_ (x^ ...) g^)
-        #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))])]))
+     (generate-relation reordered)]))
 
 (define-syntax define-relation
   (syntax-parser

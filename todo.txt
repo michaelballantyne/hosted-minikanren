@@ -18,11 +18,12 @@
 * test / 
 * syntax-classes.rkt
 * runtime.rkt -- done, b/c faster-mk is it.
+* forms.rkt
 compile-alt-str.rkt
 compile.rkt
 env-reps.rkt
 expand.rkt
-forms.rkt
+
 leftrec-check.rkt
 
 
