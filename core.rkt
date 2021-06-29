@@ -41,12 +41,6 @@
 ; Syntax
 
 (begin-for-syntax
-  
-  (define (bind-logic-var! name)
-    (bind! name (logic-var-binding-rep)))
-  (define (bind-logic-vars! names)
-    (for/list ([x (syntax->list names)])
-      (bind-logic-var! x)))
 
   ; Expander
   
