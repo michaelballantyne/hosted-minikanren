@@ -256,16 +256,7 @@
        #`((relation-value-proc (check-relation e #'e))
           #,@(stx-map generate-code #'(t ...)))]
       
-      ))
-
-  ; Compiler entry point
-  (define (compile-goal stx)
-    (define expanded (expand-goal stx))
-    (define reordered (reorder-conjunctions expanded))
-    (define compiled (generate-code reordered))
-    compiled)
-
-  )
+      )))
 
 ; run, run*, and define-relation are the interface with Racket
 
@@ -276,8 +267,10 @@
       (_ n:expr b:bindings+/c g:goal/c))
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-       (def/stx g^ (compile-goal (add-scope #'g sc)))
-       #'(mk:run (check-natural n #'n) (x^ ...) g^))]))
+       (define expanded (expand-goal (add-scope #'g sc)))
+       (define reordered (reorder-conjunctions expanded))
+       (define compiled (generate-code reordered))
+       #'(mk:run (check-natural n #'n) (x^ ...) #'compiled))]))
 
 (define-syntax run*
   (syntax-parser
@@ -286,8 +279,10 @@
       (_ b:bindings+/c g:goal/c))
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-       (def/stx g^ (compile-goal (add-scope #'g sc)))
-       #'(mk:run* (x^ ...) g^))]))
+       (define expanded (expand-goal (add-scope #'g sc)))
+       (define reordered (reorder-conjunctions expanded))
+       (define compiled (generate-code reordered))
+       #'(mk:run* (x^ ...) #'compiled))]))
 
 (define-syntax relation
   (syntax-parser

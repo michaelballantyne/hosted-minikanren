@@ -2,7 +2,11 @@
 
 (require syntax/parse)
 
-(provide (all-defined-out))
+(provide goal/c
+         term/c
+         bindings/c
+         bindings+/c
+         define-header/c)
 
 (define-syntax-class goal/c
   #:description "goal expression"
