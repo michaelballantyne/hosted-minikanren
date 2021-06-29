@@ -44,6 +44,13 @@
 
   ; Expander
   
+  (define (bind-logic-var! name)
+    (bind! name (logic-var-binding-rep)))
+
+  (define (bind-logic-vars! names)
+    (for/list ([x (syntax->list names)])
+      (bind-logic-var! x)))
+  
   (define/hygienic (expand-term stx) #:expression
     (syntax-parse stx
       #:literal-sets (mk-literals)
@@ -84,16 +91,6 @@
       
       [_ (raise-syntax-error #f "not a term expression" stx)]))
 
-  (define-syntax-class unary-constraint
-    #:literal-sets (mk-literals)
-    (pattern (~or symbolo stringo numbero)))
-  (define-syntax-class binary-constraint
-    #:literal-sets (mk-literals)
-    (pattern (~or == =/= absento)))
-  (define-syntax-class binary-goal-constructor
-    #:literal-sets (mk-literals)
-    (pattern (~or conj disj)))
-    
   (define/hygienic (expand-goal stx) #:expression
     (syntax-parse stx
       #:literal-sets (mk-literals)
@@ -270,7 +267,7 @@
        (define expanded (expand-goal (add-scope #'g sc)))
        (define reordered (reorder-conjunctions expanded))
        (define compiled (generate-code reordered))
-       #'(mk:run (check-natural n #'n) (x^ ...) #'compiled))]))
+       #`(mk:run (check-natural n #'n) (x^ ...) #,compiled))]))
 
 (define-syntax run*
   (syntax-parser
@@ -282,7 +279,7 @@
        (define expanded (expand-goal (add-scope #'g sc)))
        (define reordered (reorder-conjunctions expanded))
        (define compiled (generate-code reordered))
-       #'(mk:run* (x^ ...) #'compiled))]))
+       #`(mk:run* (x^ ...) #,compiled))]))
 
 (define-syntax relation
   (syntax-parser
