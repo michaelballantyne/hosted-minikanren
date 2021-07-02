@@ -1,5 +1,6 @@
-#lang racket
-(require ee-lib/errors)
+#lang racket/base
+(require ee-lib/errors
+         racket/math)
 
 (provide (all-defined-out))
 
