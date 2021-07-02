@@ -26,3 +26,12 @@ expand.rkt
 leftrec-check.rkt
 
 
+/ private / -|
+             |expand 
+             |compile.rkt  ;; this ties together opt & code-gen. notably not expand
+	     |compile / - optpass1
+			- optpass2 
+                        - code-gen
+	     |iface-macros.rkt ;; requires expand and compile.rkt (the latter of which has code gen in it).
+
+|-core.rkt ;; basically a dumb stub file. reprovides right stuff. 

@@ -5,8 +5,6 @@
 ;
 ; `define-goal-macro` and define-term-macro allow sugar definitions.
 ;
-; The `private` submodule exports the syntax generics necessary
-; to extend the core langauge,
 
 (require
   ee-lib/define
