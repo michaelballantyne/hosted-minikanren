@@ -3,6 +3,7 @@
 (require
  ee-lib
  syntax/parse
+ syntax/stx
  (for-template racket/base)
  (only-in syntax/parse [define/syntax-parse def/stx])
  "syntax-classes.rkt"
@@ -11,7 +12,7 @@
 
 (provide
  expand-term
- ;; expand-goal
+ expand-goal
  ;; expand-relation
  bind-logic-vars!)
 
@@ -63,3 +64,53 @@
          (expand-term (qstx/rc (#%term-datum l))))]
       
       [_ (raise-syntax-error #f "not a term expression" stx)]))
+
+  (define/hygienic (expand-goal stx) #:expression
+    (syntax-parse stx
+      #:literal-sets (mk-literals)
+      ; core goals
+      [(c:unary-constraint t)
+       (qstx/rc (c #,(expand-term #'t)))]
+      [(c:binary-constraint t1 t2)
+       (qstx/rc (c #,(expand-term #'t1) #,(expand-term #'t2)))]
+      [(#%rel-app n:id t ...)
+       (define binding (lookup #'n relation-binding?))
+       (unless binding
+         (raise-syntax-error #f "unbound relation" #'n))
+       (let ([expected (relation-argument-count binding)]
+             [actual (length (syntax->list #'(t ...)))])
+         (unless (= expected actual)
+           (raise-syntax-error
+            (syntax-e #'n)
+            (format "wrong number of arguments to relation. Expected ~a; Given ~a"
+                    expected actual)
+            this-syntax)))
+       (qstx/rc (#%rel-app n #,@(stx-map expand-term #'(t ...))))]
+      [(c:binary-goal-constructor g1 g2)
+       (qstx/rc (c #,(expand-goal #'g1) #,(expand-goal #'g2)))]
+      [(fresh (x:id ...) g)
+       (with-scope sc
+         (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+         (def/stx g^ (expand-goal (add-scope #'g sc)))
+         (qstx/rc (fresh (x^ ...) g^)))]
+      [(apply-relation e t ...)
+       (def/stx e^ (local-expand #'e 'expression null))
+       (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))]
+      
+      ; goal macros
+      [(head:id . rest)
+       #:do [(define binding (lookup #'head goal-macro?))]
+       #:when binding
+       (expand-goal (goal-macro-transform binding stx))]
+
+      ; interposition points
+      [(head:id . rest)
+       #:when (lookup #'head relation-binding?)
+       (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
+         (expand-goal (qstx/rc (#%rel-app head . rest))))]
+      
+      [_ (raise-syntax-error
+          #f
+          "not a goal constructor or relation name;\n   expected a relation application or other goal form\n"
+          stx)]))
+
