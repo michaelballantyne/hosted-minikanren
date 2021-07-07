@@ -20,11 +20,12 @@
 * forms.rkt
 * env-reps.rkt
 * runtime.rkt -- runtime reps of stuff, not faster-mk
-compile-alt-str.rkt
-compile.rkt
-expand.rkt
-leftrec-check.rkt
-
+* expand.rkt
+* compile.rkt
+* interface-macros.rkt
+* core.rkt 
+compile-alt-str.rkt (equiv of)
+leftrec-check.rkt (equiv of)
 
 / private / -|
              |expand 
