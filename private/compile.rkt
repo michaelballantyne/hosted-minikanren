@@ -62,6 +62,8 @@
       [_ this-syntax]))
   (map-transform maybe-reorder stx))
 
+; Code generation
+
 (define compiled-names (make-free-id-table))
 
 (define constraint-impls
@@ -72,8 +74,6 @@
          #'== #'mk:==
          #'=/= #'mk:=/=
          #'absento #'mk:absento)))
-
-; Code generation
 
 (define/hygienic (generate-code stx) #:expression
   (syntax-parse stx
