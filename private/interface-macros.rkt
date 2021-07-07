@@ -57,16 +57,6 @@
   
   ; Code generation
   
-  (define compiled-names (make-free-id-table))
-
-  (define constraint-impls
-    (make-free-id-table
-     (hash #'symbolo #'mk:symbolo
-           #'stringo #'mk:stringo
-           #'numbero #'mk:numbero
-           #'== #'mk:==
-           #'=/= #'mk:=/=
-           #'absento #'mk:absento)))
 
   (define expanded-relation-code (make-free-id-table))
 
@@ -75,52 +65,7 @@
       [(_ (x^ ...) g^)
        #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))
   
-  (define/hygienic (generate-code stx) #:expression
-    (syntax-parse stx
-      #:literal-sets (mk-literals)
-      #:literals (quote cons)
-      ; core terms
-      [(#%lv-ref v:id)
-       #'v]
-      [(rkt-term e)
-       #'(check-term e #'e)]
-      [(#%term-datum l:number)
-       #'(quote l)]
-      [(#%term-datum l:string)
-       #'(quote l)]
-      [(#%term-datum l:boolean)
-       #'(quote l)]
-      [(quote d)
-       #'(quote d)]
-      [(cons t1:term/c t2:term/c)
-       #`(cons #,(generate-code #'t1) #,(generate-code #'t2))]
-      
-      ; core goals
-      [(c:unary-constraint t)
-       (def/stx c^ (free-id-table-ref constraint-impls #'c))
-       #`(c^ #,(generate-code #'t))]
-      [(c:binary-constraint t1 t2)
-       (def/stx c^ (free-id-table-ref constraint-impls #'c))
-       #`(c^ #,(generate-code #'t1) #,(generate-code #'t2))]
-      [(#%rel-app n:id t ...)
-       (def/stx n^ (free-id-table-ref compiled-names #'n))
-       #`((relation-value-proc n^) #,@ (stx-map generate-code #'(t ...)))]
-      [(disj g1 g2)
-       #`(mk:conde
-          [#,(generate-code #'g1)]
-          [#,(generate-code #'g2)])]
-      [(conj g1 g2)
-       #`(mk:fresh ()
-                   #,(generate-code #'g1)
-                   #,(generate-code #'g2))]
-      [(fresh (x:id ...) g)
-       #`(mk:fresh (x ...) #,(generate-code #'g))]
-      [(apply-relation e t ...)
-       #`((relation-value-proc (check-relation e #'e))
-          #,@(stx-map generate-code #'(t ...)))]
-      
-      )))
-
+  )
 ; run, run*, and define-relation are the interface with Racket
 
 (define-syntax run
