@@ -18,6 +18,7 @@
  reorder-conjunction
  reorder-conjunctions
  generate-code
+ generate-relation
  compiled-names)
 
   (define (build-conj l)
@@ -114,3 +115,9 @@
           #,@(stx-map generate-code #'(t ...)))]
       
       ))
+
+  (define/hygienic (generate-relation stx) #:expression
+    (syntax-parse stx
+      [(_ (x^ ...) g^)
+       #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))
+

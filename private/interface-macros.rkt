@@ -59,11 +59,6 @@
   
 
   (define expanded-relation-code (make-free-id-table))
-
-  (define/hygienic (generate-relation stx) #:expression
-    (syntax-parse stx
-      [(_ (x^ ...) g^)
-       #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))
   
   )
 ; run, run*, and define-relation are the interface with Racket
