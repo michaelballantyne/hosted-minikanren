@@ -53,11 +53,6 @@
          (def/stx g^ (expand-goal (add-scope #'g sc)))
          (qstx/rc (relation (x^ ...) g^)))]))
   
-  ; Optimization pass
-  
-  ; Code generation
-  
-
   (define expanded-relation-code (make-free-id-table))
   
   )

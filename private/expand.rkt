@@ -16,101 +16,101 @@
  ;; expand-relation
  bind-logic-vars!)
 
-  ; Expander
-  
-  (define (bind-logic-var! name)
-    (bind! name (logic-var-binding-rep)))
+; Expander
 
-  (define (bind-logic-vars! names)
-    (for/list ([x (syntax->list names)])
-      (bind-logic-var! x)))
+(define (bind-logic-var! name)
+  (bind! name (logic-var-binding-rep)))
 
-  (define/hygienic (expand-term stx) #:expression
-    (syntax-parse stx
-      #:literal-sets (mk-literals)
-      #:literals (quote cons)
-      ; core terms
-      [(#%lv-ref v:id)
-       (unless (lookup #'v logic-var-binding?)
-         (raise-syntax-error #f "unbound logic variable" #'v))
-       this-syntax]
-      [(~describe "(rkt-term <exp>)" (rkt-term e))
-       (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
-      [(#%term-datum l:number) this-syntax]
-      [(#%term-datum l:boolean) this-syntax]
-      [(#%term-datum l:string) this-syntax]
-      [(~describe "(quote <datum>)" (quote d)) this-syntax]
-      [(~describe
-        "(cons <term> <term>)"
-        (cons t1:term/c t2:term/c))
-       (qstx/rc (cons #,(expand-term #'t1) #,(expand-term #'t2)))]
-      
-      ; term macros
-      [(head:id . rest)
-       #:do [(define binding (lookup #'head term-macro?))]
-       #:when binding
-       (expand-term (term-macro-transform binding stx))]
-      
-      ; interposition points
-      [var:id
-       #:when (lookup #'var logic-var-binding?)
-       (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)])
-         (expand-term (qstx/rc (#%lv-ref var))))]
-      [var:id
-       (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
-         (expand-term (qstx/rc (rkt-term var))))]
-      [(~or* l:number l:boolean l:string)
-       (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
-         (expand-term (qstx/rc (#%term-datum l))))]
-      
-      [_ (raise-syntax-error #f "not a term expression" stx)]))
+(define (bind-logic-vars! names)
+  (for/list ([x (syntax->list names)])
+    (bind-logic-var! x)))
 
-  (define/hygienic (expand-goal stx) #:expression
-    (syntax-parse stx
-      #:literal-sets (mk-literals)
-      ; core goals
-      [(c:unary-constraint t)
-       (qstx/rc (c #,(expand-term #'t)))]
-      [(c:binary-constraint t1 t2)
-       (qstx/rc (c #,(expand-term #'t1) #,(expand-term #'t2)))]
-      [(#%rel-app n:id t ...)
-       (define binding (lookup #'n relation-binding?))
-       (unless binding
-         (raise-syntax-error #f "unbound relation" #'n))
-       (let ([expected (relation-argument-count binding)]
-             [actual (length (syntax->list #'(t ...)))])
-         (unless (= expected actual)
-           (raise-syntax-error
-            (syntax-e #'n)
-            (format "wrong number of arguments to relation. Expected ~a; Given ~a"
-                    expected actual)
-            this-syntax)))
-       (qstx/rc (#%rel-app n #,@(stx-map expand-term #'(t ...))))]
-      [(c:binary-goal-constructor g1 g2)
-       (qstx/rc (c #,(expand-goal #'g1) #,(expand-goal #'g2)))]
-      [(fresh (x:id ...) g)
-       (with-scope sc
-         (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
-         (def/stx g^ (expand-goal (add-scope #'g sc)))
-         (qstx/rc (fresh (x^ ...) g^)))]
-      [(apply-relation e t ...)
-       (def/stx e^ (local-expand #'e 'expression null))
-       (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))]
-      
-      ; goal macros
-      [(head:id . rest)
-       #:do [(define binding (lookup #'head goal-macro?))]
-       #:when binding
-       (expand-goal (goal-macro-transform binding stx))]
+(define/hygienic (expand-term stx) #:expression
+  (syntax-parse stx
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    ; core terms
+    [(#%lv-ref v:id)
+     (unless (lookup #'v logic-var-binding?)
+       (raise-syntax-error #f "unbound logic variable" #'v))
+     this-syntax]
+    [(~describe "(rkt-term <exp>)" (rkt-term e))
+     (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
+    [(#%term-datum l:number) this-syntax]
+    [(#%term-datum l:boolean) this-syntax]
+    [(#%term-datum l:string) this-syntax]
+    [(~describe "(quote <datum>)" (quote d)) this-syntax]
+    [(~describe
+      "(cons <term> <term>)"
+      (cons t1:term/c t2:term/c))
+     (qstx/rc (cons #,(expand-term #'t1) #,(expand-term #'t2)))]
+    
+    ; term macros
+    [(head:id . rest)
+     #:do [(define binding (lookup #'head term-macro?))]
+     #:when binding
+     (expand-term (term-macro-transform binding stx))]
+    
+    ; interposition points
+    [var:id
+     #:when (lookup #'var logic-var-binding?)
+     (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)])
+       (expand-term (qstx/rc (#%lv-ref var))))]
+    [var:id
+     (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
+       (expand-term (qstx/rc (rkt-term var))))]
+    [(~or* l:number l:boolean l:string)
+     (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
+       (expand-term (qstx/rc (#%term-datum l))))]
+    
+    [_ (raise-syntax-error #f "not a term expression" stx)]))
 
-      ; interposition points
-      [(head:id . rest)
-       #:when (lookup #'head relation-binding?)
-       (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
-         (expand-goal (qstx/rc (#%rel-app head . rest))))]
-      
-      [_ (raise-syntax-error
-          #f
-          "not a goal constructor or relation name;\n   expected a relation application or other goal form\n"
-          stx)]))
+(define/hygienic (expand-goal stx) #:expression
+  (syntax-parse stx
+    #:literal-sets (mk-literals)
+    ; core goals
+    [(c:unary-constraint t)
+     (qstx/rc (c #,(expand-term #'t)))]
+    [(c:binary-constraint t1 t2)
+     (qstx/rc (c #,(expand-term #'t1) #,(expand-term #'t2)))]
+    [(#%rel-app n:id t ...)
+     (define binding (lookup #'n relation-binding?))
+     (unless binding
+       (raise-syntax-error #f "unbound relation" #'n))
+     (let ([expected (relation-argument-count binding)]
+           [actual (length (syntax->list #'(t ...)))])
+       (unless (= expected actual)
+         (raise-syntax-error
+          (syntax-e #'n)
+          (format "wrong number of arguments to relation. Expected ~a; Given ~a"
+                  expected actual)
+          this-syntax)))
+     (qstx/rc (#%rel-app n #,@(stx-map expand-term #'(t ...))))]
+    [(c:binary-goal-constructor g1 g2)
+     (qstx/rc (c #,(expand-goal #'g1) #,(expand-goal #'g2)))]
+    [(fresh (x:id ...) g)
+     (with-scope sc
+       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+       (def/stx g^ (expand-goal (add-scope #'g sc)))
+       (qstx/rc (fresh (x^ ...) g^)))]
+    [(apply-relation e t ...)
+     (def/stx e^ (local-expand #'e 'expression null))
+     (qstx/rc (apply-relation e^ #,@(stx-map expand-term #'(t ...))))]
+    
+    ; goal macros
+    [(head:id . rest)
+     #:do [(define binding (lookup #'head goal-macro?))]
+     #:when binding
+     (expand-goal (goal-macro-transform binding stx))]
+
+    ; interposition points
+    [(head:id . rest)
+     #:when (lookup #'head relation-binding?)
+     (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
+       (expand-goal (qstx/rc (#%rel-app head . rest))))]
+    
+    [_ (raise-syntax-error
+        #f
+        "not a goal constructor or relation name;\n   expected a relation application or other goal form\n"
+        stx)]))
 
