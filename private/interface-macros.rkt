@@ -21,6 +21,7 @@
    racket/base
    syntax/parse
    racket/generic
+   "expand.rkt"
    (only-in syntax/parse [define/syntax-parse def/stx])
    "env-rep.rkt"
    "syntax-classes.rkt"))
@@ -42,12 +43,12 @@
 
   ; Expander
   
-  (define (bind-logic-var! name)
-    (bind! name (logic-var-binding-rep)))
+  ;; (define (bind-logic-var! name)
+  ;;   (bind! name (logic-var-binding-rep)))
 
-  (define (bind-logic-vars! names)
-    (for/list ([x (syntax->list names)])
-      (bind-logic-var! x)))
+  ;; (define (bind-logic-vars! names)
+  ;;   (for/list ([x (syntax->list names)])
+  ;;     (bind-logic-var! x)))
   
   (define/hygienic (expand-term stx) #:expression
     (syntax-parse stx
