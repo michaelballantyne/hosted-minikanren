@@ -40,6 +40,8 @@
 
 ; Syntax
 
+(define-for-syntax expanded-relation-code (make-free-id-table))
+
 (begin-for-syntax
 
   ; Expander
@@ -53,7 +55,7 @@
          (def/stx g^ (expand-goal (add-scope #'g sc)))
          (qstx/rc (relation (x^ ...) g^)))]))
   
-  (define expanded-relation-code (make-free-id-table))
+
   
   )
 ; run, run*, and define-relation are the interface with Racket
