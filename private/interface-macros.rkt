@@ -42,22 +42,6 @@
 
 (define-for-syntax expanded-relation-code (make-free-id-table))
 
-(begin-for-syntax
-
-  ; Expander
-
-  (define/hygienic (expand-relation stx) #:expression
-    (syntax-parse stx
-      #:literals (relation)
-      [(relation (x:id ...) g)
-       (with-scope sc
-         (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
-         (def/stx g^ (expand-goal (add-scope #'g sc)))
-         (qstx/rc (relation (x^ ...) g^)))]))
-  
-
-  
-  )
 ; run, run*, and define-relation are the interface with Racket
 
 (define-syntax run

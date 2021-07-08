@@ -13,7 +13,7 @@
 (provide
  expand-term
  expand-goal
- ;; expand-relation
+ expand-relation
  bind-logic-vars!)
 
 ; Expander
@@ -114,3 +114,13 @@
         "not a goal constructor or relation name;\n   expected a relation application or other goal form\n"
         stx)]))
 
+(define/hygienic (expand-relation stx) #:expression
+  (syntax-parse stx
+    [(relation (x:id ...) g)
+     (with-scope sc
+       (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
+       (def/stx g^ (expand-goal (add-scope #'g sc)))
+       (qstx/rc (relation (x^ ...) g^)))]))
+  
+
+ 
