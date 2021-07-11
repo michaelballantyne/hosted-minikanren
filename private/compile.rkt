@@ -15,13 +15,9 @@
  (for-template "forms.rkt"))
 
 (provide
- build-conj
- reorder-conjunction
- reorder-conjunctions
- generate-code
- generate-relation
  compiled-names
- compile-run)
+ compile-run
+ compile-relation)
 
 
 
@@ -138,4 +134,10 @@
      (define reordered (reorder-conjunctions #'g))
      (define compiled (generate-code reordered))
      #`(mk:run* (q ...) #,compiled)]))
+
+(define/hygienic (compile-relation rel) #:expression
+  (syntax-parse rel
+    [(relation (x ...) g)
+     (define reordered (reorder-conjunctions this-syntax))
+     (generate-relation reordered)]))
 

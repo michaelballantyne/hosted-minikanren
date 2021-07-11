@@ -71,13 +71,12 @@
       (_ b:bindings/c g:goal/c))
      ; some awkwardness to let us capture the expanded and optimized mk code
      (define expanded (expand-relation this-syntax))
-     (define reordered (reorder-conjunctions expanded))
      (define name (syntax-property this-syntax 'name))
      (when name
        (free-id-table-set! expanded-relation-code
                            name
-                           reordered))
-     (generate-relation reordered)]))
+                           expanded))
+     (compile-relation expanded)]))
 
 (define-syntax define-relation
   (syntax-parser
