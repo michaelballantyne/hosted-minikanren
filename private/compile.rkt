@@ -5,6 +5,7 @@
  syntax/stx
  syntax/parse
  syntax/id-table
+ racket/math
  (for-template "runtime.rkt")
  (for-template racket/base)
  (for-template (prefix-in mk: minikanren))
@@ -19,7 +20,8 @@
  reorder-conjunctions
  generate-code
  generate-relation
- compiled-names)
+ compiled-names
+ compile-run)
 
 
 
@@ -125,4 +127,15 @@
   (syntax-parse stx
     [(_ (x^ ...) g^)
      #`(relation-value (lambda (x^ ...) #,(generate-code #'g^)))]))
+
+(define/hygienic (compile-run query) #:expression
+  (syntax-parse query
+    [(run n (q ...) g)
+     (define reordered (reorder-conjunctions #'g))
+     (define compiled (generate-code reordered))
+     #`(mk:run (check-natural n #'n) (q ...) #,compiled)]
+    [(run* (q ...) g)
+     (define reordered (reorder-conjunctions #'g))
+     (define compiled (generate-code reordered))
+     #`(mk:run* (q ...) #,compiled)]))
 

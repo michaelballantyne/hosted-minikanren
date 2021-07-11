@@ -52,9 +52,7 @@
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
        (define expanded (expand-goal (add-scope #'g sc)))
-       (define reordered (reorder-conjunctions expanded))
-       (define compiled (generate-code reordered))
-       #`(mk:run (check-natural n #'n) (x^ ...) #,compiled))]))
+       (compile-run #`(run n (x^ ...) #,expanded)))]))
 
 (define-syntax run*
   (syntax-parser
@@ -64,9 +62,7 @@
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
        (define expanded (expand-goal (add-scope #'g sc)))
-       (define reordered (reorder-conjunctions expanded))
-       (define compiled (generate-code reordered))
-       #`(mk:run* (x^ ...) #,compiled))]))
+       (compile-run #`(run* (x^ ...) #,expanded)))]))
 
 (define-syntax relation
   (syntax-parser
