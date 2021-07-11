@@ -12,53 +12,15 @@
  (only-in syntax/parse [define/syntax-parse def/stx])
  "syntax-classes.rkt"
  "env-rep.rkt"
- (for-template "forms.rkt"))
+ (for-template "forms.rkt")
+
+ ; Compiler Passes
+ "compile/reorder-conj.rkt")
 
 (provide
  compiled-names
  compile-run
  compile-relation)
-
-
-
-; Optimization pass
-
-(define (build-conj l)
-  (when (null? l) (error 'build-conj "requires at least one item"))
-  (let recur ([l (reverse l)])
-    (if (= (length l) 1)
-        (car l)
-        #`(conj
-           #,(recur (cdr l))
-           #,(car l)))))
-
-(define (reorder-conjunction stx)
-  (define lvars '())
-  (define constraints '())
-  (define others '())
-  (let recur ([stx stx])
-    (syntax-parse stx #:literals (conj fresh ==)
-                  [(conj g1 g2) (recur #'g1) (recur #'g2)]
-                  [(fresh (x:id ...) g)
-                   (set! lvars (cons (syntax->list #'(x ...)) lvars))
-                   (recur #'g)]
-                  [(~or (c:unary-constraint t)
-                        (c:binary-constraint t1 t2))
-                   (set! constraints (cons this-syntax constraints))]
-                  [_ (set! others (cons (reorder-conjunctions this-syntax) others))]))
-  (let ([lvars (apply append (reverse lvars))]
-        [body (build-conj (append (reverse constraints) (reverse others)))])
-    (if (null? lvars)
-        body
-        #`(fresh #,lvars #,body))))
-
-(define (reorder-conjunctions stx)
-  (define (maybe-reorder stx)
-    (syntax-parse stx
-      #:literals (conj fresh)
-      [((~or conj fresh) . _) (reorder-conjunction this-syntax)]
-      [_ this-syntax]))
-  (map-transform maybe-reorder stx))
 
 ; Code generation
 
@@ -127,17 +89,17 @@
 (define/hygienic (compile-run query) #:expression
   (syntax-parse query
     [(run n (q ...) g)
-     (define reordered (reorder-conjunctions #'g))
+     (define reordered (reorder-conj/run #'g))
      (define compiled (generate-code reordered))
      #`(mk:run (check-natural n #'n) (q ...) #,compiled)]
     [(run* (q ...) g)
-     (define reordered (reorder-conjunctions #'g))
+     (define reordered (reorder-conj/run #'g))
      (define compiled (generate-code reordered))
      #`(mk:run* (q ...) #,compiled)]))
 
 (define/hygienic (compile-relation rel) #:expression
   (syntax-parse rel
     [(relation (x ...) g)
-     (define reordered (reorder-conjunctions this-syntax))
+     (define reordered (reorder-conj/rel this-syntax))
      (generate-relation reordered)]))
 
