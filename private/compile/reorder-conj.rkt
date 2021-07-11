@@ -1,17 +1,12 @@
 #lang racket/base
 
-(require
- ee-lib
- syntax/stx
- syntax/parse
- syntax/id-table
- (for-template "../runtime.rkt")
- (for-template racket/base)
- (for-template (prefix-in mk: minikanren))
- (only-in syntax/parse [define/syntax-parse def/stx])
- "../syntax-classes.rkt"
- "../env-rep.rkt"
- (for-template "../forms.rkt"))
+(require (for-template racket/base
+                       "../forms.rkt")
+         ee-lib
+         syntax/parse
+         (only-in syntax/parse
+                  (define/syntax-parse def/stx))
+         "../syntax-classes.rkt")
 
 (provide reorder-conj/rel
          reorder-conj/run)
