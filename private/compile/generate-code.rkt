@@ -43,32 +43,15 @@
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
-    ; core terms
-    [(#%lv-ref v:id)
-     #'v]
-    [(rkt-term e)
-     #'(check-term e #'e)]
-    [(#%term-datum l:number)
-     #'(quote l)]
-    [(#%term-datum l:string)
-     #'(quote l)]
-    [(#%term-datum l:boolean)
-     #'(quote l)]
-    [(quote d)
-     #'(quote d)]
-    [(cons t1:term/c t2:term/c)
-     #`(cons #,(generate-goal #'t1) #,(generate-goal #'t2))]
-    
-    ; core goals
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
-     #`(c^ #,(generate-goal #'t))]
+     #`(c^ #,(generate-term #'t))]
     [(c:binary-constraint t1 t2)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
-     #`(c^ #,(generate-goal #'t1) #,(generate-goal #'t2))]
+     #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
     [(#%rel-app n:id t ...)
      (def/stx n^ (free-id-table-ref compiled-names #'n))
-     #`((relation-value-proc n^) #,@ (stx-map generate-goal #'(t ...)))]
+     #`((relation-value-proc n^) #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
         [#,(generate-goal #'g1)]
@@ -81,11 +64,22 @@
      #`(mk:fresh (x ...) #,(generate-goal #'g))]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
-        #,@(stx-map generate-goal #'(t ...)))]
-    
-    ))
+        #,@(stx-map generate-term #'(t ...)))]))
 
 (define/hygienic (generate-term stx) #:expression
-  #'())
-
-
+  (syntax-parse stx
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(#%lv-ref v:id) #'v]
+    [(rkt-term e)
+     #'(check-term e #'e)]
+    [(#%term-datum l:number)
+     #'(quote l)]
+    [(#%term-datum l:string)
+     #'(quote l)]
+    [(#%term-datum l:boolean)
+     #'(quote l)]
+    [(quote d)
+     #'(quote d)]
+    [(cons t1:term/c t2:term/c)
+     #`(cons #,(generate-term #'t1) #,(generate-term #'t2))]))
