@@ -6,7 +6,8 @@
          (only-in syntax/parse
                   (define/syntax-parse def/stx))
          "compile/generate-code.rkt"
-         "compile/reorder-conj.rkt")
+         "compile/reorder-conj.rkt"
+         "compile/remove-unused-vars.rkt")
 
 (provide
  compiled-names
@@ -18,12 +19,14 @@
   (syntax-parse stx
     [(~or (run _ (_ ...) _)
           (run* (_ ...) _))
-     (define reordered (reorder-conj/run this-syntax))
-     (generate-run reordered)]))
+     (let* ([reordered (reorder-conj/run this-syntax)]
+            [removed (remove-unused-vars/run reordered)])
+       (generate-run removed))]))
 
 (define/hygienic (compile-relation stx) #:expression
   (syntax-parse stx
     [(relation (x ...) g)
-     (define reordered (reorder-conj/rel this-syntax))
-     (generate-relation reordered)]))
+     (let* ([reordered (reorder-conj/rel this-syntax)]
+          [removed (remove-unused-vars/rel reordered)])
+       (generate-relation removed))]))
 
