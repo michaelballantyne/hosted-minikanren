@@ -20,13 +20,15 @@
     [(~or (run _ (_ ...) _)
           (run* (_ ...) _))
      (let* ([reordered (reorder-conj/run this-syntax)]
-            [removed (remove-unused-vars/run reordered)])
-       (generate-run removed))]))
+            [removed (remove-unused-vars/run reordered)]
+            [final (generate-run removed)])
+       final)]))
 
 (define/hygienic (compile-relation stx) #:expression
   (syntax-parse stx
     [(relation (x ...) g)
      (let* ([reordered (reorder-conj/rel this-syntax)]
-          [removed (remove-unused-vars/rel reordered)])
-       (generate-relation removed))]))
+            [removed (remove-unused-vars/rel reordered)]
+            [final (generate-relation removed)])
+       final)]))
 
