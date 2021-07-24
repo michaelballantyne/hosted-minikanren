@@ -52,9 +52,7 @@
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
        (define expanded (expand-goal (add-scope #'g sc)))
-       (define reordered (reorder-conjunctions expanded))
-       (define compiled (generate-code reordered))
-       #`(mk:run (check-natural n #'n) (x^ ...) #,compiled))]))
+       (compile-run #`(run n (x^ ...) #,expanded)))]))
 
 (define-syntax run*
   (syntax-parser
@@ -64,9 +62,7 @@
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
        (define expanded (expand-goal (add-scope #'g sc)))
-       (define reordered (reorder-conjunctions expanded))
-       (define compiled (generate-code reordered))
-       #`(mk:run* (x^ ...) #,compiled))]))
+       (compile-run #`(run* (x^ ...) #,expanded)))]))
 
 (define-syntax relation
   (syntax-parser
@@ -75,13 +71,12 @@
       (_ b:bindings/c g:goal/c))
      ; some awkwardness to let us capture the expanded and optimized mk code
      (define expanded (expand-relation this-syntax))
-     (define reordered (reorder-conjunctions expanded))
      (define name (syntax-property this-syntax 'name))
      (when name
        (free-id-table-set! expanded-relation-code
                            name
-                           reordered))
-     (generate-relation reordered)]))
+                           expanded))
+     (compile-relation expanded)]))
 
 (define-syntax define-relation
   (syntax-parser
