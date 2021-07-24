@@ -10,7 +10,6 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.6
         with:
           version: 8.1
-      - run: raco pkg install faster-minikanren
-      - run: raco pkg install minikanren-ee
+      - run: raco pkg install --auto minikanren-ee
       - run: raco setup minikanren-ee
       - run: raco test -c minikanren-ee
