@@ -1,0 +1,53 @@
+#!/usr/bin/env racket
+
+#lang racket
+
+(define TEMPLATE #<<delim
+#lang racket/base
+
+(require (for-template "../forms.rkt")
+         "../syntax-classes.rkt")
+
+(provide ~a/rel
+         ~a/run)
+
+(define (~a/rel stx)
+  (syntax-parse stx #:literal-sets (mk-literals)
+    [(relation (x ...) g) ...]))
+
+(define (~a/run stx)
+  (syntax-parse stx #:literal-sets (mk-literals)
+    [(run n (q ...) g) ...]
+    [(run* (q ...) g) ...]))
+
+(define (~a/goal g)
+  (syntax-parse g #:literal-sets (mk-literals)
+    [(c:unary-constraint t) ...]
+    [(c:binary-constraint t1 t2) ...]
+    [(conj g1 g2) ...]
+    [(disj g1 g2) ...]
+    [(fresh (x ...) g) ...]
+    [(#%rel-app n t ...) ...]
+    [(apply-relation e t ...) ...]))
+
+(define (~a/term t)
+  (syntax-parse t
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(#%term-datum l) ...]
+    [(quote d) ...]
+    [(rkt-term e) ...]
+    [(#%lv-ref v) ...]
+    [(cons t1 t2) ...]))
+
+delim
+)
+
+(define (generate-pass name)
+  (format TEMPLATE name name name name name name))
+
+(command-line #:args (pass-name)
+  (define out (open-output-file (format "private/compile/~a.rkt" pass-name)))
+  (display (generate-pass pass-name) out)
+  (close-output-port out))
+
