@@ -1,0 +1,15 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Bogdanp/setup-racket@v1.6
+        with:
+          version: 8.1
+      - run: raco pkg install --auto minikanren-ee
+      - run: raco setup minikanren-ee
+      - run: raco test -c minikanren-ee
