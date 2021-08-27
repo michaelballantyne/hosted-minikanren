@@ -5,7 +5,9 @@
 (define TEMPLATE #<<delim
 #lang racket/base
 
-(require (for-template "../forms.rkt")
+(require syntax/parse
+         (for-template racket/base
+                       "../forms.rkt")
          "../syntax-classes.rkt")
 
 (provide ~a/rel
