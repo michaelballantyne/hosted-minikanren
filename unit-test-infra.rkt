@@ -2,44 +2,28 @@
 
 (require syntax/id-table
          racket/syntax
+         syntax/stx
          (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
 
-#;(module+ test
 
-  (require rackunit)
+(define (alpha=? stx1 stx2)
+  (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
-  (define stx1
-    (with-syntax* ([(a#) (generate-temporaries '(a))]
-                  [a#! (syntax-property #'a# 'binder #t)])
-      #'(let ([a#! 5]) a#)))
-
-  (define stx2
-    (with-syntax* ([(b#) (generate-temporaries '(b))]
-                  [b#! (syntax-property #'b# 'binder #t)])
-      #'(let ([b#! 5]) b#)))
-
-  (define stx3 #'(let ([b 5]) (let ([b 6]) b)))
-
-  (check-true (alpha=? stx1 stx2)))
-
-#;(define (alpha=? stx1 stx2)
-  (alpha=?-helper stx1 stx2 (make-bound-id-table)))
-
-#;(define (alpha=?-helper stx1 stx2 table)
+(define (alpha=?-helper stx1 stx2 table)
   (cond
     [(and (identifier? stx1)
           (identifier? stx2)
           (syntax-property stx1 'binder)
           (syntax-property stx2 'binder))
-     (bound-id-table-set! table stx1 stx2)
+     (free-id-table-set! table stx1 stx2)
      #t]
     [(and (identifier? stx1)
           (identifier? stx2)
           (not (syntax-property stx1 'binder))
           (not (syntax-property stx2 'binder)))
-     (let ([lookup (bound-id-table-ref table stx1 #f)])
+     (let ([lookup (free-id-table-ref table stx1 #f)])
        (if lookup
-         (bound-identifier=? lookup stx2)
+         (free-identifier=? lookup stx2)
          (and (bound? stx1) (bound? stx2) (free-identifier=? stx1 stx2))))]
     [(and (pair? stx1) (pair? stx2))
      (and (alpha=?-helper (car stx1) (car stx2) table)
@@ -139,8 +123,8 @@
     [(_ body)
      (with-syntax ([(binder ...) (find-binders #'body)]
                    [template (strip-binders #'body)])
-       (displayln #'template)
-       #`(with-syntax ([(binder ...) (generate-temporaries #'(binder ...))])
+       #`(with-syntax ([(binder ...) 
+                        (stx-map generate-bound-temporary #'(binder ...))])
            #`template))]))
 
 (define (mark-as-binder id)
@@ -155,10 +139,10 @@
     (generate-prog (~binder a)))
 
   (check-true (identifier? (make-a)))
-  (check-false (bound-identifier=? (make-a) (make-a)))
+  (check-false (free-identifier=? (make-a) (make-a)))
   (check-true 
     (let ([prog (syntax->list (generate-prog ((~binder a) a)))])
-      (bound-identifier=? (car prog) (cadr prog))))
+      (free-identifier=? (car prog) (cadr prog))))
 
   (check-exn 
     #rx"^generate-prog: duplicate identifier introduced as binder$"
@@ -168,7 +152,7 @@
 
   (let* ([prog (syntax->list (generate-prog (((~binders a b c)) a)))]
          [binding-list (syntax->list (car prog))])
-    (check-true (bound-identifier=? (car binding-list) (cadr prog)))
+    (check-true (free-identifier=? (car binding-list) (cadr prog)))
     (check-equal? (length binding-list) 3))
 
 
