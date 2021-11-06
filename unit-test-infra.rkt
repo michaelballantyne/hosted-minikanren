@@ -5,6 +5,10 @@
          syntax/stx
          (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
 
+(module+ test
+  (require rackunit
+           syntax/macro-testing))
+
 
 (define (alpha=? stx1 stx2)
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
@@ -39,6 +43,44 @@
     [(and (syntax? stx1) (syntax? stx2))
      (equal? (syntax->datum stx1) (syntax->datum stx2))]
     [else (equal? stx1 stx2)]))
+
+(module+ test
+  (check-false (alpha=? (generate-prog (a a))
+                        (generate-prog (c c))))
+  (check-true (alpha=? (generate-prog ((~binder a) a))
+                       (generate-prog ((~binder c) c))))
+  ;; NOTE this test _assumes_ that 'probably-unbound' is unbound (surprisingly)
+  (check-false (alpha=? (generate-prog (probably-unbound probably-unbound))
+                        (generate-prog (probably-unbound probably-unbound))))
+  (check-true (alpha=? (generate-prog (car car))
+                       (generate-prog (car car))))
+
+  (define-syntax-rule (generate-expanded-prog template)
+    (expand (generate-prog template)))
+
+  (define something1
+    (generate-expanded-prog
+      (let ([(~binder a) 5])
+        (let ([(~binder b) 6])
+          a))))
+
+  (define something2
+    (generate-expanded-prog
+      (let ([(~binder x) 5])
+        (let ([(~binder y) 6])
+          x))))
+
+  (check-true (alpha=? something1 something2))
+
+  (define something3
+    (generate-expanded-prog
+      (let ([(~binder x) 5])
+        (let ([(~binder y) 6])
+          y))))
+
+  (check-false (alpha=? something1 something3))
+
+  )
 
 (define (bound? id)
   (identifier-binding id (syntax-local-phase-level) #t))
@@ -131,10 +173,6 @@
   (syntax-property id 'binder #t))
 
 (module+ test
-  (require rackunit
-           syntax/macro-testing)
-
-
   (define (make-a)
     (generate-prog (~binder a)))
 
@@ -154,7 +192,6 @@
          [binding-list (syntax->list (car prog))])
     (check-true (free-identifier=? (car binding-list) (cadr prog)))
     (check-equal? (length binding-list) 3))
-
 
   )
 
