@@ -5,6 +5,8 @@
          syntax/stx
          (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
 
+(provide alpha=? generate-prog)
+
 (module+ test
   (require rackunit
            syntax/macro-testing))
@@ -165,8 +167,7 @@
     [(_ body)
      (with-syntax ([(binder ...) (find-binders #'body)]
                    [template (strip-binders #'body)])
-       #`(with-syntax ([(binder ...) 
-                        (stx-map generate-bound-temporary #'(binder ...))])
+       #`(with-syntax ([(binder ...) (generate-temporaries #'(binder ...))])
            #`template))]))
 
 (define (mark-as-binder id)
