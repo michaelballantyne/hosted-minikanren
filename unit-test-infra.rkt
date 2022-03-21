@@ -1,11 +1,12 @@
 #lang racket
 
-(require syntax/id-table
-         racket/syntax
+(require racket/syntax
+         syntax/id-table
          syntax/stx
-         (for-syntax racket/syntax syntax/parse racket/base syntax/stx syntax/macro-testing))
+         syntax/macro-testing
+         (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
 
-(provide progs=? generate-prog)
+(provide alpha=? generate-prog)
 
 (module+ test
   (require rackunit
@@ -46,9 +47,6 @@
      (equal? (syntax->datum stx1) (syntax->datum stx2))]
     [else (equal? stx1 stx2)]))
 
-(define-syntax (progs=? stx)
-  (syntax-parse stx
-    [(_ p1 p2) #'(phase1-eval (alpha=? p1 p2))]))
 
 (module+ test
   (check-false (alpha=? (generate-prog (a a))
