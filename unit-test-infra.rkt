@@ -99,6 +99,7 @@
   ;; Grammar for ~binder/~binders language:
   ;;
   ;; sexp := (~binder symbol)
+  ;;       | (~prop sexp literal literal)
   ;;       | literal
   ;;       | list
   ;;
@@ -107,6 +108,12 @@
   ;;       | literal
   ;;       | '()
 
+  ;; Example of ~prop usage:
+  ;; (generate-prog
+  ;;   (ir-rel (foobaro (~binder a) (~binder b) (~binder c))
+  ;;     (== (~prop (#%lv-ref a) 'foobar #t)
+  ;;         (~prop (#%lv-ref b) 'foobar #f))))
+
   ;; return the identifiers in the contents of ~binder and ~binders forms
   ;; (-> syntax? (listof identifier?))
   ;; error cases include:
@@ -114,8 +121,9 @@
   ;; - no duplicate binders introduced
   (define (find-binders stx)
     (define (get-all-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~binders)
+      (syntax-parse stx #:datum-literals (~binder ~binders ~prop)
         [(~binder ~! b:id) (list #'b)]
+        [(~prop ~! sexp key val) (get-all-binders-sexp #'sexp)]
         [(~binders ~! b:id ...)
          (wrong-syntax this-syntax "~binders not allowed in this position")]
         [(_ . _) (get-all-binders-list this-syntax)]
@@ -143,8 +151,13 @@
         #'#,(mark-as-binder #'id)))
 
     (define (strip-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder)
+      (syntax-parse stx #:datum-literals (~binder ~prop)
         [(~binder b) (generate-annot #'b)]
+        [(~prop sexp key val)
+         (with-syntax ([stripped-sexp (strip-binders #'sexp)])
+           #'#,(syntax-property #'stripped-sexp
+                                (syntax->datum #'key)
+                                (syntax->datum #'val)))]
         [(_ . _) (strip-binders-list this-syntax)]
         [_ this-syntax]))
 
