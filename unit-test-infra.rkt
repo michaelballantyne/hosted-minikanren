@@ -12,7 +12,6 @@
   (require rackunit
            syntax/macro-testing))
 
-
 (define (alpha=? stx1 stx2)
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
@@ -35,6 +34,12 @@
     [(and (pair? stx1) (pair? stx2))
      (and (alpha=?-helper (car stx1) (car stx2) table)
           (alpha=?-helper (cdr stx1) (cdr stx2) table))]
+    [(and (syntax? stx1)
+          (not (syntax? stx2)))
+     (alpha=?-helper (syntax-e stx1) stx2 table)]
+    [(and (not (syntax? stx1))
+          (syntax? stx2))
+     (alpha=?-helper stx1 (syntax-e stx2) table)]
     [(and (syntax? stx1)
           (syntax? stx2)
           (pair? (syntax-e stx1))
