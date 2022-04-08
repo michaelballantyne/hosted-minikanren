@@ -6,11 +6,41 @@
          syntax/macro-testing
          (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
 
-(provide alpha=? generate-prog)
+(provide alpha=?
+         generate-prog
+         (struct-out success)
+         (struct-out failure)
+         make-result
+         get-test-result)
 
 (module+ test
   (require rackunit
            syntax/macro-testing))
+
+(struct success ())
+(struct failure (actual expected))
+
+(define (combine res1 res2)
+  (cond
+    [(failure? res1) res1]
+    [(failure? res2) res2]
+    [else (success)]))
+
+(define (make-result c actual expected)
+  (if c (success) (failure actual expected)))
+
+(define get-status success?)
+
+(define (get-error-message res)
+  (if (success? res)
+    ""
+    (format "Actual does not equal expected. Actual: ~a. Expected: ~a"
+            (syntax->datum #`#,(failure-actual res))
+            (syntax->datum #`#,(failure-expected res)))))
+
+(define (get-test-result res)
+  (cons (get-status res) (get-error-message res)))
+
 
 (define (alpha=? stx1 stx2)
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
@@ -22,18 +52,20 @@
           (syntax-property stx1 'binder)
           (syntax-property stx2 'binder))
      (free-id-table-set! table stx1 stx2)
-     #t]
+     (make-result #t stx1 stx2)]
     [(and (identifier? stx1)
           (identifier? stx2)
           (not (syntax-property stx1 'binder))
           (not (syntax-property stx2 'binder)))
      (let ([lookup (free-id-table-ref table stx1 #f)])
        (if lookup
-         (free-identifier=? lookup stx2)
-         (and (bound? stx1) (bound? stx2) (free-identifier=? stx1 stx2))))]
+         (make-result (free-identifier=? lookup stx2) stx1 stx2)
+         (make-result (and (bound? stx1) (bound? stx2) (free-identifier=? stx1 stx2))
+                      stx1
+                      stx2)))]
     [(and (pair? stx1) (pair? stx2))
-     (and (alpha=?-helper (car stx1) (car stx2) table)
-          (alpha=?-helper (cdr stx1) (cdr stx2) table))]
+     (combine (alpha=?-helper (car stx1) (car stx2) table)
+              (alpha=?-helper (cdr stx1) (cdr stx2) table))]
     [(and (syntax? stx1)
           (not (syntax? stx2)))
      (alpha=?-helper (syntax-e stx1) stx2 table)]
@@ -46,11 +78,11 @@
           (pair? (syntax-e stx2)))
      (let ([stx1-pair (syntax-e stx1)]
            [stx2-pair (syntax-e stx2)])
-       (and (alpha=?-helper (car stx1-pair) (car stx2-pair) table)
-            (alpha=?-helper (cdr stx1-pair) (cdr stx2-pair) table)))]
+       (combine (alpha=?-helper (car stx1-pair) (car stx2-pair) table)
+                (alpha=?-helper (cdr stx1-pair) (cdr stx2-pair) table)))]
     [(and (syntax? stx1) (syntax? stx2))
-     (equal? (syntax->datum stx1) (syntax->datum stx2))]
-    [else (equal? stx1 stx2)]))
+     (make-result (equal? (syntax->datum stx1) (syntax->datum stx2)) stx1 stx2)]
+    [else (make-result (equal? stx1 stx2) stx1 stx2)]))
 
 
 (module+ test
