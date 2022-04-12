@@ -8,24 +8,24 @@
 
 (provide alpha=?
          generate-prog
-         (struct-out success)
-         (struct-out failure)
-         make-result
          get-test-result)
 
 (module+ test
   (require rackunit
            syntax/macro-testing))
 
+;; Represents test outcomes
 (struct success ())
 (struct failure (actual expected))
 
+;; Return a failure result if either argument is a failure, otherwise return success
 (define (combine res1 res2)
   (cond
     [(failure? res1) res1]
     [(failure? res2) res2]
     [else (success)]))
 
+;; Produce a result object based on if the condition indicates success
 (define (make-result c actual expected)
   (if c (success) (failure actual expected)))
 
@@ -38,6 +38,9 @@
             (syntax->datum #`#,(failure-actual res))
             (syntax->datum #`#,(failure-expected res)))))
 
+;; NOTE a `cons` is returned here because this function is called inside
+;;      `phase1-eval`, which expects one value, and because I haven't gotten
+;;      accessors for a struct to work on an instance built at phase+1
 (define (get-test-result res)
   (cons (get-status res) (get-error-message res)))
 
