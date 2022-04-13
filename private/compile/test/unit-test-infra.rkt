@@ -135,6 +135,7 @@
   ;;
   ;; sexp := (~binder symbol)
   ;;       | (~prop sexp literal literal)
+  ;;       | (~props sexp (~seq literal literal) ...+)
   ;;       | literal
   ;;       | list
   ;;
@@ -156,9 +157,10 @@
   ;; - no duplicate binders introduced
   (define (find-binders stx)
     (define (get-all-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~binders ~prop)
+      (syntax-parse stx #:datum-literals (~binder ~binders ~prop ~props)
         [(~binder ~! b:id) (list #'b)]
         [(~prop ~! sexp key val) (get-all-binders-sexp #'sexp)]
+        [(~props ~! sexp (~seq key val) ...+) (get-all-binders-sexp #'sexp)]
         [(~binders ~! b:id ...)
          (wrong-syntax this-syntax "~binders not allowed in this position")]
         [(_ . _) (get-all-binders-list this-syntax)]
@@ -186,13 +188,18 @@
         #'#,(mark-as-binder #'id)))
 
     (define (strip-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~prop)
+      (syntax-parse stx #:datum-literals (~binder ~prop ~props)
         [(~binder b) (generate-annot #'b)]
         [(~prop sexp key val)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
                                 (syntax->datum #'key)
                                 (syntax->datum #'val)))]
+        [(~props sexp (~seq key val) ...+)
+         (with-syntax ([stripped-sexp (strip-binders #'sexp)]
+                       [keys #'(key ...)]
+                       [vals #'(val ...)])
+           #'#,(apply-stx-props #'stripped-sexp #'keys #'vals))]
         [(_ . _) (strip-binders-list this-syntax)]
         [_ this-syntax]))
 
@@ -227,6 +234,12 @@
 
 (define (mark-as-binder id)
   (syntax-property id 'binder #t))
+
+(define (apply-stx-props sexp keys vals)
+  (for/fold ([sexp sexp])
+            ([key (in-syntax keys)]
+             [val (in-syntax vals)])
+    (syntax-property sexp key val)))
 
 (module+ test
   (define (make-a)
