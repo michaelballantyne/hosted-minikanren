@@ -89,15 +89,24 @@
 
 
 (module+ test
-  (check-false (alpha=? (generate-prog (a a))
-                        (generate-prog (c c))))
-  (check-true (alpha=? (generate-prog ((~binder a) a))
-                       (generate-prog ((~binder c) c))))
+  (require syntax/parse/define)
+
+  (define-syntax-parse-rule (check-failure tst) (check-pred failure? tst))
+  (define-syntax-parse-rule (check-success tst) (check-pred success? tst))
+
+  (check-failure (alpha=? (generate-prog (a a))
+                          (generate-prog (c c))))
+
+  (check-success (alpha=? (generate-prog ((~binder a) a))
+                          (generate-prog ((~binder c) c))))
+
   ;; NOTE this test _assumes_ that 'probably-unbound' is unbound (surprisingly)
-  (check-false (alpha=? (generate-prog (probably-unbound probably-unbound))
-                        (generate-prog (probably-unbound probably-unbound))))
-  (check-true (alpha=? (generate-prog (car car))
-                       (generate-prog (car car))))
+  (check-failure (alpha=? (generate-prog (probably-unbound probably-unbound))
+                          (generate-prog (probably-unbound probably-unbound))))
+
+  (check-success (alpha=? (generate-prog (car car))
+                          (generate-prog (car car))))
+
 
   (define-syntax-rule (generate-expanded-prog template)
     (expand (generate-prog template)))
@@ -114,7 +123,7 @@
         (let ([(~binder y) 6])
           x))))
 
-  (check-true (alpha=? something1 something2))
+  (check-success (alpha=? something1 something2))
 
   (define something3
     (generate-expanded-prog
@@ -122,7 +131,7 @@
         (let ([(~binder y) 6])
           y))))
 
-  (check-false (alpha=? something1 something3))
+  (check-failure (alpha=? something1 something3))
 
   )
 

@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require minikanren-ee racket/pretty)
+(require "../../main.rkt" racket/pretty)
 
 (defrel (append l1 l2 l3)
   (disj

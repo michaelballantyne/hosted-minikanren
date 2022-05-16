@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require minikanren-ee
+(require "../../main.rkt"
          rackunit
          syntax/macro-testing)
 

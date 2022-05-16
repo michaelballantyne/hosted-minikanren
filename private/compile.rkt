@@ -1,12 +1,19 @@
 #lang racket/base
 
-(require (for-template racket/base)
-         ee-lib
-         syntax/parse
-         (only-in syntax/parse
-                  (define/syntax-parse def/stx))
-         "compile/generate-code.rkt"
-         "compile/reorder-conj.rkt")
+(require
+ ee-lib
+ syntax/stx
+ syntax/parse
+ syntax/id-table
+ (for-template "runtime.rkt")
+ (for-template racket/base)
+ (for-template (prefix-in mk: "../mk/mk.rkt"))
+ (only-in syntax/parse [define/syntax-parse def/stx])
+ "syntax-classes.rkt"
+ "env-rep.rkt"
+ "compile/generate-code.rkt"
+ "compile/reorder-conj.rkt"
+ (for-template "forms.rkt"))
 
 (provide
  compiled-names

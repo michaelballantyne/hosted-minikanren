@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require minikanren-ee)
+(require "../../main.rkt")
 
 (defrel (append l1 l2 l3)
   (disj

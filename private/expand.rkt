@@ -25,6 +25,12 @@
   (for/list ([x (syntax->list names)])
     (bind-logic-var! x)))
 
+(define (maybe-interposition form-id ctx-stx)
+  (let ([interposition-id (datum->syntax ctx-stx (syntax-e form-id))])
+    (if (lookup interposition-id (lambda (v) #t))
+        interposition-id
+        form-id)))
+
 (define/hygienic (expand-term stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)
@@ -49,18 +55,22 @@
     [(head:id . rest)
      #:do [(define binding (lookup #'head term-macro?))]
      #:when binding
-     (expand-term (term-macro-transform binding stx))]
+     (expand-term
+       (apply-as-transformer (lambda (stx) (term-macro-transform binding stx))
+                             #'head
+                             'expression
+                             stx))]
     
     ; interposition points
     [var:id
      #:when (lookup #'var logic-var-binding?)
-     (with-syntax ([#%lv-ref (datum->syntax stx '#%lv-ref)])
+     (with-syntax ([#%lv-ref (maybe-interposition #'#%lv-ref this-syntax)])
        (expand-term (qstx/rc (#%lv-ref var))))]
     [var:id
-     (with-syntax ([rkt-term (datum->syntax stx 'rkt-term)])
+     (with-syntax ([rkt-term (maybe-interposition #'rkt-term this-syntax)])
        (expand-term (qstx/rc (rkt-term var))))]
     [(~or* l:number l:boolean l:string)
-     (with-syntax ([#%term-datum (datum->syntax stx '#%term-datum)])
+     (with-syntax ([#%term-datum (maybe-interposition #'#%term-datum this-syntax)])
        (expand-term (qstx/rc (#%term-datum l))))]
     
     [_ (raise-syntax-error #f "not a term expression" stx)]))
@@ -101,12 +111,16 @@
     [(head:id . rest)
      #:do [(define binding (lookup #'head goal-macro?))]
      #:when binding
-     (expand-goal (goal-macro-transform binding stx))]
+     (expand-goal
+       (apply-as-transformer (lambda (stx) (goal-macro-transform binding stx))
+                             #'head
+                             'expression
+                             stx))]
 
     ; interposition points
     [(head:id . rest)
      #:when (lookup #'head relation-binding?)
-     (with-syntax ([#%rel-app (datum->syntax stx '#%rel-app)])
+     (with-syntax ([#%rel-app (maybe-interposition #'#%rel-app this-syntax)])
        (expand-goal (qstx/rc (#%rel-app head . rest))))]
     
     [_ (raise-syntax-error
