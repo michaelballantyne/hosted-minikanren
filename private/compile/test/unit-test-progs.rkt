@@ -6,10 +6,10 @@
          (for-syntax syntax/parse/define syntax/parse "unit-test-infra.rkt"))
 
 (provide generate-prog
-         progs-equal?)
-         ;; progs-not-equal?
-         ;; core-progs-equal?)
-         ;; core-progs-not-equal?)
+         progs-equal?
+         progs-not-equal?
+         core-progs-equal?
+         core-progs-not-equal?)
 
 ;; FIXME incorrect source locations are printed on test failures
 ;; (define-syntax (progs-equal? stx)
