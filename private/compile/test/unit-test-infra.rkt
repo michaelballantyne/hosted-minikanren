@@ -1,29 +1,44 @@
 #lang racket
 
 (require racket/syntax
+         syntax/parse
          syntax/id-table
          syntax/stx
          syntax/macro-testing
-         (for-syntax racket/syntax syntax/parse racket/base syntax/stx))
+         syntax/parse/define
+         (for-syntax racket/sequence racket/syntax syntax/parse racket/base syntax/stx))
 
 (provide alpha=?
+         core/alpha=?
          generate-prog
          get-test-result)
 
-(module+ test
-  (require rackunit
-           syntax/macro-testing))
+;; TODO
+;; 1. a macro that wraps or does the monadic stuff
+;; 2. a macro that wraps return values & things with result objects
+;; 3. a macro that handles the `for/list when lists are of equal length, but also fold, etc`
+;; 4. a macro for abstracting over all of these for-loops that are annoying
+;; 5. have a `set-id!` form that modifies the free-id-table and returns success
+;; 6. macro for `combine` to effectively get monads -- combine will wrap each of its arguments
+;;    in a thunk, then apply them one after the other until it receives failure, and will
+;;    return that. it will otherwise return success.
 
 ;; Represents test outcomes
 (struct success ())
 (struct failure (actual expected))
 
-;; Return a failure result if either argument is a failure, otherwise return success
-(define (combine res1 res2)
-  (cond
-    [(failure? res1) res1]
-    [(failure? res2) res2]
-    [else (success)]))
+(define (to-datum e)
+  (if (syntax? e) (syntax->datum e) e))
+
+;; Return a failure if any of the result structs are failures, otherwise succeed
+(define (combine . reses)
+  (or (findf failure? reses)
+      (success)))
+
+(define-syntax-parser diagnostic-syntax-parse
+  [(_ stx kw litset [pat expr:expr ...+] ...+)
+   #`(syntax-parse stx kw litset [pat (printf "entered pattern ~a\n" 'pat) expr ...] ...)])
+
 
 ;; Produce a result object based on if the condition indicates success
 (define (make-result c actual expected)
@@ -44,49 +59,194 @@
 (define (get-test-result res)
   (cons (get-status res) (get-error-message res)))
 
-
+;; alpha-equivalence for IR tests
 (define (alpha=? stx1 stx2)
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
+(define (core/alpha=? stx1 stx2 new-ids)
+  (core/alpha=?-helper (local-expand stx1 'top-level new-ids)
+                  (local-expand stx2 'top-level new-ids)
+                  (make-free-id-table)))
+
+(define (datum-length=? stx1 stx2)
+  (= (length (to-datum stx1)) (length (to-datum stx2))))
+
+(define (ids=? stx1 stx2 table)
+  (let ([first-ids (syntax->list stx1)]
+        [second-ids (syntax->list stx2)])
+    (define len=? (datum-length=? first-ids second-ids))
+    (when len=?
+      (for ([id1 first-ids]
+            [id2 second-ids])
+        (free-id-table-set! table id1 id2)))
+
+    (make-result len=? stx1 stx2)))
+
+(define (formals=? f1 f2 table)
+  (syntax-parse (list f1 f2) #:literal-sets (kernel-literals)
+    [((id1:id ...) (id2:id ...)) (ids=? #'(id1 ...) #'(id2 ...) table)]
+    [((id1:id ...+ . rest-id1:id)
+      (id2:id ...+ . rest-id2:id))
+     (ids=? #'(rest-id1 . (id1 ...)) #'(rest-id2 . (id2 ...)) table)]
+    [(id1:id id2:id) (ids=? #'(id1) #'(id2) table)]))
+
+;; ASSUMPTION: the free-id-table we're currently using will support alpha-equivalence
+;; of core racket identifiers.
+(define (core/alpha=?-helper stx1 stx2 table)
+  (syntax-parse (list stx1 stx2) #:literal-sets (kernel-literals)
+
+    ;; identifier case
+    [(i1:id i2:id)
+     (let ([lookup (free-id-table-ref table #'i1 #f)])
+       (if lookup
+         (make-result (free-identifier=? lookup #'i2) #'i1 #'i2)
+         (make-result (and (bound? #'i1) (bound? #'i2) (free-identifier=? #'i1 #'i2))
+                      #'i1
+                      #'i2)))]
+
+    ;; Racket core forms
+    ;; Skipping (for now):
+    ;; - module
+    ;; - begin-for-syntax
+    ;; - #%provide
+    ;; - #%declare
+    ;; - module*
+    ;; - define-syntaxes
+    ;; - #%require
+    ;; - quote-syntax
+    [((#%plain-lambda formals1 body1)
+      (#%plain-lambda formals2 body2))
+     (combine
+       (formals=? #'formals1 #'formals2 table)
+       (core/alpha=?-helper #'body1 #'body2 table))]
+    [((case-lambda [formals1 body1 ...+] ...)
+      (case-lambda [formals2 body2 ...+] ...))
+     (apply combine
+       (cons (make-result (datum-length=? #'(formals1 ...) #'(formals2 ...)) stx1 stx2)
+         (for/list ([f1 (in-syntax #'(formals1 ...))]
+                    [f2 (in-syntax #'(formals2 ...))]
+                    [bodies1 (in-syntax #'((body1 ...) ...))]
+                    [bodies2 (in-syntax #'((body2 ...) ...))])
+           (let ([formals-res (formals=? f1 f2 table)])
+             (apply combine
+                (cons formals-res
+                  (stx-map (λ (b1 b2) (core/alpha=?-helper b1 b2 table)) bodies1 bodies2)))))))]
+    [((if c1 t1 e1) (if c2 t2 e2))
+     (combine (core/alpha=?-helper #'c1 #'c2 table)
+              (core/alpha=?-helper #'t1 #'t2 table)
+              (core/alpha=?-helper #'e1 #'e2 table))]
+    [(((~or* begin begin0) e1 ...)
+      ((~or* begin begin0) e2 ...))
+     (let ([len=? (datum-length=? #'(e1 ...) #'(e2 ...))])
+       (if len=?
+        (apply combine
+                (stx-map (λ (e1 e2) (core/alpha=?-helper e1 e2 table))
+                        #'(e1 ...)
+                        #'(e2 ...)))
+        (make-result #f stx1 stx2)))]
+
+    [((let-values ([(id1:id ...) rhs1] ...) body1 ...+)
+      (let-values ([(id2:id ...) rhs2] ...) body2 ...+))
+     (if (and (datum-length=? #'(rhs1 ...) #'(rhs2 ...))
+              (datum-length=? #'(body1 ...) #'(body2 ...)))
+       (apply combine
+         (append
+           (for/list ([first-ids (in-syntax #'((id1 ...) ...))]
+                      [second-ids (in-syntax #'((id2 ...) ...))]
+                      [first-rhs (in-syntax #'(rhs1 ...))]
+                      [second-rhs (in-syntax #'(rhs2 ...))])
+             (combine (ids=? first-ids second-ids table)
+                      (core/alpha=?-helper first-rhs second-rhs table)))
+           (stx-map (λ (b1 b2) (core/alpha=?-helper b1 b2 table))
+                    #'(body1 ...)
+                    #'(body2 ...))))
+       (make-result #f stx1 stx2))]
+
+    [((letrec-values ([(id1:id ...) rhs1] ...) body1 ...+)
+      (letrec-values ([(id2:id ...) rhs2] ...) body2 ...+))
+     (if (and (datum-length=? #'(rhs1 ...) #'(rhs2 ...))
+              (datum-length=? #'(body1 ...) #'(body2 ...)))
+       (let ()
+         (define id-reses
+           (for/list ([first-ids (in-syntax #'((id1 ...) ...))]
+                      [second-ids (in-syntax #'((id2 ...) ...))])
+             (ids=? first-ids second-ids table)))
+
+         (apply combine
+           (append id-reses
+             (for/list ([first-rhs (in-syntax #'(rhs1 ...))]
+                        [second-rhs (in-syntax #'(rhs2 ...))])
+               (core/alpha=?-helper first-rhs second-rhs table))
+             (for/list ([first-body (in-syntax #'(body1 ...))]
+                        [second-body (in-syntax #'(body2 ...))])
+               (core/alpha=?-helper first-body second-body table)))))
+
+       (make-result #f stx1 stx2))]
+
+    [((set! id1:id e1)
+      (set! id2:id e2))
+     (combine (core/alpha=?-helper #'id1 #'id2 table)
+              (core/alpha=?-helper #'e1 #'e2 table))]
+
+    [((quote e1) (quote e2))
+     (make-result (equal? (to-datum #'e1) (to-datum #'e2))
+                  stx1
+                  stx2)]
+    [((with-continuation-mark k1 v1 e1)
+      (with-continuation-mark k2 v2 e2))
+     (combine (core/alpha=?-helper #'k1 #'k2 table)
+              (core/alpha=?-helper #'v1 #'v2 table)
+              (core/alpha=?-helper #'e1 #'e2 table))]
+
+    [((#%plain-app e1 ...+)
+      (#%plain-app e2 ...+))
+     (if (datum-length=? #'(e1 ...) #'(e2 ...))
+      (apply combine
+        (for/list ([e1 (in-syntax #'(e1 ...))]
+                   [e2 (in-syntax #'(e2 ...))])
+          (core/alpha=?-helper e1 e2 table)))
+      (make-result #f stx1 stx2))]
+    
+    [((#%top . id1:id) (#%top . id2:id)) (core/alpha=?-helper #'id1 #'id2 table)]
+    [((#%variable-reference var1) (#%variable-reference var2))
+     (core/alpha=?-helper #'var1 #'var2 table)]
+
+    [((#%variable-reference) (#%variable-reference)) (make-result #t stx1 stx2)]
+
+    [((#%expression e1) (#%expression e2)) (core/alpha=?-helper #'e1 #'e2 table)]
+
+    [((define-values (id1 ...) b1)
+      (define-values (id2 ...) b2))
+     (let ([id-res (ids=? #'(id1 ...) #'(id2 ...) table)])
+       (combine id-res (core/alpha=?-helper #'b1 #'b2 table)))]
+
+    [_ (failure stx1 stx2)]))
+      
+
 (define (alpha=?-helper stx1 stx2 table)
-  (cond
-    [(and (identifier? stx1)
-          (identifier? stx2)
-          (syntax-property stx1 'binder)
-          (syntax-property stx2 'binder))
+  (syntax-parse (list stx1 stx2)
+    [(i1:id i2:id)
+     #:when (and (syntax-property #'i1 'binder)
+                 (syntax-property #'i2 'binder))
      (free-id-table-set! table stx1 stx2)
      (make-result #t stx1 stx2)]
-    [(and (identifier? stx1)
-          (identifier? stx2)
-          (not (syntax-property stx1 'binder))
-          (not (syntax-property stx2 'binder)))
-     (let ([lookup (free-id-table-ref table stx1 #f)])
+    [(i1:id i2:id)
+     #:when (not (or (syntax-property #'i1 'binder)
+                     (syntax-property #'i2 'binder)))
+     (let ([lookup (free-id-table-ref table #'i1 #f)])
        (if lookup
-         (make-result (free-identifier=? lookup stx2) stx1 stx2)
-         (make-result (and (bound? stx1) (bound? stx2) (free-identifier=? stx1 stx2))
-                      stx1
-                      stx2)))]
-    [(and (pair? stx1) (pair? stx2))
-     (combine (alpha=?-helper (car stx1) (car stx2) table)
-              (alpha=?-helper (cdr stx1) (cdr stx2) table))]
-    [(and (syntax? stx1)
-          (not (syntax? stx2)))
-     (alpha=?-helper (syntax-e stx1) stx2 table)]
-    [(and (not (syntax? stx1))
-          (syntax? stx2))
-     (alpha=?-helper stx1 (syntax-e stx2) table)]
-    [(and (syntax? stx1)
-          (syntax? stx2)
-          (pair? (syntax-e stx1))
-          (pair? (syntax-e stx2)))
-     (let ([stx1-pair (syntax-e stx1)]
-           [stx2-pair (syntax-e stx2)])
-       (combine (alpha=?-helper (car stx1-pair) (car stx2-pair) table)
-                (alpha=?-helper (cdr stx1-pair) (cdr stx2-pair) table)))]
-    [(and (syntax? stx1) (syntax? stx2))
-     (make-result (equal? (syntax->datum stx1) (syntax->datum stx2)) stx1 stx2)]
-    [else (make-result (equal? stx1 stx2) stx1 stx2)]))
-
+         (make-result (free-identifier=? lookup #'i2) #'i1 #'i2)
+         (make-result (and (bound? #'i1) (bound? #'i2) (free-identifier=? #'i1 #'i2))
+                      #'i1
+                      #'i2)))]
+    [((a1 . d1) (a2 . d2))
+     (combine (alpha=?-helper #'a1 #'a2 table)
+              (alpha=?-helper #'d1 #'d2 table))]
+    ;; FIXME I don't like this branch
+    [_
+     (make-result (equal? (to-datum stx1) (to-datum stx2))
+                  stx1
+                  stx2)]))
 
 (module+ test
   (require syntax/parse/define)
@@ -94,6 +254,7 @@
   (define-syntax-parse-rule (check-failure tst) (check-pred failure? tst))
   (define-syntax-parse-rule (check-success tst) (check-pred success? tst))
 
+  ;; some direct alpha=? tests, majority of tests live in `unit-test-progs.rkt`
   (check-failure (alpha=? (generate-prog (a a))
                           (generate-prog (c c))))
 
@@ -134,6 +295,7 @@
   (check-failure (alpha=? something1 something3))
 
   )
+
 
 (define (bound? id)
   (identifier-binding id (syntax-local-phase-level) #t))
@@ -251,6 +413,8 @@
     (syntax-property sexp key val)))
 
 (module+ test
+  (require rackunit)
+
   (define (make-a)
     (generate-prog (~binder a)))
 
@@ -269,9 +433,7 @@
   (let* ([prog (syntax->list (generate-prog (((~binders a b c)) a)))]
          [binding-list (syntax->list (car prog))])
     (check-true (free-identifier=? (car binding-list) (cadr prog)))
-    (check-equal? (length binding-list) 3))
-
-  )
+    (check-equal? (length binding-list) 3)))
 
 #|
 (generate-prog
