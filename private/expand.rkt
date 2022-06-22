@@ -134,7 +134,7 @@
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
        (def/stx g^ (expand-goal (add-scope #'g sc)))
-       (qstx/rc (relation (x^ ...) g^)))]))
+       (qstx/rc (ir-rel (x^ ...) g^)))]))
   
 
  
