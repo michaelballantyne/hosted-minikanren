@@ -30,7 +30,7 @@
 
 (define/hygienic (compile-relation stx) #:expression
   (syntax-parse stx
-    [(relation (x ...) g)
+    [(ir-rel (x ...) g)
      (define reordered (reorder-conj/rel this-syntax))
      (generate-relation reordered)]))
 

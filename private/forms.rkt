@@ -26,4 +26,6 @@
 
    #%rel-app
    rkt-term
-   apply-relation])
+   apply-relation
+
+   ir-rel])
