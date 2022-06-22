@@ -36,8 +36,8 @@
       (success)))
 
 (define-syntax-parser diagnostic-syntax-parse
-  [(_ stx kw litset [pat expr:expr ...+] ...+)
-   #`(syntax-parse stx kw litset [pat (printf "entered pattern ~a\n" 'pat) expr ...] ...)])
+  [(_ stx kw litset [pat (~optional (~seq #:when cnd)) expr:expr ...+] ...+)
+   #`(syntax-parse stx kw litset [pat (~? (~@ #:when cnd)) (printf "entered pattern ~a\n" 'pat) expr ...] ...)])
 
 
 ;; Produce a result object based on if the condition indicates success
@@ -61,6 +61,8 @@
 
 ;; alpha-equivalence for IR tests
 (define (alpha=? stx1 stx2)
+  ;; (displayln (car (syntax-e (cdr (syntax-e stx1)))))
+  ;; (displayln (syntax-property-symbol-keys (car (syntax-e (cdr (syntax-e stx1))))))
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
 (define (core/alpha=? stx1 stx2 new-ids)
@@ -224,7 +226,11 @@
       
 
 (define (alpha=?-helper stx1 stx2 table)
-  (syntax-parse (list stx1 stx2)
+  (syntax-parse (list stx1 stx2) #:literal-sets ()
+    [_ #:when (syntax-property stx2 'check)
+     (if (syntax-property stx1 (syntax-property stx2 'check))
+       (alpha=?-helper stx1 (syntax-property-remove stx2 'check) table)
+       (make-result #f stx1 stx2))]
     [(i1:id i2:id)
      #:when (and (syntax-property #'i1 'binder)
                  (syntax-property #'i2 'binder))
@@ -304,13 +310,14 @@
 
   ;; Grammar for ~binder/~binders language:
   ;;
-  ;; sexp := (~binder symbol)
-  ;;       | (~prop sexp literal literal)
+  ;; sexp := (~binder identifier)
+  ;;       | (~prop sexp symbol literal)
   ;;       | (~props sexp (~seq literal literal) ...+)
+  ;;       | (~check symbol sexp)
   ;;       | literal
   ;;       | list
   ;;
-  ;; list := (cons (~binders symbol ...) list)
+  ;; list := (cons (~binders identifier ...) list)
   ;;       | (cons sexp list)
   ;;       | literal
   ;;       | '()
@@ -328,8 +335,9 @@
   ;; - no duplicate binders introduced
   (define (find-binders stx)
     (define (get-all-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~binders ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~binders ~check ~prop ~props)
         [(~binder ~! b:id) (list #'b)]
+        [(~check ~! sexp prop) (get-all-binders-sexp #'sexp)]
         [(~prop ~! sexp key val) (get-all-binders-sexp #'sexp)]
         [(~props ~! sexp (~seq key val) ...+) (get-all-binders-sexp #'sexp)]
         [(~binders ~! b:id ...)
@@ -359,12 +367,17 @@
         #'#,(mark-as-binder #'id)))
 
     (define (strip-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~check ~prop ~props)
         [(~binder b) (generate-annot #'b)]
+        [(~check sexp prop)
+         (with-syntax ([stripped-sexp (strip-binders #'sexp)])
+           #'#,(syntax-property #'stripped-sexp
+                                'check
+                                (cadr (syntax->datum #'prop))))] ;; stx->datum produces '(quote sym), so need cadr to get sym
         [(~prop sexp key val)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
-                                (syntax->datum #'key)
+                                (cadr (syntax->datum #'key)) ;; stx->datum produces '(quote sym), so need cadr to get sym
                                 (syntax->datum #'val)))]
         [(~props sexp (~seq key val) ...+)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)]

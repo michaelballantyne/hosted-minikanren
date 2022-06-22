@@ -92,12 +92,21 @@
                 #`(#,(syntax-property #'a 'binder #t) a))
 
   (progs-equal? (generate-prog ((~binder a) a))
-                (list (syntax-property #'a 'binder #t) #'a))
+                #`(#,(syntax-property #'a 'binder #t) a))
 
   (progs-equal? (generate-prog ((~binders a b) ((~binder c) a)))
-                (list* (syntax-property #'a 'binder #t)
-                       (syntax-property #'b 'binder #t)
-                       #`((#,(syntax-property #'c 'binder #t) a))))
+                #`(#,(syntax-property #'a 'binder #t)
+                   #,(syntax-property #'b 'binder #t)
+                   (#,(syntax-property #'c 'binder #t) a)))
+
+  (progs-equal? (generate-prog ((~binder a) (~prop a 'foo #t)))
+                (generate-prog ((~binder x) (~check x 'foo))))
+
+  (progs-not-equal? (generate-prog ((~binder a) (~prop a 'bar #t)))
+                    (generate-prog ((~binder x) (~check x 'foo))))
+
+  (progs-equal? (generate-prog ((~binder x) x))
+                (generate-prog ((~binder y) y)))
 
   ;; testing alpha-equivalence of core forms
   (core-progs-equal? (generate-prog (define-values () 5))
