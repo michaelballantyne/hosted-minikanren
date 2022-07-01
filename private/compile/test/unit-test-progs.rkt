@@ -105,6 +105,12 @@
   (progs-not-equal? (generate-prog ((~binder a) (~prop a 'bar #t)))
                     (generate-prog ((~binder x) (~check x 'foo))))
 
+  (progs-equal? (generate-prog ((~binder a) a))
+                (generate-prog ((~binder x) (~missing x 'foo))))
+
+  (progs-not-equal? (generate-prog ((~binder a) (~prop a 'foo #t)))
+                    (generate-prog ((~binder x) (~missing x 'foo))))
+
   (progs-equal? (generate-prog ((~binder x) x))
                 (generate-prog ((~binder y) y)))
 

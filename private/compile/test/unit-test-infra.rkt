@@ -231,6 +231,10 @@
      (if (syntax-property stx1 (syntax-property stx2 'check))
        (alpha=?-helper stx1 (syntax-property-remove stx2 'check) table)
        (make-result #f stx1 stx2))]
+    [_ #:when (syntax-property stx2 'missing)
+     (if (syntax-property stx1 (syntax-property stx2 'missing))
+       (make-result #f stx1 stx2)
+       (alpha=?-helper stx1 (syntax-property-remove stx2 'missing) table))]
     [(i1:id i2:id)
      #:when (and (syntax-property #'i1 'binder)
                  (syntax-property #'i2 'binder))
@@ -313,7 +317,8 @@
   ;; sexp := (~binder identifier)
   ;;       | (~prop sexp symbol literal)
   ;;       | (~props sexp (~seq literal literal) ...+)
-  ;;       | (~check symbol sexp)
+  ;;       | (~check sexp symbol)
+  ;;       | (~missing sexp symbol)
   ;;       | literal
   ;;       | list
   ;;
@@ -335,9 +340,10 @@
   ;; - no duplicate binders introduced
   (define (find-binders stx)
     (define (get-all-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~binders ~check ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~binders ~check ~missing ~prop ~props)
         [(~binder ~! b:id) (list #'b)]
         [(~check ~! sexp prop) (get-all-binders-sexp #'sexp)]
+        [(~missing ~! sexp prop) (get-all-binders-sexp #'sexp)]
         [(~prop ~! sexp key val) (get-all-binders-sexp #'sexp)]
         [(~props ~! sexp (~seq key val) ...+) (get-all-binders-sexp #'sexp)]
         [(~binders ~! b:id ...)
@@ -367,13 +373,20 @@
         #'#,(mark-as-binder #'id)))
 
     (define (strip-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~check ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~check ~missing ~prop ~props)
         [(~binder b) (generate-annot #'b)]
         [(~check sexp prop)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
                                 'check
-                                (cadr (syntax->datum #'prop))))] ;; stx->datum produces '(quote sym), so need cadr to get sym
+                                ;; stx->datum produces '(quote sym), so need cadr to get sym
+                                (cadr (syntax->datum #'prop))))]
+        [(~missing sexp prop)
+         (with-syntax ([stripped-sexp (strip-binders #'sexp)])
+           #'#,(syntax-property #'stripped-sexp
+                                'missing
+                                ;; stx->datum produces '(quote sym), so need cadr to get sym
+                                (cadr (syntax->datum #'prop))))]
         [(~prop sexp key val)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
