@@ -83,3 +83,23 @@
      #'(quote d)]
     [(cons t1:term/c t2:term/c)
      #`(cons #,(generate-term #'t1) #,(generate-term #'t2))]))
+
+
+(module* test racket/base
+  (require "./test/unit-test-progs.rkt"
+           "../forms.rkt"
+           rackunit
+		       (prefix-in mk: minikanren)
+           (for-syntax racket/base
+                       "./test/unit-test-progs.rkt"
+                       (submod ".."))
+	             )
+  
+  #;(core-progs-equal?
+      (generate-relation
+        (generate-prog
+          (ir-rel () (== '5 '5))))
+      (generate-prog
+        (lambda () (#%app mk:== '5 '5))))
+    
+  )
