@@ -3,7 +3,7 @@ name: Tests
 on: [push]
 
 jobs:
-  run_tests:
+  run_integration_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -13,3 +13,16 @@ jobs:
       - run: raco pkg install --auto minikanren-ee
       - run: raco setup minikanren-ee
       - run: raco test -c minikanren-ee
+
+  run_unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Bogdanp/setup-racket@v1.6
+        with:
+          version: 8.4
+      - run: raco pkg install faster-minikanren
+      - run: raco pkg install --auto
+      - run: raco setup minikanren-ee
+      - run: raco test private/compile/*.rkt
+
