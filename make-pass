@@ -15,7 +15,7 @@
 
 (define (~a/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
-    [(relation (x ...) g) ...]))
+    [(ir-rel (x ...) g) ...]))
 
 (define (~a/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
