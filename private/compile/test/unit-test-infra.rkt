@@ -66,9 +66,9 @@
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
 (define (core/alpha=? stx1 stx2 new-ids)
-  (core/alpha=?-helper (local-expand stx1 'top-level new-ids)
-                  (local-expand stx2 'top-level new-ids)
-                  (make-free-id-table)))
+  (core/alpha=?-helper (local-expand stx1 'expression new-ids)
+                       (local-expand stx2 'expression new-ids)
+                       (make-free-id-table)))
 
 (define (datum-length=? stx1 stx2)
   (= (length (to-datum stx1)) (length (to-datum stx2))))
