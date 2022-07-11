@@ -21,7 +21,7 @@
   (check-equal?
    (syntax->datum
     (relation-code foo))
-   '(relation (x) (fresh (tmpv) (#%rel-app bar (#%lv-ref x))))))
+   '(ir-rel (x) (fresh (tmpv) (#%rel-app bar (#%lv-ref x))))))
 
 (require 'a)
 
