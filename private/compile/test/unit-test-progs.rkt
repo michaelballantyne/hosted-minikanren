@@ -114,6 +114,12 @@
   (progs-equal? (generate-prog ((~binder x) x))
                 (generate-prog ((~binder y) y)))
 
+  (progs-equal? (generate-prog (~dat-lit e))
+                (generate-prog (~dat-lit e)))
+
+  (progs-equal? (generate-prog (quote (~dat-lit e)))
+                (generate-prog (quote (~dat-lit e))))
+
   ;; testing alpha-equivalence of core forms
 
   ;; FIXME WHY DO THESE THINGS FAIL?
@@ -127,13 +133,6 @@
   ;; (core-progs-not-equal? (generate-prog (begin (define-values (a b) (#%plain-app + '3 '4))))
   ;;                        (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)))))
 
-  (core-progs-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) a))
-                     (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
-                     #:new-ids (list #'a #'c))
-
-  (core-progs-not-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) '5))
-                         (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
-                         #:new-ids (list #'a #'c))
 
   ;; (core-progs-equal? (generate-prog (begin
   ;;                                     (define-values (a) (+ 3 4))
@@ -146,6 +145,14 @@
   ;; (core-progs-equal? (generate-prog (begin (define-values (a b c) (+ 3 4)) c))
   ;;                    (generate-prog (begin (define-values (x y z) (+ 3 4)) z))
   ;;                    #:new-ids (list #'c #'z))
+
+  (core-progs-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) a))
+                     (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
+                     #:new-ids (list #'a #'c))
+
+  (core-progs-not-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) '5))
+                         (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
+                         #:new-ids (list #'a #'c))
 
   (core-progs-equal? (generate-prog (#%plain-lambda (x) x))
                      (generate-prog (#%plain-lambda (y) y)))

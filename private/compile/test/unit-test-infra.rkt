@@ -235,6 +235,11 @@
      (if (syntax-property stx1 (syntax-property stx2 'missing))
        (make-result #f stx1 stx2)
        (alpha=?-helper stx1 (syntax-property-remove stx2 'missing) table))]
+    [_ #:when (and (syntax-property stx1 'datum)
+                   (syntax-property stx2 'datum))
+     (make-result (equal? (syntax->datum stx1) (syntax->datum stx2))
+                  stx1
+                  stx2)]
     [(i1:id i2:id)
      #:when (and (syntax-property #'i1 'binder)
                  (syntax-property #'i2 'binder))
@@ -319,6 +324,7 @@
   ;;       | (~props sexp (~seq literal literal) ...+)
   ;;       | (~check sexp symbol)
   ;;       | (~missing sexp symbol)
+  ;;       | (~dat-lit sexp)
   ;;       | literal
   ;;       | list
   ;;
@@ -340,12 +346,13 @@
   ;; - no duplicate binders introduced
   (define (find-binders stx)
     (define (get-all-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~binders ~check ~missing ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~binders ~check ~missing ~prop ~props ~dat-lit)
         [(~binder ~! b:id) (list #'b)]
         [(~check ~! sexp prop) (get-all-binders-sexp #'sexp)]
         [(~missing ~! sexp prop) (get-all-binders-sexp #'sexp)]
         [(~prop ~! sexp key val) (get-all-binders-sexp #'sexp)]
         [(~props ~! sexp (~seq key val) ...+) (get-all-binders-sexp #'sexp)]
+        [(~dat-lit ~! sexp) (get-all-binders-sexp #'sexp)]
         [(~binders ~! b:id ...)
          (wrong-syntax this-syntax "~binders not allowed in this position")]
         [(_ . _) (get-all-binders-list this-syntax)]
@@ -372,8 +379,12 @@
       (with-syntax ([id id-arg])
         #'#,(mark-as-binder #'id)))
 
+    (define (generate-datum-annot arg)
+      (with-syntax ([stx arg])
+        #'#,(mark-as-datum #'stx)))
+
     (define (strip-binders-sexp stx)
-      (syntax-parse stx #:datum-literals (~binder ~check ~missing ~prop ~props)
+      (syntax-parse stx #:datum-literals (~binder ~check ~missing ~prop ~props ~dat-lit)
         [(~binder b) (generate-annot #'b)]
         [(~check sexp prop)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
@@ -397,6 +408,7 @@
                        [keys #'(key ...)]
                        [vals #'(val ...)])
            #'#,(apply-stx-props #'stripped-sexp #'keys #'vals))]
+        [(~dat-lit s) (generate-datum-annot #'s)]
         [(_ . _) (strip-binders-list this-syntax)]
         [_ this-syntax]))
 
@@ -431,6 +443,9 @@
 
 (define (mark-as-binder id)
   (syntax-property id 'binder #t))
+
+(define (mark-as-datum id)
+  (syntax-property id 'datum #t))
 
 (define (apply-stx-props sexp keys vals)
   (for/fold ([sexp sexp])
