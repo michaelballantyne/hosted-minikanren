@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require (for-template (prefix-in mk: minikanren)
+(require (for-template (prefix-in mk: "../../mk/main.rkt")
                        racket/base
                        "../forms.rkt"
                        "../runtime.rkt")
@@ -89,7 +89,7 @@
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
            rackunit
-		       (prefix-in mk: minikanren)
+		       (prefix-in mk: "../../mk/main.rkt")
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (submod ".."))
