@@ -235,8 +235,8 @@
      (if (syntax-property stx1 (syntax-property stx2 'missing))
        (make-result #f stx1 stx2)
        (alpha=?-helper stx1 (syntax-property-remove stx2 'missing) table))]
-    [_ #:when (and (syntax-property stx1 'datum)
-                   (syntax-property stx2 'datum))
+    [_ #:when (or (syntax-property stx1 'datum)
+                  (syntax-property stx2 'datum))
      (make-result (equal? (syntax->datum stx1) (syntax->datum stx2))
                   stx1
                   stx2)]

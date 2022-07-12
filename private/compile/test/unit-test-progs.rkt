@@ -120,6 +120,10 @@
   (progs-equal? (generate-prog (quote (~dat-lit e)))
                 (generate-prog (quote (~dat-lit e))))
 
+  (progs-equal? (generate-prog 'e)
+                (generate-prog (quote (~dat-lit e))))
+
+
   ;; testing alpha-equivalence of core forms
 
   ;; FIXME WHY DO THESE THINGS FAIL?

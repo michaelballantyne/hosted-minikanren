@@ -82,7 +82,7 @@ For instance,
 
 3. `~check` and `~missing`, when they appear in the _second_ argument to a testing form, will verify that the provided syntax property either appears in the corresponding position in the first argument or doesn't appear, respectively.
 
-```
+```racket
 (progs-equal?
   (generate-prog (ir-rel () (~prop (== 3 3) 'foo #t)))
   (generate-prog (ir-rel () (~check (== 3 3) 'foo))))
@@ -90,6 +90,18 @@ For instance,
 (progs-equal?
   (generate-prog (ir-rel () (== 3 3)))
   (generate-prog (ir-rel () (~missing (== 3 3) 'foo))))
+```
+
+4. `~dat-lit` indicates to the test executor that a specific syntax object should be treated as a datum literal. These should only be applied to symbols/quoted datums where the test executor may mistake it for an identifier. This can be placed on either side of the test.
+
+```racket
+(progs-equal?
+  (generate-prog (ir-rel ((~binder q)) (== q (quote (~dat-lit cat)))))
+  (generate-prog (ir-rel ((~binder q)) (== q (quote (~dat-lit cat))))))
+
+(progs-equal?
+  (generate-prog (ir-rel ((~binder q)) (== q 'cat)))
+  (generate-prog (ir-rel ((~binder q)) (== q (quote (~dat-lit cat))))))
 ```
 
 ## Gotchas
