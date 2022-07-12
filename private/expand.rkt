@@ -75,6 +75,7 @@
     
     [_ (raise-syntax-error #f "not a term expression" stx)]))
 
+;; INVARIANT: nullary constraints should not be available in the surface syntax for the eDSL, so we don't expand them
 (define/hygienic (expand-goal stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)

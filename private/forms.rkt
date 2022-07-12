@@ -1,5 +1,4 @@
 #lang racket/base
-
 (provide
  (all-defined-out)
  (for-syntax mk-literals))
@@ -27,5 +26,9 @@
    #%rel-app
    rkt-term
    apply-relation
+
+   ;; nullary constraints
+   success
+   failure
 
    ir-rel])

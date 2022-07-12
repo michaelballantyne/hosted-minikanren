@@ -13,6 +13,7 @@
  "env-rep.rkt"
  "compile/generate-code.rkt"
  "compile/reorder-conj.rkt"
+ "compile/fold.rkt"
  (for-template "forms.rkt"))
 
 (provide
@@ -25,12 +26,14 @@
   (syntax-parse stx
     [(~or (run _ (_ ...) _)
           (run* (_ ...) _))
-     (define reordered (reorder-conj/run this-syntax))
+     (define folded (fold/run this-syntax))
+     (define reordered (reorder-conj/run folded))
      (generate-run reordered)]))
 
 (define/hygienic (compile-relation stx) #:expression
   (syntax-parse stx
     [(ir-rel (x ...) g)
-     (define reordered (reorder-conj/rel this-syntax))
+     (define folded (fold/rel this-syntax))
+     (define reordered (reorder-conj/rel folded))
      (generate-relation reordered)]))
 

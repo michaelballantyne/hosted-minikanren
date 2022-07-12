@@ -43,6 +43,8 @@
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
+    [(success) #'(== '2 '2)]
+    [(failure) #'(== '2 '3)]
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t))]

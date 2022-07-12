@@ -9,6 +9,7 @@
          bindings+/c
          define-header/c
          
+         nullary-constraint
          unary-constraint
          binary-constraint
          binary-goal-constructor)
@@ -35,6 +36,10 @@
     #:fail-when (check-duplicate-identifier (syntax->list #'(v ...)))
     "duplicate parameter name"))
 
+;; meant for IR purposes only
+(define-syntax-class nullary-constraint
+  #:literal-sets (mk-literals)
+  (pattern (~or succeed fail)))
 (define-syntax-class unary-constraint
   #:literal-sets (mk-literals)
   (pattern (~or symbolo stringo numbero)))

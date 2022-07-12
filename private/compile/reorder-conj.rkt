@@ -36,7 +36,8 @@
                   [(fresh (x:id ...) g)
                    (set! lvars (cons (syntax->list #'(x ...)) lvars))
                    (recur #'g)]
-                  [(~or (c:unary-constraint t)
+                  [(~or (c:nullary-constraint)
+                        (c:unary-constraint t)
                         (c:binary-constraint t1 t2))
                    (set! constraints (cons this-syntax constraints))]
                   [_ (set! others (cons (reorder-conjunctions this-syntax) others))]))
