@@ -14,6 +14,7 @@
  "compile/generate-code.rkt"
  "compile/reorder-conj.rkt"
  "compile/fold.rkt"
+ "compile/first-refs.rkt"
  (for-template "forms.rkt"))
 
 (provide
@@ -28,12 +29,14 @@
           (run* (_ ...) _))
      (define folded (fold/run this-syntax))
      (define reordered (reorder-conj/run folded))
-     (generate-run reordered)]))
+     (define first-annots (first-refs/run reordered))
+     (generate-run first-annots)]))
 
 (define/hygienic (compile-relation stx) #:expression
   (syntax-parse stx
     [(ir-rel (x ...) g)
      (define folded (fold/rel this-syntax))
      (define reordered (reorder-conj/rel folded))
-     (generate-relation reordered)]))
+     (define first-annots (first-refs/rel reordered))
+     (generate-relation first-annots)]))
 
