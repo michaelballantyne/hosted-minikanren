@@ -39,6 +39,11 @@
          #'=/= #'mk:=/=
          #'absento #'mk:absento)))
 
+(define (collect-disjs stx)
+  (syntax-parse stx #:literal-sets (mk-literals)
+    [(disj g1 g2) (cons #'g1 (collect-disjs #'g2))]
+    [_ (list this-syntax)]))
+
 (define/hygienic (generate-goal stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)
@@ -56,11 +61,13 @@
      #`((relation-value-proc n^) #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
-        [#,(generate-goal #'g1)]
-        [#,(generate-goal #'g2)])]
+         #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
+     ;; #`(mk:conde
+     ;;    [#,(generate-goal #'g1)]
+     ;;    [#,(generate-goal #'g2)])]
+     ;; #`(mk:conde #,@(stx-map generate-goal (collect-disjs this-syntax)))]
     [(conj g1 g2)
-     #`(mk:fresh ()
-                 #,(generate-goal #'g1)
+     #`(mk:bind* #,(generate-goal #'g1)
                  #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
      #`(mk:fresh (x ...) #,(generate-goal #'g))]
