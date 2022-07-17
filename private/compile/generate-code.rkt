@@ -62,13 +62,11 @@
     [(disj g1 g2)
      #`(mk:conde
          #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
-     ;; #`(mk:conde
-     ;;    [#,(generate-goal #'g1)]
-     ;;    [#,(generate-goal #'g2)])]
-     ;; #`(mk:conde #,@(stx-map generate-goal (collect-disjs this-syntax)))]
+        ;; [#,(generate-goal #'g1)]
+        ;; [#,(generate-goal #'g2)])]
     [(conj g1 g2)
-     #`(mk:bind* #,(generate-goal #'g1)
-                 #,(generate-goal #'g2))]
+     #`(mk:tmp-bind* #,(generate-goal #'g1)
+                     #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
      #`(mk:fresh (x ...) #,(generate-goal #'g))]
     [(apply-relation e t ...)
