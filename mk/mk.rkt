@@ -9,6 +9,6 @@
          project
          var?
          always-wrap-reified?
-         bind*)
+         tmp-bind*)
 
 (require "private-unstable.rkt")
