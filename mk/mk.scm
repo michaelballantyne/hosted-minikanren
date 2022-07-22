@@ -310,6 +310,13 @@
     ((_ e) e)
     ((_ e g0 g ...) (bind* (bind e g0) g ...))))
 
+; (tmp-bind g:Goal g0:Goal ...) -> Goal
+(define-syntax tmp-bind* ;; conj-bind* or bind*-g or conj
+  (syntax-rules ()
+    ((_ g0 g ...)
+     (lambda (st)
+       (bind* (g0 st) g ...)))))
+
 ; (suspend e:SearchStream) -> SuspendedStream
 ; Used to clearly mark the locations where search is suspended in order to
 ; interleave with other branches.
