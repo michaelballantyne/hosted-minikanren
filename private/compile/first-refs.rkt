@@ -27,6 +27,7 @@
 
 (define (annotate-goal g id-refs)
   (syntax-parse g #:literal-sets (mk-literals)
+    [(c:nullary-constraint) (values this-syntax id-refs)]
     [(c:unary-constraint t)
      (let-values ([(t^ refs^) (annotate-term #'t id-refs)])
        (values #`(c #,t^) refs^))]

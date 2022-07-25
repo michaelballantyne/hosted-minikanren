@@ -24,6 +24,7 @@
 
 (define (~a/goal g)
   (syntax-parse g #:literal-sets (mk-literals)
+    [(c:nullary-constraint) ...]
     [(c:unary-constraint t) ...]
     [(c:binary-constraint t1 t2) ...]
     [(conj g1 g2) ...]
