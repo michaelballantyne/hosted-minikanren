@@ -26,17 +26,13 @@
     #:literals (cons quote)
     [((#%term-datum l1) (#%term-datum l2))
      (equal? (syntax->datum #'l1) (syntax->datum #'l2))]
-    [((quote v1) (quote v2)) (equal? (syntax->datum u) (syntax->datum v))]
-    [((rkt-term _) (rkt-term _)) #f]
+    [((quote v1) (quote v2)) (equal? (syntax->datum #'v1) (syntax->datum #'v2))]
     [((#%lv-ref v1:id) (#%lv-ref v2:id))
      (free-identifier=? #'v1 #'v2)]
     [((cons a1 d1) (cons a2 d2))
      (and (equal-vals? #'a1 #'a2)
           (equal-vals? #'d1 #'d2))]
     [_ #f]))
-
-;; Q: what do w/`rkt-term`?
-;; Q: all symbol data is currently unequal, how fix?
 
 (define (unify u v s)
   (let ([u (walk u s)]
@@ -55,8 +51,8 @@
        (let*-values ([(g1^ s^) (unify #'a1 #'a2 s)]
                      [(g2^ s^^) (unify #'d1 #'d2 s^)])
          (values #`(conj #,g1^ #,g2^) s^^))]
-      [(~or ((rkt-term _) _) (_ (rkt-term _)))
-       (values #`(== #,u #,v) s)]
+      [((rkt-term _) _) (values #`(== #,u #,v) s)]
+      [(_ (rkt-term _)) (values #`(== #,v #,u) s)]
       [_ (values #'(failure) s)])))
 
 (define (fold/rel stx)
@@ -168,7 +164,9 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (== (cons (#%lv-ref q) (cons (#%lv-ref x) (cons (#%lv-ref y) '())))
-                (cons (quote (~dat-lit cat)) (cons (quote (~dat-lit dog)) (cons (quote (~dat-lit mouse)) '()))))))))
+                (cons (quote (~dat-lit cat))
+                      (cons (quote (~dat-lit dog))
+                            (cons (quote (~dat-lit mouse)) '()))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
@@ -231,5 +229,23 @@
           (success)
           (== (#%lv-ref q) (#%lv-ref p))))))
 
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ()
+          (conj
+            (== (#%term-datum 5) (rkt-term 5))
+            (conj
+              (== (quote (~dat-lit 3)) (rkt-term 3))
+              (== (cons (#%term-datum 3) (#%term-datum 4))
+                  (rkt-term (cons 3 4))))))))
+    (generate-prog
+      (ir-rel ()
+        (conj
+          (== (rkt-term 5) (#%term-datum 5))
+          (conj
+            (== (rkt-term 3) (quote (~dat-lit 3)))
+            (== (rkt-term (cons 3 4))
+                (cons (#%term-datum 3) (#%term-datum 4))))))))
 
-  )
+    )
