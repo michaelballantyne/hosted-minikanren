@@ -15,6 +15,7 @@
  "compile/reorder-conj.rkt"
  "compile/fold.rkt"
  "compile/first-refs.rkt"
+ "compile/remove-noop.rkt"
  (for-template "forms.rkt"))
 
 (provide
@@ -29,7 +30,10 @@
           (run* (_ ...) _))
      (define folded (fold/run this-syntax))
      (define reordered (reorder-conj/run folded))
-     (define first-annots (first-refs/run reordered))
+     (define no-noops (remove-noop/run reordered))
+
+     ;; annotation passes, no shape-changing past this point
+     (define first-annots (first-refs/run no-noops))
      (generate-run first-annots)]))
 
 (define/hygienic (compile-relation stx) #:expression
@@ -37,6 +41,9 @@
     [(ir-rel (x ...) g)
      (define folded (fold/rel this-syntax))
      (define reordered (reorder-conj/rel folded))
-     (define first-annots (first-refs/rel reordered))
+     (define no-noops (remove-noop/rel reordered))
+
+     ;; annotation passes, no shape-changing past this point
+     (define first-annots (first-refs/rel no-noops))
      (generate-relation first-annots)]))
 
