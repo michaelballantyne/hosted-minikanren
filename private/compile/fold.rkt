@@ -248,4 +248,20 @@
             (== (rkt-term (cons 3 4))
                 (cons (#%term-datum 3) (#%term-datum 4))))))))
 
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ((~binder q))
+          (== (cons (#%term-datum 1) (#%lv-ref q))
+              ;; '(1 2)))))
+              (cons (#%term-datum 1) (#%term-datum 2))))))
+    (generate-prog
+      (ir-rel ((~binder q))
+        (conj
+          (success)
+          (== (#%lv-ref q) (#%term-datum 2))))))
+
+  
+
+        
     )

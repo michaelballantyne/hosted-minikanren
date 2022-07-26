@@ -54,3 +54,27 @@
       [((~or conj fresh) . _) (reorder-conjunction this-syntax)]
       [_ this-syntax]))
   (map-transform maybe-reorder stx))
+
+
+(module+ test
+  (require "./test/unit-test-progs.rkt"
+           "../forms.rkt"
+           rackunit
+           (for-syntax racket/base
+                       "./test/unit-test-progs.rkt"
+                       (submod "..")))
+  
+  (progs-equal?
+    (reorder-conj/rel
+      (generate-prog
+        (ir-rel ((~binder q))
+          (conj
+            (success)
+            (== (#%lv-ref q) (#%term-datum 2))))))
+    (generate-prog
+      (ir-rel ((~binder q))
+        (conj
+          (success)
+          (== (#%lv-ref q) (#%term-datum 2))))))
+
+  )
