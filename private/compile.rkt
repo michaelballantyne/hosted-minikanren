@@ -18,6 +18,7 @@
  "compile/first-refs.rkt"
  "compile/remove-noop.rkt"
  "compile/remove-unused-vars.rkt"
+ "compile/propagate-fail.rkt"
  (for-template "forms.rkt"))
 
 (provide
@@ -35,6 +36,7 @@
          reorder-conj/run
          remove-noop/run
          remove-unused-vars/run
+         propagate-fail/run
 
          ;; annotation passes, no shape-changing past this point
          first-refs/run
@@ -48,6 +50,7 @@
          reorder-conj/rel
          remove-noop/rel
          remove-unused-vars/rel
+         propagate-fail/rel
 
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
