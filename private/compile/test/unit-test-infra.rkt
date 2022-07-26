@@ -61,8 +61,6 @@
 
 ;; alpha-equivalence for IR tests
 (define (alpha=? stx1 stx2)
-  ;; (displayln (car (syntax-e (cdr (syntax-e stx1)))))
-  ;; (displayln (syntax-property-symbol-keys (car (syntax-e (cdr (syntax-e stx1))))))
   (alpha=?-helper stx1 stx2 (make-free-id-table)))
 
 (define (core/alpha=? stx1 stx2 new-ids)
@@ -390,24 +388,20 @@
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
                                 'check
-                                ;; stx->datum produces '(quote sym), so need cadr to get sym
-                                (cadr (syntax->datum #'prop))))]
+                                prop))]
         [(~missing sexp prop)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
                                 'missing
-                                ;; stx->datum produces '(quote sym), so need cadr to get sym
-                                (cadr (syntax->datum #'prop))))]
+                                prop))]
         [(~prop sexp key val)
          (with-syntax ([stripped-sexp (strip-binders #'sexp)])
            #'#,(syntax-property #'stripped-sexp
-                                (cadr (syntax->datum #'key)) ;; stx->datum produces '(quote sym), so need cadr to get sym
-                                (syntax->datum #'val)))]
+                                key
+                                val))]
         [(~props sexp (~seq key val) ...+)
-         (with-syntax ([stripped-sexp (strip-binders #'sexp)]
-                       [keys #'(key ...)]
-                       [vals #'(val ...)])
-           #'#,(apply-stx-props #'stripped-sexp #'keys #'vals))]
+         (with-syntax ([stripped-sexp (strip-binders #'sexp)])
+           #'#,(apply-stx-props #'stripped-sexp (list key ...) (list val ...)))]
         [(~dat-lit s) (generate-datum-annot #'s)]
         [(_ . _) (strip-binders-list this-syntax)]
         [_ this-syntax]))

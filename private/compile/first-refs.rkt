@@ -5,6 +5,7 @@
          (only-in racket/sequence in-syntax)
          (for-template racket/base
                        "../forms.rkt")
+         (only-in "prop-vars.rkt" FIRST-REF)
          "../syntax-classes.rkt")
 
 (provide first-refs/rel
@@ -73,7 +74,7 @@
     [(#%lv-ref v)
      (if (free-id-set-member? id-refs #'v)
        (values this-syntax id-refs)
-       (values (syntax-property this-syntax 'first-ref #t) (free-id-set-add id-refs #'v)))]
+       (values (syntax-property this-syntax FIRST-REF #t) (free-id-set-add id-refs #'v)))]
     [(cons t1 t2)
      (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
                    [(t2^ refs^^) (annotate-term #'t2 refs^)])
@@ -85,6 +86,7 @@
            rackunit
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
+                       (only-in "prop-vars.rkt" FIRST-REF)
                        (submod "..")))
 
   (progs-equal?
@@ -94,7 +96,7 @@
           (== (#%lv-ref q) (#%term-datum 5)))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (~missing (#%lv-ref q) 'first-ref) (#%term-datum 5)))))
+        (== (~missing (#%lv-ref q) FIRST-REF) (#%term-datum 5)))))
 
   (progs-equal?
     (first-refs/rel
@@ -105,7 +107,7 @@
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binder x))
-              (== (~missing (#%lv-ref q) 'first-ref) (~check (#%lv-ref x) 'first-ref))))))
+              (== (~missing (#%lv-ref q) FIRST-REF) (~check (#%lv-ref x) FIRST-REF))))))
 
   (progs-equal?
     (first-refs/rel
@@ -119,8 +121,8 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (conj
-            (== (~check (#%lv-ref x) 'first-ref) (#%term-datum 5))
-            (== (~missing (#%lv-ref q) 'first-ref) (~missing (#%lv-ref x) 'first-ref)))))))
+            (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
+            (== (~missing (#%lv-ref q) FIRST-REF) (~missing (#%lv-ref x) FIRST-REF)))))))
 
   (progs-equal?
     (first-refs/rel
@@ -132,8 +134,8 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (== (#%lv-ref q)
-              (cons (~check (#%lv-ref x) 'first-ref)
-                    (~missing (#%lv-ref x) 'first-ref)))))))
+              (cons (~check (#%lv-ref x) FIRST-REF)
+                    (~missing (#%lv-ref x) FIRST-REF)))))))
 
   (let ([foo 5])
     (progs-equal?
@@ -148,8 +150,8 @@
         (ir-rel ((~binder q))
           (fresh ((~binder x))
             (conj
-              (#%rel-app foo (~check (#%lv-ref x) 'first-ref))
-              (== (#%lv-ref q) (~missing (#%lv-ref x) 'first-ref))))))))
+              (#%rel-app foo (~check (#%lv-ref x) FIRST-REF))
+              (== (#%lv-ref q) (~missing (#%lv-ref x) FIRST-REF))))))))
 
 
   (let ([foo 5])
@@ -165,8 +167,8 @@
         (ir-rel ((~binder q))
           (fresh ((~binder x))
             (conj
-              (apply-relation foo (~check (#%lv-ref x) 'first-ref))
-              (== (#%lv-ref q) (~missing (#%lv-ref x) 'first-ref))))))))
+              (apply-relation foo (~check (#%lv-ref x) FIRST-REF))
+              (== (#%lv-ref q) (~missing (#%lv-ref x) FIRST-REF))))))))
 
   (progs-equal?
     (first-refs/rel
@@ -180,8 +182,8 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
          (disj
-           (== (~check (#%lv-ref x) 'first-ref) (#%term-datum 5))
-           (== (~check (#%lv-ref x) 'first-ref) (#%term-datum 6)))))))
+           (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
+           (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 6)))))))
 
   (progs-equal?
     (first-refs/rel
@@ -198,11 +200,11 @@
         (fresh ((~binders x y))
           (conj
             (disj
-              (== (~check (#%lv-ref x) 'first-ref) (#%term-datum 5))
-              (== (~check (#%lv-ref y) 'first-ref) (#%term-datum 5)))
+              (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
+              (== (~check (#%lv-ref y) FIRST-REF) (#%term-datum 5)))
             (== (#%lv-ref q)
-                (cons (~missing (#%lv-ref x) 'first-ref)
-                      (~missing (#%lv-ref y) 'first-ref))))))))
+                (cons (~missing (#%lv-ref x) FIRST-REF)
+                      (~missing (#%lv-ref y) FIRST-REF))))))))
 
 
   )

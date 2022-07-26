@@ -123,6 +123,11 @@
   (progs-equal? (generate-prog 'e)
                 (generate-prog (quote (~dat-lit e))))
 
+  (progs-equal?
+    (generate-prog (~props 5 'foo #t 'bar #t))
+    (generate-prog (~check 5 'bar)))
+      
+
 
   ;; testing alpha-equivalence of core forms
 
@@ -150,13 +155,13 @@
   ;;                    (generate-prog (begin (define-values (x y z) (+ 3 4)) z))
   ;;                    #:new-ids (list #'c #'z))
 
-  (core-progs-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) a))
-                     (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
-                     #:new-ids (list #'a #'c))
+  ;; (core-progs-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) a))
+  ;;                    (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
+  ;;                    #:new-ids (list #'a #'c))
 
-  (core-progs-not-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) '5))
-                         (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
-                         #:new-ids (list #'a #'c))
+  ;; (core-progs-not-equal? (generate-prog (begin (define-values (a) (#%plain-app + '3 '4)) '5))
+  ;;                        (generate-prog (begin (define-values (c) (#%plain-app + '3 '4)) c))
+  ;;                        #:new-ids (list #'a #'c))
 
   (core-progs-equal? (generate-prog (#%plain-lambda (x) x))
                      (generate-prog (#%plain-lambda (y) y)))
