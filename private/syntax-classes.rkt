@@ -39,7 +39,7 @@
 ;; meant for IR purposes only
 (define-syntax-class nullary-constraint
   #:literal-sets (mk-literals)
-  (pattern (~or succeed fail)))
+  (pattern (~or success failure)))
 (define-syntax-class unary-constraint
   #:literal-sets (mk-literals)
   (pattern (~or symbolo stringo numbero)))
