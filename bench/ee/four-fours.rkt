@@ -28,7 +28,7 @@
     (modify parse0 result0 q r parse result)))))
 
 ;; TODO build-num was originally in-line, better to use mK-ee interposition forms?
-(define-relation four-fours
+(define four-fours
   (lambda (n)
     (let ([p (map build-num '(4 4 4 4))]
           [rel-n (build-num n)])

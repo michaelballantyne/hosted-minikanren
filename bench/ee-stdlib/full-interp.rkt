@@ -295,7 +295,7 @@
     (var-p-match var mval penv penv-out)))
   ((fresh
     (quasi-p)
-    (== (list 'quasiquote quasi-p) p)
+    (== (cons 'quasiquote (cons quasi-p '())) p)
     (quasi-p-match quasi-p mval penv penv-out)))))
 
 (define-relation
@@ -319,14 +319,14 @@
        ((numbero mval) (var-p-no-match var mval penv penv-out)))))))
   ((fresh
     (quasi-p)
-    (== (list 'quasiquote quasi-p) p)
+    (== (cons 'quasiquote (cons quasi-p '())) p)
     (quasi-p-no-match quasi-p mval penv penv-out)))))
 
 (define-relation
  (quasi-p-match quasi-p mval penv penv-out)
  (conde
   ((== quasi-p mval) (== penv penv-out) (literalo quasi-p))
-  ((fresh (p) (== (list 'unquote p) quasi-p) (p-match p mval penv penv-out)))
+  ((fresh (p) (== (cons 'unquote (cons p '())) quasi-p) (p-match p mval penv penv-out)))
   ((fresh
     (a d v1 v2 penv^)
     (== `(,a . ,d) quasi-p)
@@ -341,7 +341,7 @@
   ((=/= quasi-p mval) (== penv penv-out) (literalo quasi-p))
   ((fresh
     (p)
-    (== (list 'unquote p) quasi-p)
+    (== (cons 'unquote (cons p '())) quasi-p)
     (not-tago mval)
     (p-no-match p mval penv penv-out)))
   ((fresh
