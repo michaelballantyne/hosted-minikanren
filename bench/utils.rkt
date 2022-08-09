@@ -13,12 +13,14 @@
   (inexact->exact (round (mean fst-total snd-total thd-total))))
 
 (define (run-benchmark name f)
-  (displayln (~a name ": " (observe-benchmark f))))
+  (display (format "~a: " name))
+  (flush-output)
+  (displayln (observe-benchmark f)))
 
 (define-syntax (benchmark-suite stx)
   (syntax-case stx ()
     [(_ name [tst-name expr] ...)
      #`(begin
-         (displayln (~a "Test Suite " name ":"))
+         (displayln (~a "Benchmark Suite " name ":"))
          (run-benchmark tst-name (λ () expr))
          ...)]))
