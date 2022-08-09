@@ -16,15 +16,14 @@
     (== `(,a . ,res) out)
     (appendo d s res)))))
 
-(define-syntax (build-num stx)
-  (define (builder n)
-    (cond
-      [(odd? n) #`(cons 1 #,(builder (quotient (- n 1) 2)))]
-      [(and (not (zero? n)) (even? n)) #`(cons 0 #,(builder (quotient n 2)))]
-      [(zero? n) #'null]))
-
-  (syntax-parse stx
-    [(_ n:integer) (builder (syntax->datum #'n))]))
+(define-term-macro build-num
+  (syntax-parser
+    [(_ arg:integer)
+     (let ([n (syntax->datum #'arg)])
+       (cond
+         [(zero? n) #'null]
+         [(odd? n) #`(cons 1 (build-num #,(quotient (- n 1) 2)))]
+         [else #`(cons 0 (build-num #,(quotient n 2)))]))]))
 
 (define-relation (zeroo n) (== '() n))
 
