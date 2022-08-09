@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../../main.rkt")
+(require "../../main.rkt"
+         (for-syntax syntax/parse
+                     racket/base))
 
 (provide (except-out (all-defined-out) appendo))
 
@@ -14,11 +16,15 @@
     (== `(,a . ,res) out)
     (appendo d s res)))))
 
-(define (build-num n)
- (cond
-  ((odd? n) (cons 1 (build-num (quotient (- n 1) 2))))
-  ((and (not (zero? n)) (even? n)) (cons 0 (build-num (quotient n 2))))
-  ((zero? n) '())))
+(define-syntax (build-num stx)
+  (define (builder n)
+    (cond
+      [(odd? n) #`(cons 1 #,(builder (quotient (- n 1) 2)))]
+      [(and (not (zero? n)) (even? n)) #`(cons 0 #,(builder (quotient n 2)))]
+      [(zero? n) #'null]))
+
+  (syntax-parse stx
+    [(_ n:integer) (builder (syntax->datum #'n))]))
 
 (define-relation (zeroo n) (== '() n))
 

@@ -3,6 +3,8 @@
 (require "../../main.rkt")
 (require "../ee-stdlib/numbers.rkt")
 
+(provide four-fours)
+
 (define-relation
  (arithmetic p r parse result)
  (fresh
@@ -27,10 +29,17 @@
      ((== parse0 `(sqrt ,parse))))
     (modify parse0 result0 q r parse result)))))
 
+(define-relation (four-fours q)
+  (fresh (parse)
+    (arithmetic (cons '(0 0 1) (cons '(0 0 1) (cons '(0 0 1) (cons '(0 0 1) '()))))
+                '()
+                parse
+                q)))
+
 ;; TODO build-num was originally in-line, better to use mK-ee interposition forms?
-(define four-fours
-  (lambda (n)
-    (let ([p (map build-num '(4 4 4 4))]
-          [rel-n (build-num n)])
-      (run 1 (parse) (arithmetic p '() parse rel-n)))))
+;; (define four-fours
+;;   (lambda (n)
+;;     (let ([p (map build-num '(4 4 4 4))]
+;;           [rel-n (build-num n)])
+;;       (run 1 (parse) (arithmetic p '() parse rel-n)))))
 
