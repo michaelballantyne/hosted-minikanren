@@ -2,6 +2,8 @@
 
 (require "../../main.rkt")
 
+(provide (except-out (all-defined-out) appendo))
+
 (define-relation
  (appendo l s out)
  (conde
