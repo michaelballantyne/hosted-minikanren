@@ -7,16 +7,15 @@
          (== `(,a . ,res) out)
          (appendo d s res))])))
 
-(define build-num
-  (lambda (n)
-    (cond
-      ((odd? n)
-       (cons 1
-         (build-num (quotient (- n 1) 2))))
-      ((and (not (zero? n)) (even? n))
-       (cons 0
-         (build-num (quotient n 2))))
-      ((zero? n) '()))))
+(define-syntax build-num
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ arg)
+       (let ([n (syntax->datum #'arg)])
+         (cond
+           [(zero? n) #'null]
+           [(odd? n) #`(cons 1 (build-num #,(quotient (- n 1) 2)))]
+           [else #`(cons 0 (build-num #,(quotient n 2)))]))])))
 
 (define zeroo
   (lambda (n)

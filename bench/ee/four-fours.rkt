@@ -31,7 +31,7 @@
 
 (define-relation (four-fours q)
   (fresh (parse)
-    (arithmetic (cons '(0 0 1) (cons '(0 0 1) (cons '(0 0 1) (cons '(0 0 1) '()))))
+    (arithmetic (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) '()))))
                 '()
                 parse
                 q)))

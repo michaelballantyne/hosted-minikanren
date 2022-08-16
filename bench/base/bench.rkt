@@ -1,7 +1,7 @@
 #lang racket
 
-(require "../../main.rkt")
-(require "../ee-stdlib/numbers.rkt")
+(require "../../mk/mk.rkt")
+(require "../../mk/numbers.rkt")
 (require "../utils.rkt")
 (require "four-fours.rkt")
 
@@ -10,5 +10,5 @@
 
 (benchmark-suite "four-fours"
   ["4" (run 1 (q) (four-fours (build-num 4)))]
-  ["256" (run 1 (q) (four-fours (build-num 256)))])
-  
+  ["256" (run 1 (q) (four-fours 256))])
+
