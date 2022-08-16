@@ -19,7 +19,7 @@
 (define/hygienic (generate-relation stx) #:expression
   (syntax-parse stx
     [(_ (x^ ...) g^)
-     #`(relation-value (lambda (x^ ...) #,(generate-goal #'g^)))]))
+     #`(lambda (x^ ...) #,(generate-goal #'g^))]))
 
 (define/hygienic (generate-run stx) #:expression
   (syntax-parse stx
@@ -58,7 +58,7 @@
      #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
     [(#%rel-app n:id t ...)
      (def/stx n^ (free-id-table-ref compiled-names #'n))
-     #`((relation-value-proc n^) #,@ (stx-map generate-term #'(t ...)))]
+     #`(n^ #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
          #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
