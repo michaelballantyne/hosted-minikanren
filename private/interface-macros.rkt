@@ -72,12 +72,17 @@
       "(relation (<id> ...) <goal>)"
       (_ b:bindings/c g:goal/c))
      ; some awkwardness to let us capture the expanded and optimized mk code
-     (define expanded (expand-relation this-syntax))
-     (define name (syntax-property this-syntax 'name))
-     (when name
-       (free-id-table-set! expanded-relation-code
-                           name
-                           expanded))
+     (define expanded (expand-relation #'(ir-rel b g)))
+     #`(relation-value #,(compile-relation expanded))]))
+
+(define-syntax relation-rhs
+  (syntax-parser
+    [(_ b g name)
+     ; some awkwardness to let us capture the expanded and optimized mk code
+     (define expanded (expand-relation #'(ir-rel b g)))
+     (free-id-table-set! expanded-relation-code
+                         #'name
+                         expanded)
      (compile-relation expanded)]))
 
 (define-syntax define-relation
@@ -92,9 +97,7 @@
          ; Binding for the the compiled function.
          ; Expansion of `relation` expands and compiles the
          ; body in the definition context's second pass.
-         (define tmp #,(syntax-property
-                        #'(relation (h.v ...) g)
-                        'name #'h.name))
+         (define tmp (relation-rhs (h.v ...) g h.name))
          (phase1-effect
            (free-id-table-set! compiled-names #'h.name #'tmp)))]))
 

@@ -23,7 +23,7 @@
 (define/hygienic (generate-relation stx) #:expression
   (syntax-parse stx
     [(_ (x^ ...) g^)
-     #`(relation-value (lambda (x^ ...) #,(generate-goal #'g^)))]))
+     #`(lambda (x^ ...) #,(generate-goal #'g^))]))
 
 (define/hygienic (generate-run stx) #:expression
   (syntax-parse stx
@@ -59,7 +59,7 @@
      #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
     [(#%rel-app n:id t ...)
      (def/stx n^ (free-id-table-ref compiled-names #'n))
-     #`((relation-value-proc n^) #,@ (stx-map generate-term #'(t ...)))]
+     #`(n^ #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
         [#,(generate-goal #'g1)]
@@ -186,20 +186,19 @@
               (== (#%lv-ref a) (#%term-datum 7))
               (== (#%term-datum 8) (#%lv-ref a))))))
    (generate-prog
-     (relation-value
-       (lambda (a26)
-         (mku:fresh ()
-           (lambda (st)
-              (let-values (((S) (mku:state-S st)))
-                (let-values (((v^) (mku:walk a26 S)))
-                  (let-values (((S^ added)
-                                (let-values (((t) (quote 7)))
-                                  (cond
-                                    ((eq? v^ t) (values S (quote ())))
-                                    ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
-                                    (else (values (quote #f) (quote #f)))))))
-                    (check-constraints S^ added st)))))
-           (mku:== (quote 8) a26))))))
+     (lambda (a26)
+       (mku:fresh ()
+         (lambda (st)
+            (let-values (((S) (mku:state-S st)))
+              (let-values (((v^) (mku:walk a26 S)))
+                (let-values (((S^ added)
+                              (let-values (((t) (quote 7)))
+                                (cond
+                                  ((eq? v^ t) (values S (quote ())))
+                                  ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                  (else (values (quote #f) (quote #f)))))))
+                  (check-constraints S^ added st)))))
+         (mku:== (quote 8) a26)))))
 
   (core-progs-equal?
    (generate-relation
@@ -209,26 +208,25 @@
               (== (#%lv-ref q) (#%term-datum 5))
               (== (#%lv-ref q) (#%lv-ref a))))))
    (generate-prog
-    (relation-value
-      (λ (q a)
-        (mku:fresh ()
-          (lambda (st)
-            (let-values (((S) (mku:state-S st)))
-              (let-values (((v^) (mku:walk q S)))
-                (let-values (((S^ added)
-                              (let-values (((t) (quote 5)))
-                                (cond
-                                  ((eq? v^ t) (values S (quote ())))
-                                  ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
-                                  (else (values (quote #f) (quote #f)))))))
-                  (check-constraints S^ added st)))))
+     (λ (q a)
+       (mku:fresh ()
          (lambda (st)
            (let-values (((S) (mku:state-S st)))
              (let-values (((v^) (mku:walk q S)))
                (let-values (((S^ added)
-                             (let-values (((w^) (mku:walk a S)))
-                               (mku:unify v^ w^ S))))
-                 (check-constraints S^ added st))))))))))
+                             (let-values (((t) (quote 5)))
+                               (cond
+                                 ((eq? v^ t) (values S (quote ())))
+                                 ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                 (else (values (quote #f) (quote #f)))))))
+                 (check-constraints S^ added st)))))
+        (lambda (st)
+          (let-values (((S) (mku:state-S st)))
+            (let-values (((v^) (mku:walk q S)))
+              (let-values (((S^ added)
+                            (let-values (((w^) (mku:walk a S)))
+                              (mku:unify v^ w^ S))))
+                (check-constraints S^ added st)))))))))
 
 
   (core-progs-equal?
@@ -238,16 +236,15 @@
        (fresh ((~binder a))
          (== (#%lv-ref a) (#%lv-ref q))))))
    (generate-prog
-    (relation-value
-      (lambda (q)
-        (mku:fresh (a)
-          (lambda (st)
-            (let ((S (mku:state-S st)))
-              (let ((v^ (mku:walk a S)))
-                (let-values (((S^ added)
-                              (let ((w^ (mku:walk q S)))
-                                (mku:unify v^ w^ S))))
-                  (check-constraints S^ added st))))))))))
+     (lambda (q)
+       (mku:fresh (a)
+         (lambda (st)
+           (let ((S (mku:state-S st)))
+             (let ((v^ (mku:walk a S)))
+               (let-values (((S^ added)
+                             (let ((w^ (mku:walk q S)))
+                               (mku:unify v^ w^ S))))
+                 (check-constraints S^ added st)))))))))
 
   (core-progs-equal?
    (generate-relation
@@ -256,16 +253,15 @@
        (fresh ((~binder a))
          (== (#%lv-ref (~prop q SKIP-CHECK #t)) (#%lv-ref q))))))
    (generate-prog
-    (relation-value
-      (lambda (q)
-        (mku:fresh (a)
-          (lambda (st)
-            (let ((S (mku:state-S st)))
-              (let ((v^ (mku:walk q S)))
-                (let-values (((S^ added)
-                  (let ((w^ (mku:walk q S)))
-                    (mku:unify-no-occur-check v^ w^ S))))
-                  (check-constraints S^ added st))))))))))
+     (lambda (q)
+       (mku:fresh (a)
+         (lambda (st)
+           (let ((S (mku:state-S st)))
+             (let ((v^ (mku:walk q S)))
+               (let-values (((S^ added)
+                 (let ((w^ (mku:walk q S)))
+                   (mku:unify-no-occur-check v^ w^ S))))
+                 (check-constraints S^ added st)))))))))
 
   (core-progs-equal?
    (generate-relation
@@ -273,7 +269,6 @@
      (ir-rel ((~binder q))
         (== (#%lv-ref q) (#%term-datum 5)))))
    (generate-prog
-    (relation-value
      (λ (q)
        (λ (st)
          (let ([S (mku:state-S st)])
@@ -284,7 +279,7 @@
                                ((eq? v^ t) (values S (quote ())))
                                ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
                                (else (values (quote #f) (quote #f)))))])
-               (check-constraints S^ added st)))))))))
+               (check-constraints S^ added st))))))))
 
 
 
