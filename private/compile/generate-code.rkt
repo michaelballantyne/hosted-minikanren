@@ -2,9 +2,12 @@
 
 (require (for-template (prefix-in mk: "../../mk/main.rkt")
                        racket/base
+                       (prefix-in mku: "../../mk/private-unstable.rkt")
                        "../forms.rkt"
                        "../runtime.rkt")
          ee-lib
+         "../forms.rkt"
+         "test/unit-test-progs.rkt"
          syntax/id-table
          syntax/parse
          (only-in syntax/parse
@@ -48,6 +51,8 @@
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t))]
+    [(== t1 t2)
+     (generate-== stx)]
     [(c:binary-constraint t1 t2)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
@@ -68,6 +73,71 @@
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
 
+;; stx stx stx -> stx
+(define/hygienic (generate-specialized-unify-body v^ t2 S) #:expression
+  (syntax-parse t2
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(#%lv-ref w:id)
+     #`(let ([w^ (mku:walk w #,S)])
+         (mku:unify #,v^ w^ #,S))]
+    [(rkt-term e) #`(mku:unify #,v^ (check-term e #'e) #,S)]
+    [(#%term-datum (~or l:number l:string l:boolean))
+     #`(let ([t (quote l)])
+         (cond
+           [(eq? #,v^ t) (values #,S '())]
+           [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
+           [else (values #f #f)]))]
+    [(quote l)
+     #`(let ([t (quote l)])
+         (cond
+           [(eq? #,v^ t) (values #,S '())]
+           [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
+           [else (values #f #f)]))]
+    [(cons t2-a:term/c t2-b:term/c)
+     #`(cond
+         [(mku:var? #,v^)
+          (let ([t #,(generate-term t2)])
+            (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t))))]
+         [(pair? #,v^)
+          (let ([v^-a-walked (mku:walk (car #,v^) #,S)])
+            (let-values ([(S^ added-car) #,(generate-specialized-unify-body #'v^-a-walked #'t2-a S)])
+              (if S^
+                  (let ([v^-d-walked (mku:walk (cdr #,v^) S^)])
+                    (let-values ([(S^ added-cdr) #,(generate-specialized-unify-body #'v^-d-walked #'t2-b #'S^)])
+                      (values S^ (append added-car added-cdr))))
+                  (values #f #f))))]
+         [else (values #f #f)])]))
+
+;; stx stx -> stx
+(define/hygienic (generate-specialized-unify v t2) #:expression
+  #`(λ (st)
+      (let ([S (mku:state-S st)])
+        (let ([v^ (mku:walk #,v S)])
+          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S)])
+            (check-constraints S^ added st))))))
+
+;; stx stx -> stx
+(define/hygienic (generate-specialized-unify-rkt-term v t2) #:expression
+  #`(λ (st)
+      (let ([S (mku:state-S st)])
+        (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S)])
+          (check-constraints S^ added st)))))
+
+(define/hygienic (generate-== stx) #:expression
+  (define skip-occurs-check? (syntax-property stx 'no-occurs-check))
+  (syntax-parse stx
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(== (~and t1 (#%lv-ref v:id)) t2)
+     (generate-specialized-unify #'v #'t2)]
+    [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
+     #`(let ((v e))
+         #,(generate-specialized-unify #'v #'t2))]
+    ;; We should not see this case, but if we do, we don’t know squat.
+    [(== t1 t2)
+     #`(mku:== #,(generate-term #'t1) #,(generate-term #'t2))]))
+
 (define/hygienic (generate-term stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)
@@ -86,22 +156,109 @@
     [(cons t1:term/c t2:term/c)
      #`(cons #,(generate-term #'t1) #,(generate-term #'t2))]))
 
-
 (module* test racket/base
-  (require "./test/unit-test-progs.rkt"
+  (require rackunit)
+
+  (require (prefix-in mku: "../../mk/private-unstable.rkt")
+           "../runtime.rkt")
+  (require (for-syntax "test/unit-test-progs.rkt")
+           "test/unit-test-progs.rkt")
+
+  (require (for-template "../forms.rkt")
            "../forms.rkt"
-           rackunit
-		       (prefix-in mk: "../../mk/main.rkt")
-           (for-syntax racket/base
-                       "./test/unit-test-progs.rkt"
-                       (submod ".."))
-	             )
-  
-  #;(core-progs-equal?
-      (generate-relation
-        (generate-prog
-          (ir-rel () (== '5 '5))))
-      (generate-prog
-        (lambda () (#%app mk:== '5 '5))))
-    
+           "../syntax-classes.rkt")
+
+  (require (for-syntax racket/base (submod "..")))
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder a))
+             (conj
+              (== (#%lv-ref a) (#%term-datum 7))
+              (== (#%term-datum 8) (#%lv-ref a))))))
+   (generate-prog
+     (relation-value
+       (lambda (a26)
+         (mku:fresh ()
+           (lambda (st)
+              (let-values (((S) (mku:state-S st)))
+                (let-values (((v^) (mku:walk a26 S)))
+                  (let-values (((S^ added)
+                                (let-values (((t) (quote 7)))
+                                  (cond
+                                    ((eq? v^ t) (values S (quote ())))
+                                    ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                    (else (values (quote #f) (quote #f)))))))
+                    (check-constraints S^ added st)))))
+           (mku:== (quote 8) a26))))))
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binders q a))
+             (conj
+              (== (#%lv-ref q) (#%term-datum 5))
+              (== (#%lv-ref q) (#%lv-ref a))))))
+   (generate-prog
+    (relation-value
+      (λ (q a)
+        (mku:fresh ()
+          (lambda (st)
+            (let-values (((S) (mku:state-S st)))
+              (let-values (((v^) (mku:walk q S)))
+                (let-values (((S^ added)
+                              (let-values (((t) (quote 5)))
+                                (cond
+                                  ((eq? v^ t) (values S (quote ())))
+                                  ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                  (else (values (quote #f) (quote #f)))))))
+                  (check-constraints S^ added st)))))
+         (lambda (st)
+           (let-values (((S) (mku:state-S st)))
+             (let-values (((v^) (mku:walk q S)))
+               (let-values (((S^ added)
+                             (let-values (((w^) (mku:walk a S)))
+                               (mku:unify v^ w^ S))))
+                 (check-constraints S^ added st))))))))))
+
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder q))
+       (fresh ((~binder a))
+         (== (#%lv-ref a) (#%lv-ref q))))))
+   (generate-prog
+    (relation-value
+      (lambda (q)
+        (mku:fresh (a)
+          (lambda (st)
+            (let ((S (mku:state-S st)))
+              (let ((v^ (mku:walk a S)))
+                (let-values (((S^ added)
+                              (let ((w^ (mku:walk q S)))
+                                (mku:unify v^ w^ S))))
+                  (check-constraints S^ added st))))))))))
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder q))
+        (== (#%lv-ref q) (#%term-datum 5)))))
+   (generate-prog
+    (relation-value
+     (λ (q)
+       (λ (st)
+         (let ([S (mku:state-S st)])
+           (let ([v^ (mku:walk q S)])
+             (let-values ([(S^ added)
+                           (let ((t (quote 5)))
+                             (cond
+                               ((eq? v^ t) (values S (quote ())))
+                               ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                               (else (values (quote #f) (quote #f)))))])
+               (check-constraints S^ added st)))))))))
+
+
   )
