@@ -5,6 +5,7 @@
                        (prefix-in mku: "../../mk/private-unstable.rkt")
                        "../forms.rkt"
                        "../runtime.rkt")
+         "prop-vars.rkt"
          ee-lib
          "../forms.rkt"
          "test/unit-test-progs.rkt"
@@ -74,14 +75,20 @@
         #,@(stx-map generate-term #'(t ...)))]))
 
 ;; stx stx stx -> stx
-(define/hygienic (generate-specialized-unify-body v^ t2 S) #:expression
+(define/hygienic (generate-specialized-unify-body v^ t2 S no-occur?) #:expression
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
-     #`(let ([w^ (mku:walk w #,S)])
-         (mku:unify #,v^ w^ #,S))]
-    [(rkt-term e) #`(mku:unify #,v^ (check-term e #'e) #,S)]
+     (if no-occur?
+         #`(let ([w^ (mku:walk w #,S)])
+             (mku:unify-no-occur-check #,v^ w^ #,S))
+         #`(let ([w^ (mku:walk w #,S)])
+             (mku:unify #,v^ w^ #,S)))]
+    [(rkt-term e)
+     (if no-occur?
+         #`(mku:unify-no-occur-check #,v^ (check-term e #'e) #,S)
+         #`(mku:unify #,v^ (check-term e #'e) #,S))]
     [(#%term-datum (~or l:number l:string l:boolean))
      #`(let ([t (quote l)])
          (cond
@@ -101,39 +108,39 @@
             (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t))))]
          [(pair? #,v^)
           (let ([v^-a-walked (mku:walk (car #,v^) #,S)])
-            (let-values ([(S^ added-car) #,(generate-specialized-unify-body #'v^-a-walked #'t2-a S)])
+            (let-values ([(S^ added-car) #,(generate-specialized-unify-body #'v^-a-walked #'t2-a S no-occur?)])
               (if S^
                   (let ([v^-d-walked (mku:walk (cdr #,v^) S^)])
-                    (let-values ([(S^ added-cdr) #,(generate-specialized-unify-body #'v^-d-walked #'t2-b #'S^)])
+                    (let-values ([(S^ added-cdr) #,(generate-specialized-unify-body #'v^-d-walked #'t2-b #'S^ no-occur?)])
                       (values S^ (append added-car added-cdr))))
                   (values #f #f))))]
          [else (values #f #f)])]))
 
 ;; stx stx -> stx
 (define/hygienic (generate-specialized-unify v t2) #:expression
-  #`(λ (st)
-      (let ([S (mku:state-S st)])
-        (let ([v^ (mku:walk #,v S)])
-          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S)])
-            (check-constraints S^ added st))))))
+  (let ([no-occur? (syntax-property v SKIP-CHECK)])
+    #`(λ (st)
+        (let ([S (mku:state-S st)])
+          (let ([v^ (mku:walk #,v S)])
+            (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S no-occur?)])
+              (check-constraints S^ added st)))))))
 
 ;; stx stx -> stx
 (define/hygienic (generate-specialized-unify-rkt-term v t2) #:expression
-  #`(λ (st)
-      (let ([S (mku:state-S st)])
-        (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S)])
-          (check-constraints S^ added st)))))
+  (let ([no-occur? (syntax-property v SKIP-CHECK)])
+    #`(λ (st)
+        (let ([S (mku:state-S st)])
+          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S no-occur?)])
+            (check-constraints S^ added st))))))
 
 (define/hygienic (generate-== stx) #:expression
-  (define skip-occurs-check? (syntax-property stx 'no-occurs-check))
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(== (~and t1 (#%lv-ref v:id)) t2)
      (generate-specialized-unify #'v #'t2)]
     [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
-     #`(let ((v e))
-         #,(generate-specialized-unify #'v #'t2))]
+     (generate-specialized-unify #'e #'t2)]
     ;; We should not see this case, but if we do, we don’t know squat.
     [(== t1 t2)
      #`(mku:== #,(generate-term #'t1) #,(generate-term #'t2))]))
@@ -161,7 +168,8 @@
 
   (require (prefix-in mku: "../../mk/private-unstable.rkt")
            "../runtime.rkt")
-  (require (for-syntax "test/unit-test-progs.rkt")
+  (require (for-syntax "test/unit-test-progs.rkt"
+                       "prop-vars.rkt")
            "test/unit-test-progs.rkt")
 
   (require (for-template "../forms.rkt")
@@ -245,6 +253,24 @@
    (generate-relation
     (generate-prog
      (ir-rel ((~binder q))
+       (fresh ((~binder a))
+         (== (#%lv-ref (~prop q SKIP-CHECK #t)) (#%lv-ref q))))))
+   (generate-prog
+    (relation-value
+      (lambda (q)
+        (mku:fresh (a)
+          (lambda (st)
+            (let ((S (mku:state-S st)))
+              (let ((v^ (mku:walk q S)))
+                (let-values (((S^ added)
+                  (let ((w^ (mku:walk q S)))
+                    (mku:unify-no-occur-check v^ w^ S))))
+                  (check-constraints S^ added st))))))))))
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder q))
         (== (#%lv-ref q) (#%term-datum 5)))))
    (generate-prog
     (relation-value
@@ -259,6 +285,8 @@
                                ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
                                (else (values (quote #f) (quote #f)))))])
                (check-constraints S^ added st)))))))))
+
+
 
 
   )
