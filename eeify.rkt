@@ -14,7 +14,7 @@
   (match sexp
     [`(module ,name ,lang (#%module-begin . ,forms))
      `(module ,name ,lang (#%module-begin . ,(map translate-rel forms)))]))
-     
+
 (define (write-module sexp out-file)
   (parameterize ([current-output-port (open-output-file out-file #:exists 'replace)])
     (match sexp

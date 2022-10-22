@@ -3,7 +3,11 @@
 
 ## Test 
 
-`raco test -c minikanren-ee`
+`raco test ++arg <some-module-file> ++ <some-output-file>  -c minikanren-ee` 
+
+E.g., from within base directory, 
+
+`raco setup minikanren-ee && raco test ++arg mk/private-unstable.rkt ++arg out.txt -c minikanren-ee`
 
 ## Setup 
 
