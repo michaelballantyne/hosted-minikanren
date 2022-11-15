@@ -24,3 +24,5 @@ Then, to pull in new commits from upstream, pull with:
 ```
 git subtree pull --prefix mk faster-minikanren master --squash
 ```
+The syntax properties provided to be used for code-gen are listed in `/private/compile/prop-vars.rkt`
+

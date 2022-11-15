@@ -19,12 +19,12 @@
  "compile/remove-noop.rkt"
  "compile/remove-unused-vars.rkt"
  "compile/propagate-fail.rkt"
+ "compile/redundant-occurs-check.rkt"
  (for-template "forms.rkt"))
 
-(provide
- compiled-names
- compile-run
- compile-relation)
+(provide compiled-names
+         compile-run
+         compile-relation)
 
 
 (define/hygienic (compile-run stx) #:expression
@@ -40,6 +40,7 @@
 
          ;; annotation passes, no shape-changing past this point
          first-refs/run
+         mark-redundant-check/run
          generate-run)]))
 
 (define/hygienic (compile-relation stx) #:expression
@@ -54,5 +55,6 @@
 
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
+         mark-redundant-check/rel
          generate-relation)]))
 

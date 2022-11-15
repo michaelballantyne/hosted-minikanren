@@ -131,7 +131,8 @@
 
 (define/hygienic (expand-relation stx) #:expression
   (syntax-parse stx
-    [(relation (x:id ...) g)
+    #:literal-sets (mk-literals)
+    [(ir-rel (x:id ...) g)
      (with-scope sc
        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(x ...) sc)))
        (def/stx g^ (expand-goal (add-scope #'g sc)))

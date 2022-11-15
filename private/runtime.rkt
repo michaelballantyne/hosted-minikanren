@@ -1,6 +1,7 @@
 #lang racket/base
 (require ee-lib/errors
-         racket/math)
+         racket/math
+         (prefix-in mku: "../mk/private-unstable.rkt"))
 
 (provide (all-defined-out))
 
@@ -36,3 +37,9 @@
   (if (mk-value? val)
       val
       (raise-argument-error/stx 'term "mk-value?" val blame-stx)))
+
+(define check-constraints 
+  (lambda (S^ added st)
+    (if S^
+        (mku:and-foldl mku:update-constraints (mku:state S^ (mku:state-C st)) added)
+        #f)))
