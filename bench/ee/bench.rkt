@@ -29,6 +29,12 @@
   (run 9 (b q r) (logo (build-num 68) b q r) (>1o q)))
 
 
+(define-relation (*1o n m p)
+  (conde
+   ((== '(1) n) (== m p) (poso m))))
+
+(pretty-print (syntax->datum (relation-code/compiled *1o)))
+
 (module+ main
 
   (benchmark-suite "numbers"
@@ -36,8 +42,10 @@
 
   (benchmark-suite "four-fours"
     ["4" (four-fours 4)]
-    ["256" (four-fours 256)]
-    )
+    ["8" (four-fours 8)]
+    ["16" (four-fours 16)]
+    ["32" (four-fours 32)]
+    ["256" (four-fours 256)])
 
   (benchmark-suite "simple interp"
     ["((\\x x) (\\y y))" (run 1 (q) (simple:evalo '((lambda (x) x) (lambda (y) y)) q))]

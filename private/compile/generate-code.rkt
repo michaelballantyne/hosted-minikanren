@@ -97,13 +97,13 @@
     [(#%term-datum (~or l:number l:string l:boolean))
      #`(let ([t (quote l)])
          (cond
-           [(eq? #,v^ t) (values #,S '())]
+           [(equal? #,v^ t) (values #,S '())]
            [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
            [else (values #f #f)]))]
     [(quote l)
      #`(let ([t (quote l)])
          (cond
-           [(eq? #,v^ t) (values #,S '())]
+           [(equal? #,v^ t) (values #,S '())]
            [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
            [else (values #f #f)]))]
     [(cons t2-a:term/c t2-b:term/c)
@@ -199,7 +199,7 @@
                 (let-values (((S^ added)
                               (let-values (((t) (quote 7)))
                                 (cond
-                                  ((eq? v^ t) (values S (quote ())))
+                                  ((equal? v^ t) (values S (quote ())))
                                   ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
                                   (else (values (quote #f) (quote #f)))))))
                   (check-constraints S^ added st)))))
@@ -221,7 +221,7 @@
                (let-values (((S^ added)
                              (let-values (((t) (quote 5)))
                                (cond
-                                 ((eq? v^ t) (values S (quote ())))
+                                 ((equal? v^ t) (values S (quote ())))
                                  ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
                                  (else (values (quote #f) (quote #f)))))))
                  (check-constraints S^ added st)))))
@@ -281,7 +281,7 @@
              (let-values ([(S^ added)
                            (let ((t (quote 5)))
                              (cond
-                               ((eq? v^ t) (values S (quote ())))
+                               ((equal? v^ t) (values S (quote ())))
                                ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
                                (else (values (quote #f) (quote #f)))))])
                (check-constraints S^ added st))))))))
