@@ -26,10 +26,11 @@
 
        (for-each (λ (form) (pretty-display form) (newline)) forms)])))
 
-(parameterize ([read-accept-reader #t]
-               [read-accept-lang #t])
-  (match-define (vector in out) (current-command-line-arguments))
-  (~> (open-input-file in)
-      read
-      translate-module
-      (write-module _ out)))
+(module+ main
+ (parameterize ([read-accept-reader #t]
+                [read-accept-lang #t])
+   (match-define (vector in out) (current-command-line-arguments))
+   (~> (open-input-file in)
+       read
+       translate-module
+       (write-module _ out))))
