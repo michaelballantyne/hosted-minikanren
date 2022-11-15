@@ -29,6 +29,10 @@
      ((== parse0 `(sqrt ,parse))))
     (modify parse0 result0 q r parse result)))))
 
+(require racket/pretty)
+(pretty-print (syntax->datum (relation-code modify)))
+(pretty-print (syntax->datum (relation-code/compiled modify)))
+
 (define build-numf
   (lambda (n)
     (cond

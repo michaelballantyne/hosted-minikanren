@@ -36,11 +36,14 @@
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
+         relation-code/compiled
          (for-syntax gen:term-macro gen:goal-macro))
 
 ; Syntax
 
 (define-for-syntax expanded-relation-code (make-free-id-table))
+
+(define-for-syntax compiled-relation-code (make-free-id-table))
 
 ; run, run*, and define-relation are the interface with Racket
 
@@ -83,7 +86,11 @@
      (free-id-table-set! expanded-relation-code
                          #'name
                          expanded)
-     (compile-relation expanded)]))
+     (define compiled (compile-relation expanded))
+     (free-id-table-set! compiled-relation-code
+                         #'name
+                         compiled)
+     compiled]))
 
 (define-syntax define-relation
   (syntax-parser
@@ -131,3 +138,16 @@
              (error 'relation-code "can only access code of relations defined in the current module"))
            #`#'#,code)
          #'(#%expression (relation-code name)))]))
+
+(define-syntax relation-code/compiled
+  (syntax-parser
+    [(_ name)
+     (if (eq? 'expression (syntax-local-context))
+         (let ()
+           (when (not (lookup #'name relation-binding?))
+             (raise-syntax-error #f "not bound to a relation" #'name))
+           (define code (free-id-table-ref compiled-relation-code #'name #f))
+           (when (not code)
+             (error 'relation-code "can only access code of relations defined in the current module"))
+           #`#'#,code)
+         #'(#%expression (relation-code/compiled name)))]))

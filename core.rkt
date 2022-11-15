@@ -16,6 +16,7 @@
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
+         relation-code/compiled
          (for-syntax gen:term-macro gen:goal-macro))
 
 ; Syntax
