@@ -8,6 +8,7 @@
          absento
          project
          var?
-         always-wrap-reified?)
+         always-wrap-reified?
+         conj)
 
 (require "private-unstable.rkt")

@@ -43,6 +43,11 @@
          #'=/= #'mk:=/=
          #'absento #'mk:absento)))
 
+(define (collect-disjs stx)
+  (syntax-parse stx #:literal-sets (mk-literals)
+    [(disj g1 g2) (cons #'g1 (collect-disjs #'g2))]
+    [_ (list this-syntax)]))
+
 (define/hygienic (generate-goal stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)
@@ -62,12 +67,12 @@
      #`(n^ #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
-        [#,(generate-goal #'g1)]
-        [#,(generate-goal #'g2)])]
+         #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
+        ;; [#,(generate-goal #'g1)]
+        ;; [#,(generate-goal #'g2)])]
     [(conj g1 g2)
-     #`(mk:fresh ()
-                 #,(generate-goal #'g1)
-                 #,(generate-goal #'g2))]
+     #`(mk:conj #,(generate-goal #'g1)
+                #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
      #`(mk:fresh (x ...) #,(generate-goal #'g))]
     [(apply-relation e t ...)
@@ -187,7 +192,7 @@
               (== (#%term-datum 8) (#%lv-ref a))))))
    (generate-prog
      (lambda (a26)
-       (mku:fresh ()
+       (mku:conj
          (lambda (st)
             (let-values (((S) (mku:state-S st)))
               (let-values (((v^) (mku:walk a26 S)))
@@ -209,7 +214,7 @@
               (== (#%lv-ref q) (#%lv-ref a))))))
    (generate-prog
      (λ (q a)
-       (mku:fresh ()
+       (mku:conj
          (lambda (st)
            (let-values (((S) (mku:state-S st)))
              (let-values (((v^) (mku:walk q S)))

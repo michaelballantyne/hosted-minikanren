@@ -252,7 +252,7 @@
       [(_:atomic _:atomic) (values s #t)]
       [(~or (a:atomic (#%lv-ref lv))
             ((#%lv-ref lv) a:atomic))
-       (values (modify-subst s #'lv #'a.v) #t)]
+       (values (modify-subst s #'lv #'a) #t)]
       [(~or (_:atomic (cons _ _))
             ((cons _ _) _:atomic))
        (values s #t)]
@@ -297,7 +297,7 @@
             (_ (rkt-term _)))
        (values (mark-subst-top s) #f)]
       ;; TODO what do in presence of `rkt-term`?
-      [_ (raise "ALL TERM COMBINATIONS ALREADY HANDLED, NOT REACHABLE")])))
+      [_ (raise-syntax-error #f "ALL TERM COMBINATIONS ALREADY HANDLED, NOT REACHABLE" this-syntax)])))
 
 (define (union s1 s2)
   (for/fold ([s s1])
@@ -370,6 +370,28 @@
                        "./test/unit-test-progs.rkt"
                        (only-in "prop-vars.rkt" SKIP-CHECK)
                        (submod "..")))
+
+  (progs-equal?
+    (mark-redundant-check/rel
+      (generate-prog
+        (ir-rel ((~binders q))
+          (== (#%lv-ref q) (#%term-datum 5)))))
+    (generate-prog
+      (ir-rel ((~binders q))
+          (~check (== (#%lv-ref q) (#%term-datum 5)) SKIP-CHECK))))
+
+  (progs-equal?
+    (mark-redundant-check/rel
+      (generate-prog
+        (ir-rel ((~binders q y))
+           (conj
+            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref y) (#%lv-ref q))))))
+    (generate-prog
+      (ir-rel ((~binders q y))
+         (conj
+           (~check (== (#%lv-ref q) (#%term-datum 5)) SKIP-CHECK)
+           (~check (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK)))))
 
   (progs-equal?
     (mark-redundant-check/rel
