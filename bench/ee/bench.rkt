@@ -35,8 +35,8 @@
     ["logo-hard" (logo-hard-program)])
 
   (benchmark-suite "four-fours"
-    ["4" (run 1 (q) (four-fours (build-num 4)))]
-    ;; ["256" (run 1 (q) (four-fours (build-num 256)))]
+    ["4" (four-fours 4)]
+    ["256" (four-fours 256)]
     )
 
   (benchmark-suite "simple interp"

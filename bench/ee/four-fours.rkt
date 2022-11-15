@@ -29,12 +29,24 @@
      ((== parse0 `(sqrt ,parse))))
     (modify parse0 result0 q r parse result)))))
 
-(define-relation (four-fours q)
-  (fresh (parse)
-    (arithmetic (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) '()))))
-                '()
-                parse
-                q)))
+(define build-numf
+  (lambda (n)
+    (cond
+      ((zero? n) '())
+      (else (cons (remainder n 2) (build-numf (quotient n 2)))))))
+
+(define four-fours
+  (lambda (n)
+    (let ([p (map build-numf '(4 4 4 4))]
+          [rel-n (build-numf n)])
+      (run 1 (parse) (arithmetic p '() parse rel-n)))))
+
+;; (define-relation (four-fours q)
+;;   (fresh (parse)
+;;     (arithmetic (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) '()))))
+;;                 '()
+;;                 parse
+;;                 q)))
 
 ;; TODO build-num was originally in-line, better to use mK-ee interposition forms?
 ;; (define four-fours
