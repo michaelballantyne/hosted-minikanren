@@ -3,7 +3,7 @@
 (require "../../mk/mk.rkt")
 (require "../../mk/numbers.rkt")
 
-(provide four-fours)
+(provide four-fours four-fours-at-12-check)
 
 (define
  (arithmetic p r parse result)
@@ -41,3 +41,28 @@
           [rel-n (build-numf n)])
       (run 1 (parse) (arithmetic p '() parse rel-n)))))
 
+(define four-fours-at-12-check
+  (lambda ()
+    (let ([p (map build-numf '(4 4 4 4))]
+          [rel-n (build-numf 12)])
+      (run 1 (parse) (arithmetic p '() '(* (- (0 0 1) (/ (0 0 1) (0 0 1))) (0 0 1)) rel-n)))))
+
+(module+ test
+  (require rackunit)
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1)) '() '(/ (0 0 1) (0 0 1)) '(1)))
+   '(_.0))
+
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1) (0 0 1)) '() parse '(1 1)))
+   '((- (0 0 1) (/ (0 0 1) (0 0 1)))))
+
+  (check-equal?
+   (run 1 (result0) (pluso '(1) result0 '(0 0 1)))
+   '((1 1)))
+
+  (check-equal?
+   (run 1 (result1) (pluso '(1) `(1 . ,result1) '(0 1)))
+   '(()))
+
+  )

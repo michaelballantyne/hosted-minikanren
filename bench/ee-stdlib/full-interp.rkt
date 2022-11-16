@@ -1,6 +1,7 @@
 #lang racket
 
 (require "../../main.rkt")
+(provide evalo)
 
 (define-relation (evalo expr val) (eval-expo expr initial-env val))
 

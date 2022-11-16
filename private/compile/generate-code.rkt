@@ -85,11 +85,15 @@
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
-     (if no-occur?
-         #`(let ([w^ (mku:walk w #,S)])
-             (mku:unify-no-occur-check #,v^ w^ #,S))
-         #`(let ([w^ (mku:walk w #,S)])
-             (mku:unify #,v^ w^ #,S)))]
+     (let ([first-ref? (syntax-property t2 FIRST-REF)])
+       (cond
+         [first-ref? #`(mku:ext-s-no-check w #,v^ #,S)]
+         [no-occur?
+          #`(let ([w^ (mku:walk w #,S)])
+              (mku:unify-no-occur-check #,v^ w^ #,S))]
+         [else
+          #`(let ([w^ (mku:walk w #,S)])
+              (mku:unify #,v^ w^ #,S))]))]
     [(rkt-term e)
      (if no-occur?
          #`(mku:unify-no-occur-check #,v^ (check-term e #'e) #,S)
@@ -105,7 +109,8 @@
          (cond
            [(equal? #,v^ t) (values #,S '())]
            [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
-           [else (values #f #f)]))]
+           [else #;(values #f #f)
+                 (mku:unify #,v^ t #,S)]))]
     [(cons t2-a:term/c t2-b:term/c)
      #`(cond
          [(mku:var? #,v^)
@@ -122,30 +127,29 @@
          [else (values #f #f)])]))
 
 ;; stx stx -> stx
-(define/hygienic (generate-specialized-unify v t2) #:expression
-  (let ([no-occur? (syntax-property v SKIP-CHECK)])
-    #`(λ (st)
-        (let ([S (mku:state-S st)])
-          (let ([v^ (mku:walk #,v S)])
-            (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S no-occur?)])
-              (check-constraints S^ added st)))))))
-
-;; stx stx -> stx
-(define/hygienic (generate-specialized-unify-rkt-term v t2) #:expression
-  (let ([no-occur? (syntax-property v SKIP-CHECK)])
-    #`(λ (st)
-        (let ([S (mku:state-S st)])
-          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S no-occur?)])
+(define/hygienic (generate-specialized-unify v t2 no-occur?) #:expression
+  #`(λ (st)
+      (let ([S (mku:state-S st)])
+        (let ([v^ (mku:walk #,v S)])
+          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S no-occur?)])
             (check-constraints S^ added st))))))
 
+;; stx stx -> stx
+(define/hygienic (generate-specialized-unify-rkt-term v t2 no-occur?) #:expression
+  #`(λ (st)
+      (let ([S (mku:state-S st)])
+        (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S no-occur?)])
+          (check-constraints S^ added st)))))
+
 (define/hygienic (generate-== stx) #:expression
+  (define no-occur? (syntax-property stx SKIP-CHECK))
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(== (~and t1 (#%lv-ref v:id)) t2)
-     (generate-specialized-unify #'v #'t2)]
+     (generate-specialized-unify #'v #'t2 no-occur?)]
     [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
-     (generate-specialized-unify #'e #'t2)]
+     (generate-specialized-unify #'e #'t2 no-occur?)]
     ;; We should not see this case, but if we do, we don’t know squat.
     [(== t1 t2)
      #`(mku:== #,(generate-term #'t1) #,(generate-term #'t2))]))
@@ -233,7 +237,6 @@
                               (mku:unify v^ w^ S))))
                 (check-constraints S^ added st)))))))))
 
-
   (core-progs-equal?
    (generate-relation
     (generate-prog
@@ -256,7 +259,22 @@
     (generate-prog
      (ir-rel ((~binder q))
        (fresh ((~binder a))
-         (== (#%lv-ref (~prop q SKIP-CHECK #t)) (#%lv-ref q))))))
+         (== (#%lv-ref q) (~prop (#%lv-ref a) FIRST-REF #t))))))
+   (generate-prog
+     (lambda (q)
+       (mku:fresh (a)
+         (lambda (st)
+           (let ((S (mku:state-S st)))
+             (let ((v^ (mku:walk q S)))
+               (let-values (((S^ added) (mku:ext-s-no-check a v^ S)))
+                 (check-constraints S^ added st)))))))))
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder q))
+       (fresh ((~binder a))
+         (~prop (== (#%lv-ref q) (#%lv-ref q)) SKIP-CHECK #t)))))
    (generate-prog
      (lambda (q)
        (mku:fresh (a)

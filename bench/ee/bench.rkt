@@ -3,9 +3,9 @@
 (require "../../main.rkt")
 (require "../ee-stdlib/numbers.rkt")
 (require (prefix-in simple: "../ee-stdlib/simple-interp.rkt"))
+(require (prefix-in full: "../ee-stdlib/full-interp.rkt"))
 (require "../utils.rkt")
 (require "four-fours.rkt")
-
 
 (define complex-countdown
   '(((lambda (w) (w w))
@@ -24,16 +24,8 @@
           (lambda (f) f)))))
     (lambda (f) (lambda (x) (f (f x))))))
 
-
 (define (logo-hard-program)
   (run 9 (b q r) (logo (build-num 68) b q r) (>1o q)))
-
-
-(define-relation (*1o n m p)
-  (conde
-   ((== '(1) n) (== m p) (poso m))))
-
-(pretty-print (syntax->datum (relation-code/compiled *1o)))
 
 (module+ main
 
@@ -42,9 +34,8 @@
 
   (benchmark-suite "four-fours"
     ["4" (four-fours 4)]
-    ["8" (four-fours 8)]
-    ["16" (four-fours 16)]
-    ["32" (four-fours 32)]
+    ["12-check" (four-fours-at-12-check)]
+    ["12" (four-fours 12)]
     ["256" (four-fours 256)])
 
   (benchmark-suite "simple interp"
@@ -52,9 +43,7 @@
     ["complex-countdown" (run 1 (q) (simple:evalo complex-countdown q))]
     )
 
-  ;; (require (prefix-in full: "../ee-stdlib/full-interp.rkt"))
-  ;; (benchmark-suite "full interp"
-  ;;   ["((\\x x) (\\y y))" (run 1 (q) (full:evalo '((lambda (x) x) (lambda (y) y)) q))])
-
+  (benchmark-suite "full interp"
+    ["((\\x x) (\\y y))" (run 1 (q) (full:evalo '((lambda (x) x) (lambda (y) y)) q))])
 
 )

@@ -3,7 +3,7 @@
 (require "../../main.rkt")
 (require "../ee-stdlib/numbers.rkt")
 
-(provide four-fours)
+(provide four-fours four-fours-at-12-check)
 
 (define-relation
  (arithmetic p r parse result)
@@ -41,17 +41,41 @@
           [rel-n (build-numf n)])
       (run 1 (parse) (arithmetic p '() parse rel-n)))))
 
-;; (define-relation (four-fours q)
-;;   (fresh (parse)
-;;     (arithmetic (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) (cons (build-num 4) '()))))
-;;                 '()
-;;                 parse
-;;                 q)))
+(define four-fours-at-12-check
+  (lambda ()
+    (let ([p (map build-numf '(4 4 4 4))]
+          [rel-n (build-numf 12)])
+      (run 1 (parse) (arithmetic p '() '(* (- (0 0 1) (/ (0 0 1) (0 0 1))) (0 0 1)) rel-n)))))
 
-;; TODO build-num was originally in-line, better to use mK-ee interposition forms?
-;; (define four-fours
-;;   (lambda (n)
-;;     (let ([p (map build-num '(4 4 4 4))]
-;;           [rel-n (build-num n)])
-;;       (run 1 (parse) (arithmetic p '() parse rel-n)))))
+(define-relation (f m)
+  (== '(1) m))
 
+(module+ test
+  (require rackunit)
+
+  (check-equal?
+   (run 1 (q) (f (cons 1 q)))
+   '(()))
+
+  (check-equal?
+   (run 1 (q) (f `(1 . ,q)))
+   '(()))
+
+  ;; (check-equal?
+  ;;  (run 1 (result1) (== '(1) (cons 1 result1)))
+  ;;  '(()))
+
+  ;; (check-equal?
+  ;;  (run 1 (result1) (== '(1) `(1 . ,result1)))
+  ;;  '(()))
+
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1)) '() '(/ (0 0 1) (0 0 1)) '(1)))
+   '(_.0))
+
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1) (0 0 1)) '() parse '(1 1)))
+   '((- (0 0 1) (/ (0 0 1) (0 0 1)))))
+
+
+  )
