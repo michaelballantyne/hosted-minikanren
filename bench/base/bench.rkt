@@ -31,18 +31,20 @@
   (benchmark-suite "numbers"
     ["logo-hard" (logo-hard-program)])
 
-  (benchmark-suite "four-fours"
+  #;(benchmark-suite "four-fours"
     ["4" (four-fours 4)]
     ["12-check" (four-fours-at-12-check)]
     ["12" (four-fours 12)]
     ["256" (four-fours 256)])
 
   (benchmark-suite "simple interp"
-    ["((\\x x) (\\y y))" (run 1 (q) (simple:evalo '((lambda (x) x) (lambda (y) y)) q))]
+    ["((\\x x) (\\y y))" (run 1 (q) (simple:evalo `((lambda (x) x) (lambda (y) y)) q))]
     ["complex-countdown" (run 1 (q) (simple:evalo complex-countdown q))])
 
   (benchmark-suite "full interp"
-    ["((\\x x) (\\y y))" (run 1 (q) (full:evalo '((lambda (x) x) (lambda (y) y)) q))])
+    ["((\\x x) (\\y y))" (run 1 (q) (full:evalo `((lambda (x) x) (lambda (y) y)) q))]
+    ["complex-countdown" (run 1 (q) (full:evalo complex-countdown q))]
+    #;["6 quines" (run 6 (q) (full:evalo q q))])
 )
 
 (module+ test
