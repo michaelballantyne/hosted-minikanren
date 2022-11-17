@@ -47,35 +47,15 @@
           [rel-n (build-numf 12)])
       (run 1 (parse) (arithmetic p '() '(* (- (0 0 1) (/ (0 0 1) (0 0 1))) (0 0 1)) rel-n)))))
 
-(define-relation (f m)
-  (== '(1) m))
-
 (module+ test
   (require rackunit)
 
-  (check-equal?
-   (run 1 (q) (f (cons 1 q)))
-   '(()))
-
-  (check-equal?
-   (run 1 (q) (f `(1 . ,q)))
-   '(()))
+  ;; (check-equal?
+  ;;  (run 1 (parse) (modify `(0 0 1) `(0 0 1) `((0 0 1)) `() `(/ (0 0 1) (0 0 1)) `(1)))
+  ;;  `(_.0))
 
   ;; (check-equal?
-  ;;  (run 1 (result1) (== '(1) (cons 1 result1)))
-  ;;  '(()))
-
-  ;; (check-equal?
-  ;;  (run 1 (result1) (== '(1) `(1 . ,result1)))
-  ;;  '(()))
-
-  (check-equal?
-   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1)) '() '(/ (0 0 1) (0 0 1)) '(1)))
-   '(_.0))
-
-  (check-equal?
-   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1) (0 0 1)) '() parse '(1 1)))
-   '((- (0 0 1) (/ (0 0 1) (0 0 1)))))
-
+  ;;  (run 1 (parse) (modify `(0 0 1) `(0 0 1) `((0 0 1) (0 0 1)) `() parse `(1 1)))
+  ;;  `((- (0 0 1) (/ (0 0 1) (0 0 1)))))
 
   )

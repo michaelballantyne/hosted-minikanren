@@ -109,8 +109,7 @@
          (cond
            [(equal? #,v^ t) (values #,S '())]
            [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
-           [else #;(values #f #f)
-                 (mku:unify #,v^ t #,S)]))]
+           [else (values #f #f)]))]
     [(cons t2-a:term/c t2-b:term/c)
      #`(cond
          [(mku:var? #,v^)

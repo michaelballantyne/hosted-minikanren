@@ -179,6 +179,19 @@
                 (success))))))))
 
   (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ((~binder result1))
+        (== (cons (quote (~data-lit cat)) (quote (~data-lit fish)))
+            (cons (quote (~data-lit cat)) (#%lv-ref result1))))))
+    (generate-prog
+     (ir-rel ((~binder result1))
+        (conj
+          (success)
+          (== (#%lv-ref result1)
+              (quote (~data-lit fish)))))))
+
+  (progs-equal?
     (fold/rel
       (generate-prog
         (ir-rel ()
