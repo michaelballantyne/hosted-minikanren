@@ -24,8 +24,6 @@
   (syntax-parse (list u v)
     #:literal-sets (mk-literals)
     #:literals (cons quote)
-    [((#%term-datum l1) (#%term-datum l2))
-     (equal? (syntax->datum #'l1) (syntax->datum #'l2))]
     [((quote v1) (quote v2)) (equal? (syntax->datum #'v1) (syntax->datum #'v2))]
     [((#%lv-ref v1:id) (#%lv-ref v2:id))
      (free-identifier=? #'v1 #'v2)]
@@ -104,10 +102,10 @@
     (fold/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (#%term-datum 5) (#%lv-ref q)))))
+          (== (quote 5) (#%lv-ref q)))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
 
   (progs-equal?
     (fold/rel
@@ -124,20 +122,20 @@
     (fold/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (cons (#%term-datum 5) (#%lv-ref q))
-              (cons (#%term-datum 5) (#%term-datum 5))))))
+          (== (cons (quote 5) (#%lv-ref q))
+              (cons (quote 5) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
         (conj
           (success)
-          (== (#%lv-ref q) (#%term-datum 5))))))
+          (== (#%lv-ref q) (quote 5))))))
 
   (progs-equal?
     (fold/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (cons (#%term-datum 5) (#%lv-ref q))
-              (cons (#%term-datum 6) (#%lv-ref q))))))
+          (== (cons (quote 5) (#%lv-ref q))
+              (cons (quote 6) (#%lv-ref q))))))
       (generate-prog
         (ir-rel ((~binder q))
           (conj
@@ -149,14 +147,14 @@
       (generate-prog
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
-            (== (cons (#%lv-ref q) (#%term-datum 5))
+            (== (cons (#%lv-ref q) (quote 5))
                 (cons (#%lv-ref x) (#%lv-ref y)))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
           (conj
             (== (#%lv-ref q) (#%lv-ref x))
-            (== (#%lv-ref y) (#%term-datum 5)))))))
+            (== (#%lv-ref y) (quote 5)))))))
 
   (progs-equal?
     (fold/rel
@@ -195,7 +193,7 @@
     (fold/rel
       (generate-prog
         (ir-rel ()
-          (== (#%term-datum 5) (#%term-datum 5)))))
+          (== (quote 5) (quote 5)))))
     (generate-prog
       (ir-rel ()
         (success))))
@@ -204,7 +202,7 @@
     (fold/rel
       (generate-prog
         (ir-rel ()
-          (== (#%term-datum 5) (#%term-datum 6)))))
+          (== (quote 5) (quote 6)))))
     (generate-prog
       (ir-rel ()
         (failure))))
@@ -222,8 +220,8 @@
     (fold/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (cons (#%term-datum 5) (#%lv-ref q))
-              (cons (#%term-datum 5) (#%lv-ref q))))))
+          (== (cons (quote 5) (#%lv-ref q))
+              (cons (quote 5) (#%lv-ref q))))))
     (generate-prog
       (ir-rel ((~binder q))
         (success))))
@@ -232,9 +230,9 @@
     (fold/rel
       (generate-prog
         (ir-rel ((~binders q p))
-          (== (cons (cons (#%term-datum 5) (#%term-datum 6))
+          (== (cons (cons (quote 5) (quote 6))
                     (#%lv-ref q))
-              (cons (cons (#%term-datum 5) (#%term-datum 6))
+              (cons (cons (quote 5) (quote 6))
                     (#%lv-ref p))))))
     (generate-prog
       (ir-rel ((~binders q p))
@@ -247,31 +245,31 @@
       (generate-prog
         (ir-rel ()
           (conj
-            (== (#%term-datum 5) (rkt-term 5))
+            (== (quote 5) (rkt-term 5))
             (conj
               (== (quote (~dat-lit 3)) (rkt-term 3))
-              (== (cons (#%term-datum 3) (#%term-datum 4))
+              (== (cons (quote 3) (quote 4))
                   (rkt-term (cons 3 4))))))))
     (generate-prog
       (ir-rel ()
         (conj
-          (== (rkt-term 5) (#%term-datum 5))
+          (== (rkt-term 5) (quote 5))
           (conj
             (== (rkt-term 3) (quote (~dat-lit 3)))
             (== (rkt-term (cons 3 4))
-                (cons (#%term-datum 3) (#%term-datum 4))))))))
+                (cons (quote 3) (quote 4))))))))
 
   (progs-equal?
     (fold/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (cons (#%term-datum 1) (#%lv-ref q))
-              (cons (#%term-datum 1) (#%term-datum 2))))))
+          (== (cons (quote 1) (#%lv-ref q))
+              (cons (quote 1) (quote 2))))))
     (generate-prog
       (ir-rel ((~binder q))
         (conj
           (success)
-          (== (#%lv-ref q) (#%term-datum 2))))))
+          (== (#%lv-ref q) (quote 2))))))
 
   
 

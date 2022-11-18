@@ -78,7 +78,7 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref q) (quote 5))
             (failure)))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -90,7 +90,7 @@
         (ir-rel ((~binder q))
           (conj
             (failure)
-            (== (#%lv-ref q) (#%term-datum 5))))))
+            (== (#%lv-ref q) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
         (failure))))
@@ -101,9 +101,9 @@
         (ir-rel ((~binders q p))
           (conj
             (conj
-              (== (#%lv-ref q) (#%term-datum 5))
+              (== (#%lv-ref q) (quote 5))
               (failure))
-            (== (#%lv-ref p) (#%term-datum 6))))))
+            (== (#%lv-ref p) (quote 6))))))
     (generate-prog
       (ir-rel ((~binders q p))
         (failure))))
@@ -115,8 +115,8 @@
           (conj
             (conj
               (failure)
-              (== (#%lv-ref q) (#%term-datum 5)))
-            (== (#%lv-ref p) (#%term-datum 6))))))
+              (== (#%lv-ref q) (quote 5)))
+            (== (#%lv-ref p) (quote 6))))))
     (generate-prog
       (ir-rel ((~binders q p))
         (failure))))
@@ -127,8 +127,8 @@
         (ir-rel ((~binders q p))
           (conj
             (conj
-              (== (#%lv-ref q) (#%term-datum 5))
-              (== (#%lv-ref p) (#%term-datum 6)))
+              (== (#%lv-ref q) (quote 5))
+              (== (#%lv-ref p) (quote 6)))
             (failure)))))
     (generate-prog
       (ir-rel ((~binders q p))
@@ -163,12 +163,12 @@
       (generate-prog
         (ir-rel ((~binder q))
           (disj
-            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref q) (quote 5))
             (failure)))))
     (generate-prog
       (ir-rel ((~binder q))
         (disj
-          (== (#%lv-ref q) (#%term-datum 5))
+          (== (#%lv-ref q) (quote 5))
           (failure)))))
 
   (progs-equal?
@@ -177,11 +177,11 @@
         (ir-rel ((~binders q p))
           (disj
             (conj
-              (== (#%lv-ref q) (#%term-datum 5))
+              (== (#%lv-ref q) (quote 5))
               (failure))
             (conj
               (failure)
-              (== (#%lv-ref p) (#%term-datum 5)))))))
+              (== (#%lv-ref p) (quote 5)))))))
     (generate-prog
       (ir-rel ((~binders q p))
         (disj

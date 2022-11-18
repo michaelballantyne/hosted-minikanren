@@ -70,11 +70,11 @@
         (ir-rel ((~binder q))
           (conj
             (success)
-            (== (#%lv-ref q) (#%term-datum 2))))))
+            (== (#%lv-ref q) (quote 2))))))
     (generate-prog
       (ir-rel ((~binder q))
         (conj
           (success)
-          (== (#%lv-ref q) (#%term-datum 2))))))
+          (== (#%lv-ref q) (quote 2))))))
 
   )

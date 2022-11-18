@@ -62,7 +62,6 @@
     [(#%lv-ref v)
      (immutable-free-id-set (list #'v))]
     [(rkt-term _) (immutable-free-id-set)]
-    [(#%term-datum _) (immutable-free-id-set)]
     [(quote _) (immutable-free-id-set)]
     [(cons t1 t2)
      (free-id-set-union (term-refs #'t1) (term-refs #'t2))]))
@@ -91,11 +90,11 @@
       (generate-prog
         (ir-rel ()
           (fresh ((~binder a))
-            (== (#%lv-ref a) (#%term-datum 5))))))
+            (== (#%lv-ref a) (quote 5))))))
     (generate-prog
       (ir-rel ()
         (fresh ((~binder a))
-          (== (#%lv-ref a) (#%term-datum 5))))))
+          (== (#%lv-ref a) (quote 5))))))
 
   (progs-equal?
     (remove-unused-vars/rel
@@ -105,7 +104,7 @@
             (fresh ((~binder x))
               (== (#%lv-ref x) (#%lv-ref x)))
             (fresh ((~binder y))
-              (== (#%term-datum 5) (#%term-datum 6)))))))
+              (== (quote 5) (quote 6)))))))
 
     (generate-prog
       (ir-rel ()
@@ -113,7 +112,7 @@
           (fresh ((~binder x))
             (== (#%lv-ref x) (#%lv-ref x)))
           (fresh ()
-            (== (#%term-datum 5) (#%term-datum 6)))))))
+            (== (quote 5) (quote 6)))))))
 
   (progs-equal?
     (remove-unused-vars/rel
@@ -122,7 +121,7 @@
           (fresh ((~binder x))
             (fresh ((~binder y))
               (conj
-                (== (#%lv-ref x) (#%term-datum 5))
+                (== (#%lv-ref x) (quote 5))
                 (fresh ((~binder z))
                   (== (#%lv-ref z) (#%lv-ref y)))))))))
     (generate-prog
@@ -130,7 +129,7 @@
         (fresh ((~binder x))
               (fresh ((~binder y))
                 (conj
-                  (== (#%lv-ref x) (#%term-datum 5))
+                  (== (#%lv-ref x) (quote 5))
                   (fresh ((~binder z))
                     (== (#%lv-ref z) (#%lv-ref y)))))))))
 

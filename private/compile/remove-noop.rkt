@@ -61,11 +61,11 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref q) (quote 5))
             (success)))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
 
   (progs-equal?
     (remove-noop/rel
@@ -73,10 +73,10 @@
         (ir-rel ((~binder q))
           (conj
             (success)
-            (== (#%lv-ref q) (#%term-datum 5))))))
+            (== (#%lv-ref q) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
 
   (progs-equal?
     (remove-noop/rel
@@ -95,27 +95,27 @@
         (ir-rel ((~binders q p))
           (conj
             (conj
-              (== (#%lv-ref q) (#%term-datum 5))
+              (== (#%lv-ref q) (quote 5))
               (success))
             (success)))))
     (generate-prog
       (ir-rel ((~binders q p))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
 
   (progs-equal?
     (remove-noop/rel
       (generate-prog
         (ir-rel ((~binders q p))
           (conj
-            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref q) (quote 5))
             (conj
               (success)
-                (== (#%lv-ref p) (#%term-datum 6)))))))
+                (== (#%lv-ref p) (quote 6)))))))
     (generate-prog
       (ir-rel ((~binders q p))
         (conj
-          (== (#%lv-ref q) (#%term-datum 5))
-          (== (#%lv-ref p) (#%term-datum 6))))))
+          (== (#%lv-ref q) (quote 5))
+          (== (#%lv-ref p) (quote 6))))))
 
   (progs-equal?
     (remove-noop/rel
@@ -125,10 +125,10 @@
             (success)
             (conj
               (success)
-              (== (#%lv-ref q) (#%term-datum 5)))))))
+              (== (#%lv-ref q) (quote 5)))))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
 
   (progs-equal?
     (remove-noop/rel
@@ -174,12 +174,12 @@
       (generate-prog
         (ir-rel ((~binder q))
           (disj
-            (conj (success) (== (#%lv-ref q) (#%term-datum 5)))
-            (conj (== (#%lv-ref q) (#%term-datum 6)) (success))))))
+            (conj (success) (== (#%lv-ref q) (quote 5)))
+            (conj (== (#%lv-ref q) (quote 6)) (success))))))
     (generate-prog
       (ir-rel ((~binder q))
         (disj
-          (== (#%lv-ref q) (#%term-datum 5))
-          (== (#%lv-ref q) (#%term-datum 6))))))
+          (== (#%lv-ref q) (quote 5))
+          (== (#%lv-ref q) (quote 6))))))
 
   )

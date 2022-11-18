@@ -98,12 +98,6 @@
      (if no-occur?
          #`(mku:unify-no-occur-check #,v^ (check-term e #'e) #,S)
          #`(mku:unify #,v^ (check-term e #'e) #,S))]
-    [(#%term-datum (~or l:number l:string l:boolean))
-     #`(let ([t (quote l)])
-         (cond
-           [(equal? #,v^ t) (values #,S '())]
-           [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
-           [else (values #f #f)]))]
     [(quote l)
      #`(let ([t (quote l)])
          (cond
@@ -160,12 +154,6 @@
     [(#%lv-ref v:id) #'v]
     [(rkt-term e)
      #'(check-term e #'e)]
-    [(#%term-datum l:number)
-     #'(quote l)]
-    [(#%term-datum l:string)
-     #'(quote l)]
-    [(#%term-datum l:boolean)
-     #'(quote l)]
     [(quote d)
      #'(quote d)]
     [(cons t1:term/c t2:term/c)
@@ -191,8 +179,8 @@
     (generate-prog
      (ir-rel ((~binder a))
              (conj
-              (== (#%lv-ref a) (#%term-datum 7))
-              (== (#%term-datum 8) (#%lv-ref a))))))
+              (== (#%lv-ref a) (quote 7))
+              (== (quote 8) (#%lv-ref a))))))
    (generate-prog
      (lambda (a26)
        (mku:conj
@@ -213,7 +201,7 @@
     (generate-prog
      (ir-rel ((~binders q a))
              (conj
-              (== (#%lv-ref q) (#%term-datum 5))
+              (== (#%lv-ref q) (quote 5))
               (== (#%lv-ref q) (#%lv-ref a))))))
    (generate-prog
      (λ (q a)
@@ -289,7 +277,7 @@
    (generate-relation
     (generate-prog
      (ir-rel ((~binder q))
-        (== (#%lv-ref q) (#%term-datum 5)))))
+        (== (#%lv-ref q) (quote 5)))))
    (generate-prog
      (λ (q)
        (λ (st)

@@ -19,7 +19,6 @@
    symbolo
    stringo
    numbero
-   #%term-datum
    #%lv-ref
    #%rkt-ref
 
@@ -30,5 +29,7 @@
    ;; nullary constraints
    success
    failure
+
+   #%term-datum
 
    ir-rel])

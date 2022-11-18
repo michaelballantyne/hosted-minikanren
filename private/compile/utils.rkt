@@ -33,7 +33,6 @@
     (syntax-parse t
       #:literal-sets (mk-literals)
       #:literals (quote cons)
-      [(#%term-datum _) #f]
       [(quote _) #f]
       [(#%lv-ref _) #f]
       [(rkt-term _) #t]

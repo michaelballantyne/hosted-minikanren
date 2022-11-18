@@ -238,23 +238,18 @@
             ([(k v) (in-free-id-table s)])
     (free-id-table-set s^ k (if (var-val? v) (top) v))))
 
-(define-syntax-class atomic
-  #:literal-sets (mk-literals)
-  #:literals (quote)
-  (pattern (~or (#%term-datum v) (quote v))))
-
 (define (unify u v s)
   (let ([u (walk u s)]
         [v (walk v s)])
     (syntax-parse (list u v)
       #:literal-sets (mk-literals)
-      #:datum-literals (quote cons)
-      [(_:atomic _:atomic) (values s #t)]
-      [(~or (a:atomic (#%lv-ref lv))
-            ((#%lv-ref lv) a:atomic))
-       (values (modify-subst s #'lv #'a) #t)]
-      [(~or (_:atomic (cons _ _))
-            ((cons _ _) _:atomic))
+      #:literals (quote cons)
+      [((quote _) (quote _)) (values s #t)]
+      [(~or ((quote a) (#%lv-ref lv))
+            ((#%lv-ref lv) (quote a)))
+       (values (modify-subst s #'lv #'(quote a)) #t)]
+      [(~or ((quote _) (cons _ _))
+            ((cons _ _) (quote _)))
        (values s #t)]
       [((#%lv-ref lv1) (#%lv-ref lv2))
        (cond
@@ -375,32 +370,32 @@
     (mark-redundant-check/rel
       (generate-prog
         (ir-rel ((~binders q))
-          (== (#%lv-ref q) (#%term-datum 5)))))
+          (== (#%lv-ref q) (quote 5)))))
     (generate-prog
       (ir-rel ((~binders q))
-          (~check (== (#%lv-ref q) (#%term-datum 5)) SKIP-CHECK))))
+          (~check (== (#%lv-ref q) (quote 5)) SKIP-CHECK))))
 
   (progs-equal?
     (mark-redundant-check/rel
       (generate-prog
         (ir-rel ((~binders q y))
            (conj
-            (== (#%lv-ref q) (#%term-datum 5))
+            (== (#%lv-ref q) (quote 5))
             (== (#%lv-ref y) (#%lv-ref q))))))
     (generate-prog
       (ir-rel ((~binders q y))
          (conj
-           (~check (== (#%lv-ref q) (#%term-datum 5)) SKIP-CHECK)
+           (~check (== (#%lv-ref q) (quote 5)) SKIP-CHECK)
            (~check (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK)))))
 
   (progs-equal?
     (mark-redundant-check/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (#%lv-ref q) (cons (#%term-datum 1) (#%term-datum 2))))))
+          (== (#%lv-ref q) (cons (quote 1) (quote 2))))))
     (generate-prog
       (ir-rel ((~binder p))
-        (~check (== (#%lv-ref p) (cons (#%term-datum 1) (#%term-datum 2))) SKIP-CHECK))))
+        (~check (== (#%lv-ref p) (cons (quote 1) (quote 2))) SKIP-CHECK))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -441,10 +436,10 @@
     (mark-redundant-check/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (#%lv-ref q) (cons (#%term-datum 5) (#%term-datum 5))))))
+          (== (#%lv-ref q) (cons (quote 5) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
-        (~check (== (#%lv-ref q) (cons (#%term-datum 5) (#%term-datum 5))) SKIP-CHECK))))
+        (~check (== (#%lv-ref q) (cons (quote 5) (quote 5))) SKIP-CHECK))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -452,17 +447,17 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (conj
-              (== (#%lv-ref y) (#%term-datum 5))
+              (== (#%lv-ref y) (quote 5))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
                 (== (#%lv-ref x) (#%lv-ref q))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
           (conj
-            (~check (== (#%lv-ref y) (#%term-datum 5)) SKIP-CHECK)
+            (~check (== (#%lv-ref y) (quote 5)) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
               (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK)))))))
 
   (progs-equal?
@@ -471,13 +466,13 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (== (#%lv-ref x) (#%lv-ref q)))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK))))))
 
   (progs-equal?
@@ -486,13 +481,13 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (== (#%lv-ref y) (#%lv-ref q)))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (~check (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK))))))
 
   (progs-equal?
@@ -525,7 +520,7 @@
         (ir-rel ((~binders q p))
           (fresh ((~binders x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
                 (== (#%lv-ref x) (cons (#%lv-ref p) (#%lv-ref z)))
                 (== (#%lv-ref q) (#%lv-ref x))))))))
@@ -533,7 +528,7 @@
       (ir-rel ((~binders q p))
         (fresh ((~binders x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
               (~check (== (#%lv-ref x) (cons (#%lv-ref p) (#%lv-ref z))) SKIP-CHECK)
               (~missing (== (#%lv-ref q) (#%lv-ref x)) SKIP-CHECK)))))))
@@ -544,17 +539,17 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
-                (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (quote 5)))
                 (== (#%lv-ref y) (#%lv-ref q))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (quote 5))) SKIP-CHECK)
               (~missing (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK)))))))
 
   (progs-equal?
@@ -562,12 +557,12 @@
       (generate-prog
         (ir-rel ((~binders q p))
           (conj
-            (== (#%lv-ref q) (cons (#%term-datum 5) (#%term-datum 5)))
+            (== (#%lv-ref q) (cons (quote 5) (quote 5)))
             (== (#%lv-ref q) (#%lv-ref p))))))
     (generate-prog
       (ir-rel ((~binders q p))
         (conj
-          (~check (== (#%lv-ref q) (cons (#%term-datum 5) (#%term-datum 5))) SKIP-CHECK)
+          (~check (== (#%lv-ref q) (cons (quote 5) (quote 5))) SKIP-CHECK)
           (~check (== (#%lv-ref q) (#%lv-ref p)) SKIP-CHECK)))))
 
   (progs-equal?
@@ -576,18 +571,18 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5)))
-                (== (#%lv-ref x) (cons (#%lv-ref q) (#%term-datum 5)))))))))
+                (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5)))
+                (== (#%lv-ref x) (cons (#%lv-ref q) (quote 5)))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5))) SKIP-CHECK)
-              (~check (== (#%lv-ref x) (cons (#%lv-ref q) (#%term-datum 5))) SKIP-CHECK)))))))
+              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (#%lv-ref q) (quote 5))) SKIP-CHECK)))))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -595,22 +590,22 @@
         (ir-rel ((~binder q))
           (fresh ((~binders w x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
-                (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (quote 5)))
                 (conj
                   (== (#%lv-ref z) (cons (#%lv-ref w) (#%lv-ref w)))
-                  (== (#%lv-ref x) (cons (cons (#%lv-ref q) (#%lv-ref q)) (#%term-datum 5))))))))))
+                  (== (#%lv-ref x) (cons (cons (#%lv-ref q) (#%lv-ref q)) (quote 5))))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders w x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (cons (#%lv-ref z) (#%lv-ref z)) (quote 5))) SKIP-CHECK)
               (conj
                 (~check (== (#%lv-ref z) (cons (#%lv-ref w) (#%lv-ref w))) SKIP-CHECK)
-                (~missing (== (#%lv-ref x) (cons (cons (#%lv-ref q) (#%lv-ref q)) (#%term-datum 5))) SKIP-CHECK))))))))
+                (~missing (== (#%lv-ref x) (cons (cons (#%lv-ref q) (#%lv-ref q)) (quote 5))) SKIP-CHECK))))))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -618,18 +613,18 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5)))
-                (== (#%lv-ref q) (cons (#%lv-ref z) (#%term-datum 6)))))))))
+                (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5)))
+                (== (#%lv-ref q) (cons (#%lv-ref z) (quote 6)))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5))) SKIP-CHECK)
-              (~check (== (#%lv-ref q) (cons (#%lv-ref z) (#%term-datum 6))) SKIP-CHECK)))))))
+              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref q) (cons (#%lv-ref z) (quote 6))) SKIP-CHECK)))))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -637,17 +632,17 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y z))
             (conj
-              (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+              (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5)))
                 (== (#%lv-ref q) (cons (#%lv-ref z) (#%lv-ref x)))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y z))
           (conj
-            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+            (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (#%lv-ref z) (quote 5))) SKIP-CHECK)
               (~missing (== (#%lv-ref q) (cons (#%lv-ref z) (#%lv-ref x))) SKIP-CHECK)))))))
 
   (let ([foo 5])
@@ -677,7 +672,7 @@
           (ir-rel ((~binder q))
             (fresh ((~binders x y))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
                 (conj
                   (#%rel-app foo (#%lv-ref y))
                   (== (#%lv-ref x) (#%lv-ref q))))))))
@@ -685,7 +680,7 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
               (conj
                 (#%rel-app foo (#%lv-ref y))
                 (~missing (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK))))))))
@@ -697,9 +692,9 @@
           (ir-rel ((~binder q))
             (fresh ((~binders x y))
               (conj
-                (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5)))
+                (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5)))
                 (conj
-                  (== (#%lv-ref y) (#%term-datum 5))
+                  (== (#%lv-ref y) (quote 5))
                   (conj
                     (#%rel-app foo (#%lv-ref y))
                     (== (#%lv-ref x) (#%lv-ref q)))))))))
@@ -707,9 +702,9 @@
         (ir-rel ((~binder q))
           (fresh ((~binders x y))
             (conj
-              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (#%term-datum 5))) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (cons (#%lv-ref y) (quote 5))) SKIP-CHECK)
               (conj
-                (~check (== (#%lv-ref y) (#%term-datum 5)) SKIP-CHECK)
+                (~check (== (#%lv-ref y) (quote 5)) SKIP-CHECK)
                 (conj
                   (#%rel-app foo (#%lv-ref y))
                   (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK)))))))))
@@ -723,7 +718,7 @@
               (conj
                 (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
                 (conj
-                  (#%rel-app foo (cons (#%term-datum 5) (#%lv-ref w)))
+                  (#%rel-app foo (cons (quote 5) (#%lv-ref w)))
                   (== (#%lv-ref y) (#%lv-ref q))))))))
       (generate-prog
         (ir-rel ((~binder q))
@@ -731,7 +726,7 @@
             (conj
               (~check (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y))) SKIP-CHECK)
               (conj
-                (#%rel-app foo (cons (#%term-datum 5) (#%lv-ref w)))
+                (#%rel-app foo (cons (quote 5) (#%lv-ref w)))
                 (~missing (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK))))))))
 
   (progs-equal?
@@ -753,16 +748,16 @@
             (conj
               (== (#%lv-ref q) (cons (#%lv-ref x) '()))
               (disj
-                (== (#%lv-ref x) (#%term-datum 5))
-                (== (#%lv-ref x) (#%term-datum 6))))))))
+                (== (#%lv-ref x) (quote 5))
+                (== (#%lv-ref x) (quote 6))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (conj
             (~check (== (#%lv-ref q) (cons (#%lv-ref x) '())) SKIP-CHECK)
             (disj
-              (~check (== (#%lv-ref x) (#%term-datum 5)) SKIP-CHECK)
-              (~check (== (#%lv-ref x) (#%term-datum 6)) SKIP-CHECK)))))))
+              (~check (== (#%lv-ref x) (quote 5)) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (quote 6)) SKIP-CHECK)))))))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -774,7 +769,7 @@
                 (== (#%lv-ref x) (#%lv-ref q))
                 (== (#%lv-ref y) (#%lv-ref q)))
               (conj
-                (== (#%lv-ref x) (#%term-datum 5))
+                (== (#%lv-ref x) (quote 5))
                 (== (#%lv-ref q) (cons (#%lv-ref y) '()))))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -784,7 +779,7 @@
               (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK)
               (~check (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK))
             (conj
-              (~check (== (#%lv-ref x) (#%term-datum 5)) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (quote 5)) SKIP-CHECK)
               (~missing (== (#%lv-ref q) (cons (#%lv-ref y) '())) SKIP-CHECK)))))))
 
   (progs-equal?
@@ -795,7 +790,7 @@
             (conj
               (disj
                 (== (#%lv-ref x) (#%lv-ref q))
-                (== (#%lv-ref y) (#%term-datum 5)))
+                (== (#%lv-ref y) (quote 5)))
               (conj
                 (== (#%lv-ref y) (#%lv-ref q))
                 (== (#%lv-ref q) (cons (#%lv-ref y) '()))))))))
@@ -805,7 +800,7 @@
           (conj
             (disj
               (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK)
-              (~check (== (#%lv-ref y) (#%term-datum 5)) SKIP-CHECK))
+              (~check (== (#%lv-ref y) (quote 5)) SKIP-CHECK))
             (conj
               (~missing (== (#%lv-ref y) (#%lv-ref q)) SKIP-CHECK)
               (~missing (== (#%lv-ref q) (cons (#%lv-ref y) '())) SKIP-CHECK)))))))
@@ -836,7 +831,7 @@
           (fresh ((~binders x y z a))
             (conj
               (conj
-                (== (#%lv-ref x) (#%term-datum 5))
+                (== (#%lv-ref x) (quote 5))
                 (== (#%lv-ref y) (rkt-term 6)))
               (== (#%lv-ref z) (#%lv-ref a)))))))
     (generate-prog
@@ -844,7 +839,7 @@
         (fresh ((~binders x y z a))
           (conj
             (conj
-              (~check (== (#%lv-ref x) (#%term-datum 5)) SKIP-CHECK)
+              (~check (== (#%lv-ref x) (quote 5)) SKIP-CHECK)
               (~missing (== (#%lv-ref y) (rkt-term 6)) SKIP-CHECK))
             (~missing (== (#%lv-ref z) (#%lv-ref a)) SKIP-CHECK))))))
 

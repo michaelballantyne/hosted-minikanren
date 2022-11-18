@@ -68,7 +68,6 @@
   (syntax-parse t
     #:literal-sets (mk-literals)
     #:literals (quote cons)
-    [(#%term-datum l) (values this-syntax id-refs)]
     [(quote d) (values this-syntax id-refs)]
     [(rkt-term e) (values this-syntax id-refs)]
     [(#%lv-ref v)
@@ -93,10 +92,10 @@
     (first-refs/rel
       (generate-prog
         (ir-rel ((~binder q))
-          (== (#%lv-ref q) (#%term-datum 5)))))
+          (== (#%lv-ref q) (quote 5)))))
     (generate-prog
       (ir-rel ((~binder q))
-        (== (~missing (#%lv-ref q) FIRST-REF) (#%term-datum 5)))))
+        (== (~missing (#%lv-ref q) FIRST-REF) (quote 5)))))
 
   (progs-equal?
     (first-refs/rel
@@ -115,13 +114,13 @@
         (ir-rel ((~binder q))
           (fresh ((~binder x))
             (conj
-              (== (#%lv-ref x) (#%term-datum 5))
+              (== (#%lv-ref x) (quote 5))
               (== (#%lv-ref q) (#%lv-ref x)))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (conj
-            (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
+            (== (~check (#%lv-ref x) FIRST-REF) (quote 5))
             (== (~missing (#%lv-ref q) FIRST-REF) (~missing (#%lv-ref x) FIRST-REF)))))))
 
   (progs-equal?
@@ -176,14 +175,14 @@
         (ir-rel ((~binder q))
           (fresh ((~binder x))
             (disj
-              (== (#%lv-ref x) (#%term-datum 5))
-              (== (#%lv-ref x) (#%term-datum 6)))))))
+              (== (#%lv-ref x) (quote 5))
+              (== (#%lv-ref x) (quote 6)))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binder x))
          (disj
-           (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
-           (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 6)))))))
+           (== (~check (#%lv-ref x) FIRST-REF) (quote 5))
+           (== (~check (#%lv-ref x) FIRST-REF) (quote 6)))))))
 
   (progs-equal?
     (first-refs/rel
@@ -192,16 +191,16 @@
           (fresh ((~binders x y))
             (conj
               (disj
-                (== (#%lv-ref x) (#%term-datum 5))
-                (== (#%lv-ref y) (#%term-datum 5)))
+                (== (#%lv-ref x) (quote 5))
+                (== (#%lv-ref y) (quote 5)))
               (== (#%lv-ref q) (cons (#%lv-ref x) (#%lv-ref y))))))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binders x y))
           (conj
             (disj
-              (== (~check (#%lv-ref x) FIRST-REF) (#%term-datum 5))
-              (== (~check (#%lv-ref y) FIRST-REF) (#%term-datum 5)))
+              (== (~check (#%lv-ref x) FIRST-REF) (quote 5))
+              (== (~check (#%lv-ref y) FIRST-REF) (quote 5)))
             (== (#%lv-ref q)
                 (cons (~missing (#%lv-ref x) FIRST-REF)
                       (~missing (#%lv-ref y) FIRST-REF))))))))
