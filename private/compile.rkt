@@ -33,7 +33,11 @@
           (run* (_ ...) _))
      (~> this-syntax
          fold/run
-         reorder-conj/run
+
+         ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
+         ;; Disabled in order to preserve faster-minikanren search order.
+         #;reorder-conj/run
+
          remove-noop/run
          remove-unused-vars/run
          propagate-fail/run
@@ -48,7 +52,11 @@
     [(ir-rel (x ...) g)
      (~> this-syntax
          fold/rel
-         reorder-conj/rel
+
+         ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
+         ;; Disabled in order to preserve faster-minikanren search order.
+         #;reorder-conj/rel
+
          remove-noop/rel
          remove-unused-vars/rel
          propagate-fail/rel
