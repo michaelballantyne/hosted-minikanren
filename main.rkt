@@ -31,7 +31,7 @@
  (except-out
   (all-from-out "core.rkt")
   conj2 disj2 fresh1 run-core run*-core quote-core)
- conj disj fresh conde run run* quasiquote unquote matche defrel/match quote)
+ conj disj fresh conde run run* quasiquote unquote matche defrel/match quote list)
 
 (define-syntax run
   (syntax-parser
@@ -134,6 +134,19 @@
           [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
           [() #'(quote-core ())]))])
    #'rkt:quasiquote))
+
+(define-syntax list
+  (term+expression
+   (syntax-parser
+     [(~describe
+       "(list <term> ...)"
+       (_))
+      #'(quote-core ())]
+     [(~describe
+       "(list <term> ...)"
+       (_ t t-rest ...))
+      #'(cons t (list t-rest ...))])
+   #'rkt:list))
 
 (begin-for-syntax
   ; p is a pattern expression
