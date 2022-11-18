@@ -10,9 +10,11 @@
    [disj disj2]
    [fresh fresh1]
    [run run-core]
-   [run* run*-core])
+   [run* run*-core]
+   [quote quote-core])
 
-  (rename-in racket/base [quasiquote rkt:quasiquote])
+  (rename-in racket/base [quasiquote rkt:quasiquote]
+                         [quote rkt:quote])
   
   (for-syntax
    (except-in racket/base compile)
@@ -28,8 +30,8 @@
 (provide
  (except-out
   (all-from-out "core.rkt")
-  conj2 disj2 fresh1 run-core run*-core)
- conj disj fresh conde run run* quasiquote unquote matche defrel/match)
+  conj2 disj2 fresh1 run-core run*-core quote-core)
+ conj disj fresh conde run run* quasiquote unquote matche defrel/match quote)
 
 (define-syntax run
   (syntax-parser
@@ -93,11 +95,29 @@
            (conde c* ...))])]))
 
 (begin-for-syntax
-  (struct term+expression [term-transformer orig-transformer]
+  (struct term+expression [term-transformer orig-macro]
     #:methods gen:term-macro
     [(define (term-macro-transform s stx)
        ((term+expression-term-transformer s) stx))]
-    #:property prop:procedure 1))
+    #:property prop:procedure
+    (λ (s stx)
+      (syntax-parse stx
+        [(_ . rest)
+         #:with orig-macro (term+expression-orig-macro s)
+         #'(orig-macro . rest)]))))
+
+(define-syntax quote
+  (term+expression
+   (syntax-parser
+     [(~describe
+       "'<datum>"
+       (_ q))
+      (let recur ([stx #'q])
+        (syntax-parse stx #:datum-literals ()
+          [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
+          [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
+          [() #'(quote-core ())]))])
+   #'rkt:quote))
 
 (define-syntax quasiquote
   (term+expression
@@ -111,9 +131,9 @@
           [(unquote . rest)
            (raise-syntax-error 'unquote "bad unquote syntax" stx)]
           [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
-          [(~or* v:identifier v:number) #'(quote v)]
-          [() #'(quote ())]))])
-   (syntax-local-value #'rkt:quasiquote)))
+          [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
+          [() #'(quote-core ())]))])
+   #'rkt:quasiquote))
 
 (begin-for-syntax
   ; p is a pattern expression

@@ -3,7 +3,11 @@
 
 (module+ test
   (require rackunit)
+  (define-relation (j result1)
+    (== '(1) (cons 1 result1)))
 
+  (pretty-print (syntax->datum (relation-code j)))
+  (pretty-print (syntax->datum (relation-code/compiled j)))
   (test-equal?
    "quote works just right in an equation"
    (run 1 (result1) (== '(1) (cons 1 result1)))

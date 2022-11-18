@@ -10,8 +10,8 @@
    '((2)))
 
   (test-equal?
-    "cons and quote DO NOT play nicely together :("
+    "cons and quote play nicely together :("
    (run 1 (res2) (== (cons 1 res2) '(1 2)))
-   '())
+   '((2)))
 
   )

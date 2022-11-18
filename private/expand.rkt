@@ -42,15 +42,15 @@
      this-syntax]
     [(~describe "(rkt-term <exp>)" (rkt-term e))
      (qstx/rc (rkt-term #,(local-expand #'e 'expression null)))]
-    [(#%term-datum l:number) this-syntax]
-    [(#%term-datum l:boolean) this-syntax]
-    [(#%term-datum l:string) this-syntax]
-    [(~describe "(quote <datum>)" (quote d)) this-syntax]
+    [(#%term-datum (~or l:number l:boolean l:string)) #'(quote l)]
+    [(~describe "(quote <datum>)"
+     (quote (~or d:identifier d:number d:boolean d:string ())))
+     this-syntax]
     [(~describe
       "(cons <term> <term>)"
       (cons t1:term/c t2:term/c))
      (qstx/rc (cons #,(expand-term #'t1) #,(expand-term #'t2)))]
-    
+
     ; term macros
     [(head:id . rest)
      #:do [(define binding (lookup #'head term-macro?))]
