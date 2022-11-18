@@ -32,7 +32,7 @@
   (benchmark-suite "numbers"
     ["logo-hard" (logo-hard-program)])
 
-  #;(benchmark-suite "four-fours"
+  (benchmark-suite "four-fours"
     ["4" (four-fours 4)]
     ["12-check" (four-fours-at-12-check)]
     ["12" (four-fours 12)]
@@ -45,6 +45,6 @@
   (benchmark-suite "full interp"
     ["((\\x x) (\\y y))" (run 1 (q) (full:evalo `((lambda (x) x) (lambda (y) y)) q))]
     ["complex-countdown" (run 1 (q) (full:evalo complex-countdown q))]
-    #;["6 quines" (run 6 (q) (full:evalo q q))])
+    ["6 quines" (run 6 (q) (full:evalo q q))])
 
 )

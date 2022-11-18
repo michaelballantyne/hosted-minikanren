@@ -50,12 +50,12 @@
 (module+ test
   (require rackunit)
 
-  ;; (check-equal?
-  ;;  (run 1 (parse) (modify `(0 0 1) `(0 0 1) `((0 0 1)) `() `(/ (0 0 1) (0 0 1)) `(1)))
-  ;;  `(_.0))
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1)) '() '(/ (0 0 1) (0 0 1)) '(1)))
+   '(_.0))
 
-  ;; (check-equal?
-  ;;  (run 1 (parse) (modify `(0 0 1) `(0 0 1) `((0 0 1) (0 0 1)) `() parse `(1 1)))
-  ;;  `((- (0 0 1) (/ (0 0 1) (0 0 1)))))
+  (check-equal?
+   (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1) (0 0 1)) '() parse '(1 1)))
+   '((- (0 0 1) (/ (0 0 1) (0 0 1)))))
 
   )
