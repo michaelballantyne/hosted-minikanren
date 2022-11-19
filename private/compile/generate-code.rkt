@@ -80,54 +80,48 @@
         #,@(stx-map generate-term #'(t ...)))]))
 
 ;; stx stx stx -> stx
-(define/hygienic (generate-specialized-unify-body v^ t2 S no-occur?) #:expression
+(define/hygienic (generate-specialized-unify-body v^ t2 st no-occur?) #:expression
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
      (let ([first-ref? (syntax-property t2 FIRST-REF)])
        (cond
-         [first-ref? #`(mku:ext-s-no-check w #,v^ #,S)]
+         [first-ref? #`(mku:ext-st-no-check w #,v^ #,st)]
          [no-occur?
-          #`(let ([w^ (mku:walk w #,S)])
-              (mku:unify-no-occur-check #,v^ w^ #,S))]
+          #`(mku:unify2-no-occur-check #,v^ w #,st)]
          [else
-          #`(let ([w^ (mku:walk w #,S)])
-              (mku:unify #,v^ w^ #,S))]))]
+          #`(mku:unify2 #,v^ w #,st)]))]
     [(rkt-term e)
      (if no-occur?
-         #`(mku:unify-no-occur-check #,v^ (check-term e #'e) #,S)
-         #`(mku:unify #,v^ (check-term e #'e) #,S))]
+         #`(mku:unify2-no-occur-check #,v^ (check-term e #'e) #,st)
+         #`(mku:unify2 #,v^ (check-term e #'e) #,st))]
     [(quote l)
      #`(let ([t (quote l)])
          (cond
-           [(equal? #,v^ t) (values #,S '())]
-           [(mku:var? #,v^) (mku:ext-s-no-check #,v^ t #,S)]
-           [else (values #f #f)]))]
+           [(equal? #,v^ t) #,st]
+           [(mku:var? #,v^) (mku:ext-st-check-c #,v^ t #,st)]
+           [else #f]))]
     [(cons t2-a:term/c t2-b:term/c)
      #`(cond
          [(mku:var? #,v^)
           (let ([t #,(generate-term t2)])
             #,(if no-occur?
-                  #`(mku:ext-s-no-check #,v^ t #,S)
-                  #`(mku:ext-s-check #,v^ t #,S)))]
+                  #`(mku:ext-st-check-c #,v^ t #,st)
+                  #`(mku:ext-st-check-occurs-check-c #,v^ t #,st)))]
          [(pair? #,v^)
-          (let ([v^-a-walked (mku:walk (car #,v^) #,S)])
-            (let-values ([(S^ added-car) #,(generate-specialized-unify-body #'v^-a-walked #'t2-a S no-occur?)])
-              (if S^
-                  (let ([v^-d-walked (mku:walk (cdr #,v^) S^)])
-                    (let-values ([(S^ added-cdr) #,(generate-specialized-unify-body #'v^-d-walked #'t2-b #'S^ no-occur?)])
-                      (values S^ (append added-car added-cdr))))
-                  (values #f #f))))]
-         [else (values #f #f)])]))
+          (let ([v^-a-walked (mku:walk (car #,v^) (mku:state-S #,st))])
+            (let ([st^ #,(generate-specialized-unify-body #'v^-a-walked #'t2-a st no-occur?)])
+              (and st^
+                   (let ([v^-d-walked (mku:walk (cdr #,v^) (mku:state-S st^))])
+                     #,(generate-specialized-unify-body #'v^-d-walked #'t2-b #'st^ no-occur?)))))]
+         [else #f])]))
 
 ;; stx stx -> stx
 (define/hygienic (generate-specialized-unify v t2 no-occur?) #:expression
   #`(λ (st)
-      (let ([S (mku:state-S st)])
-        (let ([v^ (mku:walk #,v S)])
-          (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S no-occur?)])
-            (check-constraints S^ added st))))))
+      (let ([v^ (mku:walk #,v (mku:state-S st))])
+        #,(generate-specialized-unify-body #'v^ t2 #'st no-occur?))))
 
 (define/hygienic (generate-== stx) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))

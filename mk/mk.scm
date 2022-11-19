@@ -269,8 +269,75 @@
 (define (ext-s-no-check x v S)
   (values (subst-add S x v) (list (cons x v))))
 
+
+(define (update-constraints2 x v S^ C)
+  (let ((old-c (intmap-ref C (var-idx x))))
+    (if (unbound? old-c)
+      (state S^ C)
+      (let ((C^ (intmap-set C (var-idx x) empty-c)))
+       (and-foldl (lambda (op st) (op st)) (state S^ C^)
+        (append
+          (if (c-T old-c)
+            (list ((apply-type-constraint (c-T old-c)) v))
+            '())
+          (map (lambda (atom) (absento atom v)) (c-A old-c))
+          (map =/=* (c-D old-c))))))))
+
 (define (unify* S+ S)
   (unify (map lhs S+) (map rhs S+) S))
+
+
+(define (ext-st-no-check x v st)
+  (state (subst-add (state-S st) x v) (state-C st)))
+
+(define (ext-st-check-c x v st)
+  (update-constraints2 x v (subst-add (state-S st) x v) (state-C st)))
+
+(define (ext-st-check-occurs-check-c x v st)
+  (if (occurs-check x v (state-S st))
+    #f
+    (ext-st-check-c x v st)))
+
+
+(define (unify2 u v st)
+  (let ((S (state-S st)))
+  (let ((u (walk u S))
+        (v (walk v S)))
+    (cond
+      ((eq? u v) st)
+      ((and (var? u) (var? v))
+       (if (> (var-idx u) (var-idx v))
+         (ext-st-check-occurs-check-c u v st)
+         (ext-st-check-occurs-check-c v u st)))
+      ((var? u) (ext-st-check-occurs-check-c u v st))
+      ((var? v) (ext-st-check-occurs-check-c v u st))
+      ((and (pair? u) (pair? v))
+       (let ((st (unify2 (car u) (car v) st)))
+         (and st
+              (unify2 (cdr u) (cdr v) st))))
+      ((equal? u v) st)
+      (else #f)))))
+
+
+(define (unify2-no-occur-check u v st)
+  (let ((S (state-S st)))
+  (let ((u (walk u S))
+        (v (walk v S)))
+    (cond
+      ((eq? u v) st)
+      ((and (var? u) (var? v))
+       (if (> (var-idx u) (var-idx v))
+         (ext-st-check-c u v st)
+         (ext-st-check-c v u st)))
+      ((var? u) (ext-st-check-c u v st))
+      ((var? v) (ext-st-check-c v u st))
+      ((and (pair? u) (pair? v))
+       (let ((st (unify2-no-occur-check (car u) (car v) st)))
+         (and st
+              (unify2-no-occur-check (cdr u) (cdr v) st))))
+      ((equal? u v) st)
+      (else #f)))))
+
 
 ; Search
 
@@ -536,10 +603,7 @@
 
 (define (== u v)
   (lambda (st)
-    (let-values (((S^ added) (unify u v (state-S st))))
-      (if S^
-        (and-foldl update-constraints (state S^ (state-C st)) added)
-        #f))))
+    (unify2 u v st)))
 
 ; Not fully optimized. Could do absento update with fewer
 ; hash-refs / hash-sets.
