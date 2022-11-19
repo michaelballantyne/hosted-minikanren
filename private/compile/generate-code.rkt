@@ -102,13 +102,15 @@
      #`(let ([t (quote l)])
          (cond
            [(equal? #,v^ t) (values #,S '())]
-           [(mku:var? #,v^) (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t)))]
+           [(mku:var? #,v^) (mku:ext-s-no-check #,v^ t #,S)]
            [else (values #f #f)]))]
     [(cons t2-a:term/c t2-b:term/c)
      #`(cond
          [(mku:var? #,v^)
           (let ([t #,(generate-term t2)])
-            (values (mku:subst-add #,S #,v^ t) (list (cons #,v^ t))))]
+            #,(if no-occur?
+                  #`(mku:ext-s-no-check #,v^ t #,S)
+                  #`(mku:ext-s-check #,v^ t #,S)))]
          [(pair? #,v^)
           (let ([v^-a-walked (mku:walk (car #,v^) #,S)])
             (let-values ([(S^ added-car) #,(generate-specialized-unify-body #'v^-a-walked #'t2-a S no-occur?)])
@@ -127,13 +129,6 @@
           (let-values ([(S^ added) #,(generate-specialized-unify-body #'v^ t2 #'S no-occur?)])
             (check-constraints S^ added st))))))
 
-;; stx stx -> stx
-(define/hygienic (generate-specialized-unify-rkt-term v t2 no-occur?) #:expression
-  #`(λ (st)
-      (let ([S (mku:state-S st)])
-        (let-values ([(S^ added) #,(generate-specialized-unify-body #'v t2 #'S no-occur?)])
-          (check-constraints S^ added st)))))
-
 (define/hygienic (generate-== stx) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))
   (syntax-parse stx
@@ -142,7 +137,7 @@
     [(== (~and t1 (#%lv-ref v:id)) t2)
      (generate-specialized-unify #'v #'t2 no-occur?)]
     [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
-     (generate-specialized-unify #'e #'t2 no-occur?)]
+     (generate-specialized-unify #'(check-term e #'e) #'t2 no-occur?)]
     ;; We should not see this case, but if we do, we don’t know squat.
     [(== t1 t2)
      #`(mku:== #,(generate-term #'t1) #,(generate-term #'t2))]))
@@ -191,7 +186,7 @@
                               (let-values (((t) (quote 7)))
                                 (cond
                                   ((equal? v^ t) (values S (quote ())))
-                                  ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                  ((mku:var? v^) (mku:ext-s-no-check v^ t S))
                                   (else (values (quote #f) (quote #f)))))))
                   (check-constraints S^ added st)))))
          (mku:== (quote 8) a26)))))
@@ -213,7 +208,7 @@
                              (let-values (((t) (quote 5)))
                                (cond
                                  ((equal? v^ t) (values S (quote ())))
-                                 ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                                 ((mku:var? v^) (mku:ext-s-no-check v^ t S))
                                  (else (values (quote #f) (quote #f)))))))
                  (check-constraints S^ added st)))))
         (lambda (st)
@@ -287,7 +282,7 @@
                            (let ((t (quote 5)))
                              (cond
                                ((equal? v^ t) (values S (quote ())))
-                               ((mku:var? v^) (values (mku:subst-add S v^ t) (list (cons v^ t))))
+                               ((mku:var? v^) (mku:ext-s-no-check v^ t S))
                                (else (values (quote #f) (quote #f)))))])
                (check-constraints S^ added st))))))))
 
