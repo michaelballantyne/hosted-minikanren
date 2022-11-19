@@ -7,8 +7,8 @@
     (conj (== l1 '()) (== l2 l3))
     (fresh (first rest result)
       (conj (== (cons first rest) l1)
-            (append rest l2 result)
-            (== (cons first result) l3)))))
+            (== (cons first result) l3)
+            (append rest l2 result)))))
 
 (pretty-print (syntax->datum (relation-code append)))
 

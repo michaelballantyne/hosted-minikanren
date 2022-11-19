@@ -8,8 +8,8 @@
    [(fresh (head rest) ; recursive case
       (== `(,head . ,rest) l1)
       (fresh (result)
-        (appendo rest l2 result)
-        (== `(,head . ,result) l3)))]))
+        (== `(,head . ,result) l3)
+        (appendo rest l2 result)))]))
 
 (module+ test
   (require

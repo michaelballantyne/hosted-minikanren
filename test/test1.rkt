@@ -68,9 +68,9 @@
   (conde
    [(== l1 '()) (== l3 l2)]
    [(fresh (head rest result)
-      (appendo3 rest l2 result)
       (== `(,head . ,rest) l1)
-      (== `(,head . ,result) l3))]))
+      (== `(,head . ,result) l3)
+      (appendo3 rest l2 result))]))
 
 (define (make-naturals c)
   (relation (n)
