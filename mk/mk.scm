@@ -215,6 +215,30 @@
       ((equal? u v) (values s '()))
       (else (values #f #f)))))
 
+; Term, Term, Substitution -> UnificationResult
+(define (unify-no-occur-check u v s)
+  (let ((u (walk u s))
+        (v (walk v s)))
+    (cond
+      ((eq? u v) (values s '()))
+      ((and (var? u) (var? v))
+       (if (> (var-idx u) (var-idx v))
+         (ext-s-check u v s)
+         (ext-s-check v u s)))
+      ((var? u) (ext-s-check u v s))
+      ((var? v) (ext-s-check v u s))
+      ((and (pair? u) (pair? v))
+       (let-values (((s added-car) (unify-no-occur-check (car u) (car v) s)))
+         (if s
+           (let-values (((s added-cdr) (unify-no-occur-check (cdr u) (cdr v) s)))
+             ; Right now appends the list of added values from sub-unifications.
+             ; Alternatively could be threaded monadically, which could be faster
+             ; or slower.
+             (values s (append added-car added-cdr)))
+           (values #f #f))))
+      ((equal? u v) (values s '()))
+      (else (values #f #f)))))
+
 ; Term, Substitution -> Term
 (define (walk u S)
   (let rec ((u u))
@@ -240,6 +264,10 @@
   (if (occurs-check x v S)
     (values #f #f)
     (values (subst-add S x v) (list (cons x v)))))
+
+; Var, Term, Substitution -> UnificationResult
+(define (ext-s-no-check x v S)
+  (values (subst-add S x v) (list (cons x v))))
 
 (define (unify* S+ S)
   (unify (map lhs S+) (map rhs S+) S))
@@ -321,6 +349,12 @@
     ((_ e) e)
     ((_ e0 e ...)
      (mplus e0 (suspend (mplus* e ...))))))
+
+(define-syntax conj
+  (syntax-rules ()
+    ((_ g0 g ...)
+     (lambda (st)
+       (bind* (g0 st) g ...)))))
 
 ; (fresh (x:id ...) g:Goal ...+) -> Goal
 (define-syntax fresh

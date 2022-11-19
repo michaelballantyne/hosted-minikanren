@@ -71,8 +71,8 @@
         ;; [#,(generate-goal #'g1)]
         ;; [#,(generate-goal #'g2)])]
     [(conj g1 g2)
-     #`(mk:conj #,(generate-goal #'g1)
-                #,(generate-goal #'g2))]
+     #`(mku:conj #,(generate-goal #'g1)
+                 #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
      #`(mk:fresh (x ...) #,(generate-goal #'g))]
     [(apply-relation e t ...)
