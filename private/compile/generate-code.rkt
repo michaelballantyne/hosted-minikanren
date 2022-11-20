@@ -10,6 +10,7 @@
          "../forms.rkt"
          "test/unit-test-progs.rkt"
          syntax/id-table
+         syntax/id-set
          syntax/parse
          (only-in syntax/parse
                   (define/syntax-parse def/stx))
@@ -74,10 +75,153 @@
      #`(mku:conj #,(generate-goal #'g1)
                  #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
-     #`(mk:fresh (x ...) #,(generate-goal #'g))]
+     (compile-block (attribute x) #'g)
+     #;#`(mk:fresh (x ...) #,(generate-goal #'g))]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
+
+
+(define (take-first-== g)
+  (syntax-parse g
+    #:context 'take-first-==
+    #:literal-sets (mk-literals)
+    [(== . _)
+     (values this-syntax #f)]
+    [(conj g1 g2)
+     (define-values (the-== g1-rest) (take-first-== #'g1))
+     (if the-==
+         (if g1-rest
+             (values the-== #`(conj #,g1-rest g2))
+             (values the-== #'g2))
+         (values #f this-syntax))]
+    [_ (values #f this-syntax)]))
+
+(define (split-block g)
+  (let loop ([g g] [==s '()])
+    (define-values (the-== g-rest) (take-first-== g))
+    (if the-==
+        (loop g-rest (cons the-== ==s))
+        (values (reverse ==s) g))))
+
+(define (split-vars vars ==s)
+  (define refed-vars
+    (apply free-id-set-union
+           (for/list ([==-stx ==s])
+             (==-vars ==-stx))))
+  
+  (values (free-id-set-intersect (immutable-free-id-set vars) refed-vars)
+          (free-id-set-subtract (immutable-free-id-set vars) refed-vars)))
+
+(define (term-vars t)
+  (syntax-parse t
+    #:context 'term-vars
+    #:literal-sets (mk-literals)
+    #:literals (cons)
+    [(#%lv-ref v)
+     (immutable-free-id-set (list #'v))]
+    [(cons t1 t2)
+     (free-id-set-union 
+      (term-vars #'t1)
+      (term-vars #'t2))]
+    [_ (immutable-free-id-set '())]))
+
+(define (==-vars g)
+  (syntax-parse g
+    #:context '==-vars
+    #:literal-sets (mk-literals)
+    [(== t1 t2)
+     (free-id-set-union (term-vars #'t1) (term-vars #'t2))]))
+
+(require racket/pretty)
+
+(define (compile-block fresh-vars g)
+  #;(pretty-print (syntax->datum g))
+  (define-values (==s rest-g) (split-block g))
+
+  (define res
+    (cond
+      [(null? ==s)
+       #`(mku:fresh (#,@fresh-vars)
+           #,(generate-goal rest-g))]
+      [else
+  
+       (define-values (==-vars other-vars) (split-vars fresh-vars ==s))
+
+     
+       #`(mku:fresh (#,@(free-id-set->list other-vars))
+                    (lambda (st)
+                      #,(compile-==-rec
+                         ==s ==-vars #'st
+                         (lambda (st)
+                           (if rest-g
+                               #`(#,(generate-goal rest-g)
+                                  #,st)
+                               st)))))]))
+    #;(pretty-print (syntax->datum res))
+  res)
+
+(define (compile-==-rec ==s remaining-==-vars st k)
+  (cond
+    [(null? ==s)
+     (unless (free-id-set-empty? remaining-==-vars)
+       (error 'compile-block "should be no remaining-==-vars here"))
+     (k st)]
+    [else
+     (generate-==-rec
+      (car ==s)
+      remaining-==-vars
+      st
+      (lambda (remaining-==-vars^ st^)
+        #`(and #,st^
+               #,(compile-==-rec (cdr ==s) remaining-==-vars^ st^ k))))]))
+
+(define (fresh-term-vars t all-fresh-vars)
+  (free-id-set-intersect all-fresh-vars (term-vars t)))
+
+(define (generate-==-rec stx ==-vars st k)
+  (define no-occur? (syntax-property stx SKIP-CHECK))
+  (syntax-parse stx
+    #:context 'generate-==-rec
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(== (#%lv-ref v:id) t2)
+     (define t2-fresh-vars (fresh-term-vars #'t2 ==-vars))
+   
+     (cond
+       [(and (free-id-set-member? ==-vars #'v)
+             (not (free-id-set-member? t2-fresh-vars #'v)))
+        (define/syntax-parse (t2-var ...) (free-id-set->list t2-fresh-vars))
+        (define ==-vars^ (free-id-set-remove
+                          (free-id-set-subtract ==-vars t2-fresh-vars)
+                          #'v))
+        #`(let ([sc (mku:subst-scope (mku:state-S st))])
+            (let ([t2-var (mku:var sc)] ...)
+              (let ([v #,(generate-term #'t2)])
+                #,(k ==-vars^ st))))]
+       [else
+        (define t-vars (free-id-set-union
+                        (free-id-set-intersect ==-vars (immutable-free-id-set (list #'v)))
+                        t2-fresh-vars))
+        (define/syntax-parse (t-var ...) (free-id-set->list t-vars))
+        (define ==-vars^ (free-id-set-subtract ==-vars t-vars))
+        #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
+            (let ([t-var (mku:var sc)] ...)
+              (let ([st^ #,(generate-specialized-unify-body #'v #'t2 st no-occur?)])
+                #,(k ==-vars^ #'st^))))])]
+    
+    [(== (rkt-term e) (~and t2 (~not (#%lv-ref _))))
+     (define t2-fresh-vars (fresh-term-vars #'t2 ==-vars))
+     (define/syntax-parse (t2-var ...) (free-id-set->list t2-fresh-vars))
+     (define ==-vars^ (free-id-set-subtract ==-vars t2-fresh-vars))
+     #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
+         (let ([t2-var (mku:var sc)] ...)
+           (let ([st^ #,(generate-specialized-unify-body #'v #'t2 st no-occur?)])
+             #,(k ==-vars^ #'st^))))]
+    [(== t1 t2)
+     (error 'generate-==-rec "invariant violation")]))
+
+
 
 ;; stx stx stx -> stx
 (define/hygienic (generate-specialized-unify-body v t2 st no-occur?) #:expression
