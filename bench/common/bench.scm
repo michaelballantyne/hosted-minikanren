@@ -24,6 +24,9 @@
   (benchmark-suite "numbers"
     ["logo-hard" (logo-hard-program)])
 
+  (benchmark-suite "nolen-example"
+    ["nolen-example" (nolen-example)])
+
   (benchmark-suite "four-fours"
     ["4" (four-fours 4)]
     ["12-check" (four-fours-at-12-check)]

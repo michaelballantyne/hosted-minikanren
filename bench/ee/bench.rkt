@@ -6,6 +6,7 @@
 (require (prefix-in full: "../ee-stdlib/full-interp.rkt"))
 (require "../utils.rkt")
 (require "four-fours.rkt")
+(require "nolen-example.rkt")
 
 (displayln "minikanren-ee")
 
