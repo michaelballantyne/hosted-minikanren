@@ -7,6 +7,7 @@
 (require "../utils.rkt")
 (require "four-fours.rkt")
 (require "nolen-example.rkt")
+(require "test-fact.rkt")
 
 (displayln "minikanren-ee")
 

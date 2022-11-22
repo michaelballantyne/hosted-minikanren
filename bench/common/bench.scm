@@ -33,6 +33,10 @@
     ["12" (four-fours 12)]
     ["256" (four-fours 256)])
 
+  (benchmark-suite "test fact"
+    ["fast fact 7 = 5040" (fast-fact-7-5040)]
+    ["slow fact 7 = 5040" (slow-fact-7-5040)])
+
   (benchmark-suite "simple interp"
     ["((\\x x) (\\y y))" (run 1 (q) (simple:evalo `((lambda (x) x) (lambda (y) y)) q))]
     ["complex-countdown" (run 1 (q) (simple:evalo complex-countdown q))])
