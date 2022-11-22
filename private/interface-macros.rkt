@@ -80,7 +80,10 @@
 
 (define-syntax relation-rhs
   (syntax-parser
-    [(_ b g name)
+    [(_ b g name compiled-name)
+     ; duplicate the effect from define-relation for the case when in the top-level;
+     ; the phase1-effect won't have run in time.
+     (free-id-table-set! compiled-names #'name #'compiled-name)
      ; some awkwardness to let us capture the expanded and optimized mk code
      (define expanded (expand-relation #'(ir-rel b g)))
      (free-id-table-set! expanded-relation-code
@@ -104,7 +107,7 @@
          ; Binding for the the compiled function.
          ; Expansion of `relation` expands and compiles the
          ; body in the definition context's second pass.
-         (define tmp (relation-rhs (h.v ...) g h.name))
+         (define tmp (relation-rhs (h.v ...) g h.name tmp))
          (phase1-effect
            (free-id-table-set! compiled-names #'h.name #'tmp)))]))
 
