@@ -8,6 +8,8 @@
 (require "four-fours.rkt")
 (require "nolen-example.rkt")
 (require "test-fact.rkt")
+(require "relational-graph-color.rkt")
+(require "orchid-graph-coloro.rkt")
 
 (displayln "faster-minikanren")
 
