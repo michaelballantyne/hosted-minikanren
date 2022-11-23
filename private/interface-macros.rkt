@@ -36,6 +36,7 @@
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
+         relation-code/optimized
          relation-code/compiled
          (for-syntax gen:term-macro gen:goal-macro))
 
@@ -76,7 +77,7 @@
       (_ b:bindings/c g:goal/c))
      ; some awkwardness to let us capture the expanded and optimized mk code
      (define expanded (expand-relation #'(ir-rel b g)))
-     #`(relation-value #,(compile-relation expanded))]))
+     #`(relation-value #,(compile-relation expanded #f))]))
 
 (define-syntax relation-rhs
   (syntax-parser
@@ -86,7 +87,7 @@
      (free-id-table-set! expanded-relation-code
                          #'name
                          expanded)
-     (define compiled (compile-relation expanded))
+     (define compiled (compile-relation expanded #'name))
      (free-id-table-set! compiled-relation-code
                          #'name
                          compiled)
@@ -138,6 +139,19 @@
              (error 'relation-code "can only access code of relations defined in the current module"))
            #`#'#,code)
          #'(#%expression (relation-code name)))]))
+
+(define-syntax relation-code/optimized
+  (syntax-parser
+    [(_ name)
+     (if (eq? 'expression (syntax-local-context))
+         (let ()
+           (when (not (lookup #'name relation-binding?))
+             (raise-syntax-error #f "not bound to a relation" #'name))
+           (define code (free-id-table-ref optimized-relation-code #'name #f))
+           (when (not code)
+             (error 'relation-code "can only access code of relations defined in the current module"))
+           #`#'#,code)
+         #'(#%expression (relation-code/optimized name)))]))
 
 (define-syntax relation-code/compiled
   (syntax-parser

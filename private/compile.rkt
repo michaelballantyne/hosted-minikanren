@@ -24,7 +24,8 @@
 
 (provide compiled-names
          compile-run
-         compile-relation)
+         compile-relation
+         optimized-relation-code)
 
 
 (define/hygienic (compile-run stx) #:expression
@@ -45,9 +46,17 @@
          ;; annotation passes, no shape-changing past this point
          first-refs/run
          mark-redundant-check/run
+         
          generate-run)]))
 
-(define/hygienic (compile-relation stx) #:expression
+(define optimized-relation-code (make-free-id-table))
+
+(define (save-optimized stx name)
+  (when name
+    (free-id-table-set! optimized-relation-code name stx))
+  stx)
+
+(define/hygienic (compile-relation stx name) #:expression
   (syntax-parse stx
     [(ir-rel (x ...) g)
      (~> this-syntax
@@ -64,5 +73,8 @@
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
          mark-redundant-check/rel
+
+         (save-optimized name)
+         
          generate-relation)]))
 
