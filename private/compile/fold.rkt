@@ -15,10 +15,40 @@
 
 (define (walk t s)
   (let rec ([t t])
-    (if (identifier? t)
-      (let ([val (free-id-table-ref s t #f)])
-        (if val (rec val) t))
-      t)))
+    (syntax-parse t
+      #:literal-sets (mk-literals)
+      [(#%lv-ref v)
+       (let ([val (free-id-table-ref s #'v #f)])
+         (if val (rec val) t))]
+      [_ t])))
+
+(define (walk-to-last-var t s)
+  (let rec ([t t])
+    (syntax-parse t
+      #:literal-sets (mk-literals)
+      [(#%lv-ref v)
+       (let ([val (free-id-table-ref s #'v #f)])
+         (if val
+             (syntax-parse val
+               #:literal-sets (mk-literals)
+               [(#%lv-ref v2)
+                (rec val)]
+               [_ t])
+             t))]
+      [_ t])))
+
+(define (maybe-inline t t^ s)
+  (syntax-parse t^
+    #:literal-sets (mk-literals)
+    #:literals (cons quote)
+    [(quote vl)
+     t^]
+    [(#%lv-ref v)
+     t^]
+    [(cons t1 t2)
+     (walk-to-last-var t s)]
+    [(rkt-term _)
+     (walk-to-last-var t s)]))
 
 (define (equal-vals? u v)
   (syntax-parse (list u v)
@@ -33,24 +63,22 @@
     [_ #f]))
 
 (define (unify u v s)
-  (let ([u (walk u s)]
-        [v (walk v s)])
-    (syntax-parse (list u v)
+  (let ([u^ (walk u s)]
+        [v^ (walk v s)])
+    (syntax-parse (list u^ v^)
       #:literal-sets (mk-literals)
       #:literals (cons quote)
-      [_ #:when (equal-vals? u v) (values #'(success) s)]
-      [((#%lv-ref id1:id) (#%lv-ref id2:id))
-       (values #`(== (#%lv-ref id1) (#%lv-ref id2)) (ext-subst #'id1 #'id2 s))]
+      [_ #:when (equal-vals? u^ v^) (values #'(success) s)]
       [((#%lv-ref id1:id) _)
-       (values #`(== (#%lv-ref id1) #,v) (ext-subst #'id1 v s))]
+       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s))]
       [(_ (#%lv-ref id2:id))
-       (values #`(== (#%lv-ref id2) #,u) (ext-subst #'id2 u s))]
+       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))]
       [((cons a1 d1) (cons a2 d2))
        (let*-values ([(g1^ s^) (unify #'a1 #'a2 s)]
                      [(g2^ s^^) (unify #'d1 #'d2 s^)])
          (values #`(conj #,g1^ #,g2^) s^^))]
-      [((rkt-term _) _) (values #`(== #,u #,v) s)]
-      [(_ (rkt-term _)) (values #`(== #,v #,u) s)]
+      [((rkt-term _) _) (values #`(== #,u^ #,v^) s)]
+      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
       [_ (values #'(failure) s)])))
 
 (define (fold/rel stx)
@@ -84,9 +112,12 @@
      (let-values ([(g1^ _s1) (fold/goal #'g1 subst)]
                   [(g2^ _s2) (fold/goal #'g2 subst)])
        (values #`(disj #,g1^ #,g2^) subst))]
+    ;; Assume we don't gain any information within a fresh because we can't inline terms that may
+    ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
+    ;; limitation and should be alleviated by a better design.
     [(fresh (x ...) g)
      (let-values ([(g^ s^) (fold/goal #'g subst)])
-       (values #`(fresh (x ...) #,g^) s^))]
+       (values #`(fresh (x ...) #,g^) subst))]
     [(#%rel-app n t ...) (values this-syntax subst)]
     [(apply-relation e t ...) (values this-syntax subst)]))
 
@@ -270,8 +301,122 @@
         (conj
           (success)
           (== (#%lv-ref q) (quote 2))))))
+  
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+             (fresh ((~binders a b c))
+               (conj
+                (conj
+                 (== (#%lv-ref a) (cons (quote 1) (cons (quote 2) (quote ()))))
+                 (== (#%lv-ref b) (#%lv-ref a)))
+                 (== (#%lv-ref c) (#%lv-ref b)))))))
+   (generate-prog
+    (ir-rel ()
+            (fresh ((~binders a b c))
+              (conj
+                (conj
+                 (== (#%lv-ref a) (cons (quote 1) (cons (quote 2) (quote ()))))
+                 (== (#%lv-ref b) (#%lv-ref a)))
+                 (== (#%lv-ref c) (#%lv-ref a)))))))
+
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+             (fresh ((~binders a b c))
+               (conj
+                (conj
+                 (== (#%lv-ref a) (rkt-term '(1 2 3)))
+                 (== (#%lv-ref b) (#%lv-ref a)))
+                 (== (#%lv-ref c) (#%lv-ref b)))))))
+   (generate-prog
+    (ir-rel ()
+            (fresh ((~binders a b c))
+              (conj
+                (conj
+                 (== (#%lv-ref a) (rkt-term '(1 2 3)))
+                 (== (#%lv-ref b) (#%lv-ref a)))
+                 (== (#%lv-ref c) (#%lv-ref a)))))))
+
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+             (fresh ((~binders a b))
+               (conj
+                (== (#%lv-ref a) (cons (quote 1) (cons (quote 2) (quote ()))))
+                (== (#%lv-ref b) (cons (#%lv-ref a) (#%lv-ref a))))))))
+   (generate-prog
+     (ir-rel ()
+             (fresh ((~binders a b))
+               (conj
+                (== (#%lv-ref a) (cons (quote 1) (cons (quote 2) (quote ()))))
+                (== (#%lv-ref b) (cons (#%lv-ref a) (#%lv-ref a))))))))
+
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+             (fresh ((~binders a b c))
+               (conj
+                (conj
+                 (== (#%lv-ref a) (quote 1))
+                 (== (#%lv-ref b) (#%lv-ref a)))
+                 (== (#%lv-ref c) (#%lv-ref b)))))))
+   (generate-prog
+    (ir-rel ()
+            (fresh ((~binders a b c))
+              (conj
+                (conj
+                 (== (#%lv-ref a) (quote 1))
+                 (== (#%lv-ref b) (quote 1)))
+                 (== (#%lv-ref c) (quote 1)))))))
+
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ((~binder x))
+             (fresh ((~binder l))
+               (conj
+                (== (#%lv-ref l) (cons (#%lv-ref x) (quote ())))
+                (disj
+                 (fresh ((~binder y))
+                   (== (#%lv-ref l) (cons (#%lv-ref y) (quote ()))))
+                 (== (#%lv-ref l) (cons (quote 1) (quote ())))))))))
+   (generate-prog
+    (ir-rel ((~binder x))
+            (fresh ((~binder l))
+              (conj
+               (== (#%lv-ref l) (cons (#%lv-ref x) (quote ())))
+               (disj
+                (fresh ((~binder y))
+                  (conj
+                   (== (#%lv-ref x) (#%lv-ref y))
+                   (success)))
+                (conj
+                 (== (#%lv-ref x) (quote 1))
+                 (success))))))))
+
+  ;; This test documents a limitation: we don't propagate information out of a fresh,
+  ;; so as to avoid inlining out-of-context references. We should be able to do better.
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ((~binder a))
+             (conj
+              (fresh ((~binder b))
+                (== (#%lv-ref a) (cons (#%lv-ref b) (quote ()))))
+              (== (#%lv-ref a) (cons (quote 1) (quote ())))))))
+   (generate-prog
+    (ir-rel ((~binder a))
+             (conj
+              (fresh ((~binder b))
+                (== (#%lv-ref a) (cons (#%lv-ref b) (quote ()))))
+              (== (#%lv-ref a) (cons (quote 1) (quote ())))))))
+  
+  )
 
   
 
-        
-    )
