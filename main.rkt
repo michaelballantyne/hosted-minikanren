@@ -73,7 +73,6 @@
       "(fresh (<id> ...) <goal> ...+)"
       (_ b:bindings/c g*:goal/c ...+))
      (syntax-parse #'b
-       [() #'(conj g* ...)]
        [(x ...) #'(fresh1 (x ...)
                           (conj g* ...))])]))
 
