@@ -1,3 +1,11 @@
+;; BUG?
+
+;; (run 1 (q) (fresh (e α β γ) (== q (list e α β γ)) (⊢ '() '() e `((,β → ,α) → ((,γ → ,β) → (,γ → ,α))))))
+;; '((((lambda (_.0) (lambda (_.1) (lambda (_.2) _.3))) ℕ _.4 _.5) (=/= ((_.0 lambda)) ((_.1 lambda))) (num _.3) (sym _.0 _.1 _.2)))
+;;
+;; Is this more ground that it ought to be, b/c ought it have a most general type.
+
+
 ;; An improved version originally based on Spenser Bauman’s B521
 ;; implementation w/ Poly types
 ;;
