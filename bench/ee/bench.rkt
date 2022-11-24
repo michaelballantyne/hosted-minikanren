@@ -6,6 +6,10 @@
 (require (prefix-in full: "../ee-stdlib/full-interp.rkt"))
 (require "../utils.rkt")
 (require "four-fours.rkt")
+(require "nolen-example.rkt")
+(require "test-fact.rkt")
+(require "relational-graph-color.rkt")
+(require "orchid-graph-coloro.rkt")
 
 (displayln "minikanren-ee")
 
