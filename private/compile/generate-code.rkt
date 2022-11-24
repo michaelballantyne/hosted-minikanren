@@ -137,7 +137,7 @@
 (define (compile-block fresh-vars g)
   (define-values (unify-gs rest-g) (split-block g))
   (define-values (unify-vars other-vars) (split-vars fresh-vars unify-gs))
-
+  
   (define/syntax-parse (other-var ...) (free-id-set->list other-vars))
 
   #`(mku:fresh (other-var ...)
@@ -157,7 +157,7 @@
        (error 'compile-block "should be no remaining-unify-vars here"))
      (k st)]
     [else
-     (compile-block-conjunction
+     (generate-optimized-unify
       (car unify-gs)
       remaining-unify-vars
       st
@@ -166,7 +166,11 @@
                #,(compile-block-conjunction (cdr unify-gs) remaining-unify-vars^ st^ k))))]))
 
 (define (fresh-term-vars t all-fresh-vars)
-  (free-id-set-intersect all-fresh-vars (term-vars t)))
+  ;; we want the hygiene context of the vars in `t`.
+  (immutable-free-id-set
+   (for/list ([v (in-free-id-set (term-vars t))]
+              #:when (free-id-set-member? all-fresh-vars v))
+     v)))
 
 (define (generate-let-unify v t2 remaining-unify-vars st k)
   (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
@@ -174,7 +178,7 @@
                                  (free-id-set-subtract remaining-unify-vars t2-fresh-vars)
                                  v))
   (define/syntax-parse (t2-fresh-var ...) (free-id-set->list t2-fresh-vars))
-  #`(let ([sc (mku:subst-scope (mku:state-S st))])
+  #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
       (let ([t2-fresh-var (mku:var sc)] ...)
         (let ([v #,(generate-term t2)])
           #,(k remaining-unify-vars^ st)))))
@@ -189,7 +193,8 @@
     [(== (#%lv-ref v:id) t2)
      (cond
        [(free-id-set-member? (term-vars #'t2) #'v)
-        (error 'generate-optimized-unify "invariant violation---occurs check violation should be caught in constant folding")]
+        #'#f
+        #;(error 'generate-optimized-unify "invariant violation---occurs check violation should be caught in constant folding")]
        [(free-id-set-member? remaining-unify-vars #'v)
         (generate-let-unify #'v #'t2 remaining-unify-vars st k)]
        [else
@@ -203,24 +208,44 @@
 (define/hygienic (generate-matching-unify v t2 remaining-unify-vars st no-occur? k) #:expression
   (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
   (define remaining-unify-vars^ (free-id-set-subtract remaining-unify-vars t2-fresh-vars))
-  (define/syntax-parse (body-var ...) t2-fresh-vars)
+  (define/syntax-parse (body-var ...) (free-id-set->list t2-fresh-vars))
   #`(let ([body (lambda (body-var ... st)
-                  #,(k remaining-unify-vars #'st))])
-      #,(generate-matching-unify-body v t2 st remaining-unify-vars no-occur? #'body)))
+                  #,(k remaining-unify-vars^ #'st))])
+      #,(generate-matching-unify-body v t2 st remaining-unify-vars no-occur? #'body #'(body-var ...))))
 
-(define/hygienic (generate-matching-unify-body v t2 st remaining-unify-vars no-occur? k-id) #:expression
+(define/hygienic (generate-matching-unify-body v t2 st fresh-unify-vars no-occur? join-point-name join-point-vars) #:expression
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
-     (error 'todo)]
+     #:when (free-id-set-member? fresh-unify-vars #'w)
+     #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
+    [(#%lv-ref w:id)
+     #`(#,join-point-name #,@join-point-vars (mku:unify2 #,v w #,st))]
     [(rkt-term e)
-     (error 'todo)]
+     #`(#,join-point-name #,@join-point-vars (mku:unify2 #,v (check-term e #'e) #,st))]
     [(quote l)
-     (error 'todo)]
+     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+         (cond
+           [(mku:var? v^) (#,join-point-name #,@join-point-vars (mku:ext-st-check-c v^ 'l #,st))]
+           [(equal? v^ 'l) (#,join-point-name #,@join-point-vars #,st)]
+           [else #f]))]
     [(cons t2-a:term/c t2-b:term/c)
-     (error 'todo)]
-    ))
+     
+     (define t2-vars (fresh-term-vars t2 fresh-unify-vars))
+     (define t2-a-vars (fresh-term-vars #'t2-a fresh-unify-vars))
+     (define/syntax-parse (t2-var ...) (free-id-set->list t2-vars))
+     (define/syntax-parse (t2-a-var ...) (free-id-set->list t2-a-vars))
+     
+     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+         (cond
+           [(mku:var? v^) (let ([t2-var (mku:var (mku:subst-scope (mku:state-S #,st)))] ...)
+                        (#,join-point-name #,@join-point-vars (mku:ext-st-check-occurs-check-c v^ #,(generate-term t2))))]
+           [(pair? v^)
+            (let ([do-cdr (lambda (t2-a-var ... st)
+                            #,(generate-matching-unify-body #'(cdr v^) #'t2-b #'st fresh-unify-vars no-occur? join-point-name join-point-vars))])
+              #,(generate-matching-unify-body #'(car v^) #'t2-a st fresh-unify-vars no-occur? #'do-cdr #'(t2-a-var ...)))]
+           [else #f]))]))
 
 ;; stx stx stx -> stx
 (define/hygienic (generate-specialized-unify-body v t2 st no-occur?) #:expression
@@ -258,7 +283,7 @@
            [(pair? v^)
             (let ([st^ #,(generate-specialized-unify-body #'(car v^) #'t2-a st no-occur?)])
               (and st^
-                   #,(generate-specialized-unify-body #'(cdr v^) #'t2-b #'st^ no-occur?)))]
+                   #,(generate-specialized-unify-body #'(car v^) #'t2-b #'st^ no-occur?)))]
            [else #f]))]))
 
 ;; stx stx -> stx
@@ -319,7 +344,43 @@
                  (lambda (st)
                    ((mku:symbolo x)
                     st))))))
-   
+
+
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder a))
+             (fresh ((~binder x))
+               (== (#%lv-ref x) (quote 5))))))
+   (generate-prog
+    (lambda (a)
+      (mku:fresh ()
+                 (lambda (st)
+                   (let ([sc (mku:subst-scope (mku:state-S st))])
+                     (let ()
+                       (let ((v '5))
+                         (and st st)))))))))
+
+  #;(begin-for-syntax
+    (require racket/pretty)
+    
+    (pretty-print
+     (syntax->datum
+     (generate-relation
+      (generate-prog
+       (ir-rel ((~binder a))
+               (fresh (b c)
+                 (== (#%lv-ref a) (cons (#%lv-ref b) (cons (#%lv-ref c) (quote ())))))))))))
+            
+  
+  #;(core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder a))
+             (fresh ((~binder x))
+               (== (#%lv-ref x) (quote 5))))))
+   (generate-prog
+    (== (#%lv-ref x) (quote 5))))
   
   #;(begin
   (core-progs-equal?
