@@ -221,9 +221,12 @@
      #:when (free-id-set-member? fresh-unify-vars #'w)
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
-     #`(#,join-point-name #,@join-point-vars (mku:unify2 #,v w #,st))]
+     #:when (syntax-property this-syntax FIRST-REF)
+     #`(#,join-point-name #,@join-point-vars (mku:ext-st-no-check w (mku:walk #,v (mku:state-S #,st)) #,st))]
+    [(#%lv-ref w:id)
+     #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(rkt-term e)
-     #`(#,join-point-name #,@join-point-vars (mku:unify2 #,v (check-term e #'e) #,st))]
+     #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'(check-term e #'e) st no-occur?))]
     [(quote l)
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (cond
@@ -240,13 +243,24 @@
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (cond
            [(mku:var? v^) (let ([t2-var (mku:var (mku:subst-scope (mku:state-S #,st)))] ...)
-                            (#,join-point-name #,@join-point-vars (mku:ext-st-check-occurs-check-c v^ #,(generate-term t2) #,st)))]
+                            (#,join-point-name #,@join-point-vars
+                                               #,(generate-ext #'v^ (generate-term t2) st no-occur?)))]
            [(pair? v^)
             (let ([do-cdr (lambda (t2-a-var ... st)
                             (and st
                                  #,(generate-matching-unify-body #'(cdr v^) #'t2-b #'st fresh-unify-vars no-occur? join-point-name join-point-vars)))])
               #,(generate-matching-unify-body #'(car v^) #'t2-a st fresh-unify-vars no-occur? #'do-cdr #'(t2-a-var ...)))]
            [else #f]))]))
+
+(define (generate-runtime-unify u v st no-occur?)
+  (if no-occur?
+      #`(mku:unify2-no-occur-check #,u #,v #,st)
+      #`(mku:unify2 #,u #,v #,st)))
+
+(define (generate-ext v t st no-occur?)
+  (if no-occur?
+      #`(mku:ext-st-check-c #,v #,t #,st)
+      #`(mku:ext-st-check-occurs-check-c #,v #,t #,st)))
 
 ;; stx stx stx -> stx
 (define/hygienic (generate-specialized-unify-body v t2 st no-occur?) #:expression
