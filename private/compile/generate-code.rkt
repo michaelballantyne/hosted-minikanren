@@ -53,8 +53,8 @@
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
-    [(success) #'(mk:== '2 '2)]
-    [(failure) #'(mk:== '2 '3)]
+    [(success) #'mku:succeed]
+    [(failure) #'mku:fail]
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t))]
@@ -104,11 +104,10 @@
         (loop g-rest (cons the-== ==s))
         (values (reverse ==s) g))))
 
-(define (split-vars vars ==s)
+(define (split-vars vars unify-gs)
   (define refed-vars
-    (apply free-id-set-union
-           (for/list ([==-stx ==s])
-             (==-vars ==-stx))))
+    (for/fold ([ids (immutable-free-id-set)]) ([unify-g unify-gs])
+      (free-id-set-union ids (immutable-free-id-set (==-vars unify-g)))))
   
   (values (free-id-set-intersect (immutable-free-id-set vars) refed-vars)
           (free-id-set-subtract (immutable-free-id-set vars) refed-vars)))
@@ -136,92 +135,92 @@
 (require racket/pretty)
 
 (define (compile-block fresh-vars g)
-  #;(pretty-print (syntax->datum g))
-  (define-values (==s rest-g) (split-block g))
+  (define-values (unify-gs rest-g) (split-block g))
+  (define-values (unify-vars other-vars) (split-vars fresh-vars unify-gs))
 
-  (define res
-    (cond
-      [(null? ==s)
-       #`(mku:fresh (#,@fresh-vars)
-           #,(generate-goal rest-g))]
-      [else
-  
-       (define-values (==-vars other-vars) (split-vars fresh-vars ==s))
+  (define/syntax-parse (other-var ...) (free-id-set->list other-vars))
 
-     
-       #`(mku:fresh (#,@(free-id-set->list other-vars))
+  #`(mku:fresh (other-var ...)
+               (lambda (st)
+                 #,(compile-block-conjunction
+                    unify-gs unify-vars #'st
                     (lambda (st)
-                      #,(compile-==-rec
-                         ==s ==-vars #'st
-                         (lambda (st)
-                           (if rest-g
-                               #`(#,(generate-goal rest-g)
-                                  #,st)
-                               st)))))]))
-    #;(pretty-print (syntax->datum res))
-  res)
+                      (if rest-g
+                          #`(#,(generate-goal rest-g)
+                             #,st)
+                          st))))))
 
-(define (compile-==-rec ==s remaining-==-vars st k)
+(define (compile-block-conjunction unify-gs remaining-unify-vars st k)
   (cond
-    [(null? ==s)
-     (unless (free-id-set-empty? remaining-==-vars)
-       (error 'compile-block "should be no remaining-==-vars here"))
+    [(null? unify-gs)
+     (unless (free-id-set-empty? remaining-unify-vars)
+       (error 'compile-block "should be no remaining-unify-vars here"))
      (k st)]
     [else
-     (generate-==-rec
-      (car ==s)
-      remaining-==-vars
+     (compile-block-conjunction
+      (car unify-gs)
+      remaining-unify-vars
       st
-      (lambda (remaining-==-vars^ st^)
+      (lambda (remaining-unify-vars^ st^)
         #`(and #,st^
-               #,(compile-==-rec (cdr ==s) remaining-==-vars^ st^ k))))]))
+               #,(compile-block-conjunction (cdr unify-gs) remaining-unify-vars^ st^ k))))]))
 
 (define (fresh-term-vars t all-fresh-vars)
   (free-id-set-intersect all-fresh-vars (term-vars t)))
 
-(define (generate-==-rec stx ==-vars st k)
+(define (generate-let-unify v t2 remaining-unify-vars st k)
+  (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
+  (define remaining-unify-vars^ (free-id-set-remove
+                                 (free-id-set-subtract remaining-unify-vars t2-fresh-vars)
+                                 v))
+  (define/syntax-parse (t2-fresh-var ...) (free-id-set->list t2-fresh-vars))
+  #`(let ([sc (mku:subst-scope (mku:state-S st))])
+      (let ([t2-fresh-var (mku:var sc)] ...)
+        (let ([v #,(generate-term t2)])
+          #,(k remaining-unify-vars^ st)))))
+
+(define/hygienic (generate-optimized-unify stx remaining-unify-vars st k) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))
+  
   (syntax-parse stx
     #:context 'generate-==-rec
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(== (#%lv-ref v:id) t2)
-     (define t2-fresh-vars (fresh-term-vars #'t2 ==-vars))
-   
      (cond
-       [(and (free-id-set-member? ==-vars #'v)
-             (not (free-id-set-member? t2-fresh-vars #'v)))
-        (define/syntax-parse (t2-var ...) (free-id-set->list t2-fresh-vars))
-        (define ==-vars^ (free-id-set-remove
-                          (free-id-set-subtract ==-vars t2-fresh-vars)
-                          #'v))
-        #`(let ([sc (mku:subst-scope (mku:state-S st))])
-            (let ([t2-var (mku:var sc)] ...)
-              (let ([v #,(generate-term #'t2)])
-                #,(k ==-vars^ st))))]
+       [(free-id-set-member? (term-vars #'t2) #'v)
+        (error 'generate-optimized-unify "invariant violation---occurs check violation should be caught in constant folding")]
+       [(free-id-set-member? remaining-unify-vars #'v)
+        (generate-let-unify #'v #'t2 remaining-unify-vars st k)]
        [else
-        (define t-vars (free-id-set-union
-                        (free-id-set-intersect ==-vars (immutable-free-id-set (list #'v)))
-                        t2-fresh-vars))
-        (define/syntax-parse (t-var ...) (free-id-set->list t-vars))
-        (define ==-vars^ (free-id-set-subtract ==-vars t-vars))
-        #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
-            (let ([t-var (mku:var sc)] ...)
-              (let ([st^ #,(generate-specialized-unify-body #'v #'t2 st no-occur?)])
-                #,(k ==-vars^ #'st^))))])]
-    
+        (generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? k)])]
     [(== (rkt-term e) (~and t2 (~not (#%lv-ref _))))
-     (define t2-fresh-vars (fresh-term-vars #'t2 ==-vars))
-     (define/syntax-parse (t2-var ...) (free-id-set->list t2-fresh-vars))
-     (define ==-vars^ (free-id-set-subtract ==-vars t2-fresh-vars))
-     #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
-         (let ([t2-var (mku:var sc)] ...)
-           (let ([st^ #,(generate-specialized-unify-body #'v #'t2 st no-occur?)])
-             #,(k ==-vars^ #'st^))))]
+     #`(let ([v (check-term e #'e)])
+         #,(generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? k))]    
     [(== t1 t2)
-     (error 'generate-==-rec "invariant violation")]))
+     (error 'generate-optimized-unify "invariant violation")]))
 
+(define/hygienic (generate-matching-unify v t2 remaining-unify-vars st no-occur? k) #:expression
+  (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
+  (define remaining-unify-vars^ (free-id-set-subtract remaining-unify-vars t2-fresh-vars))
+  (define/syntax-parse (body-var ...) t2-fresh-vars)
+  #`(let ([body (lambda (body-var ... st)
+                  #,(k remaining-unify-vars #'st))])
+      #,(generate-matching-unify-body v t2 st remaining-unify-vars no-occur? #'body)))
 
+(define/hygienic (generate-matching-unify-body v t2 st remaining-unify-vars no-occur? k-id) #:expression
+  (syntax-parse t2
+    #:literal-sets (mk-literals)
+    #:literals (quote cons)
+    [(#%lv-ref w:id)
+     (error 'todo)]
+    [(rkt-term e)
+     (error 'todo)]
+    [(quote l)
+     (error 'todo)]
+    [(cons t2-a:term/c t2-b:term/c)
+     (error 'todo)]
+    ))
 
 ;; stx stx stx -> stx
 (define/hygienic (generate-specialized-unify-body v t2 st no-occur?) #:expression
@@ -307,6 +306,22 @@
 
   (require (for-syntax racket/base (submod "..")))
 
+  ;; A "block" with no unifications; base case.
+  (core-progs-equal?
+   (generate-relation
+    (generate-prog
+     (ir-rel ((~binder a))
+             (fresh ((~binder x))
+               (symbolo (#%lv-ref x))))))
+   (generate-prog
+    (lambda (st)
+      (mku:fresh (x)
+                 (lambda (st)
+                   ((mku:symbolo x)
+                    st))))))
+   
+  
+  #;(begin
   (core-progs-equal?
    (generate-relation
     (generate-prog
@@ -422,7 +437,7 @@
                                ((equal? v^ t) (values S (quote ())))
                                ((mku:var? v^) (mku:ext-s-no-check v^ t S))
                                (else (values (quote #f) (quote #f)))))])
-               (check-constraints S^ added st))))))))
+               (check-constraints S^ added st)))))))))
 
 
 
