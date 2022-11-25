@@ -56,7 +56,8 @@
 	["twine-in-standard" (twine-slow)]
 	["dynamic-then-lexical-3-expressions" (dynamic-then-lexical-3-expressions)]
 	["lexical-then-dynamic-3-expressions" (lexical-then-dynamic-3-expressions)]
-	["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)])
+	["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)]
+	#;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
 
   (benchmark-suite "relational graph coloring"
     ["color middle earth" (color-middle-earth)])

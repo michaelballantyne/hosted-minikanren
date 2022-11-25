@@ -1,15 +1,12 @@
 ;; (load "mk/mk.scm")
 
-
 ;; Interpreter implementing lexical scope
 
-(define eval-lexo
-  (lambda (expr out)
-    (eval-expr-lexo expr '() out)))
+(defrel (eval-lexo expr out)
+  (eval-expr-lexo expr '() out))
 
-(define eval-expr-lexo
-  (lambda (expr env out)
-    (conde
+(defrel (eval-expr-lexo expr env out)
+  (conde
 
       ;; --------- CONST
       ;; ρ ⊢ n ⇒ n
@@ -39,18 +36,16 @@
          (eval-expr-lexo e1 env `(closure ,x ,body ,cenv))
          (eval-expr-lexo e2 env val)
          (ext-envo x val cenv new-env)
-         (eval-expr-lexo body new-env out))])))
+         (eval-expr-lexo body new-env out))]))
 
 
 ;; Interpreter implementing dynamic scope
 
-(define eval-dyno
-  (lambda (expr out)
-    (eval-expr-dyno expr '() out)))
+(defrel (eval-dyno expr out)
+  (eval-expr-dyno expr '() out))
 
-(define eval-expr-dyno
-  (lambda (expr env out)
-    (conde
+(defrel (eval-expr-dyno expr env out)
+  (conde
 
       ;; --------- CONST
       ;; ρ ⊢ n ⇒ n
@@ -80,24 +75,22 @@
          (eval-expr-dyno e1 env `(closure ,x ,body ,cenv))
          (eval-expr-dyno e2 env val)
          (ext-envo x val env new-env)  ;; Note the use of env instead of cenv.
-         (eval-expr-dyno body new-env out))])))
+         (eval-expr-dyno body new-env out))]))
 
 
 ;; Shared utilities
 
-(define ext-envo
-  (lambda (param arg env new-env)
-    (== `((,param . ,arg) . ,env) new-env)))
+(defrel (ext-envo param arg env new-env)
+  (== `((,param . ,arg) . ,env) new-env))
 
-(define lookupo
-  (lambda (x env t)
-    (fresh (rest y v)
+(defrel (lookupo x env t)
+  (fresh (rest y v)
       (== `((,y . ,v) . ,rest) env)
       (conde
         ((== y x) (== v t))
-        ((=/= y x) (lookupo x rest t))))))
+        ((=/= y x) (lookupo x rest t)))))
 
-(define (not-in-envo x env)
+(defrel (not-in-envo x env)
   (conde
     ((== '() env))
     ((fresh (y v rest)
