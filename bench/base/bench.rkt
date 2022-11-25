@@ -10,6 +10,11 @@
 (require "test-fact.rkt")
 (require "relational-graph-color.rkt")
 (require "orchid-graph-coloro.rkt")
+(require "./challenge-1.rkt")
+(require "./challenge-2.rkt")
+(require "./challenge-2-extra-slow.rkt")
+(require "./challenge-3.rkt")
+(require "./challenge-4.rkt")
 
 (displayln "faster-minikanren")
 
