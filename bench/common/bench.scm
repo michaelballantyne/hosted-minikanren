@@ -15,7 +15,7 @@
           (lambda (f) f)))))
     (lambda (f) (lambda (x) (f (f (f x)))))))
 
-(define complex-countdown5
+(define complex-countdown2
   '(((lambda (w) (w w))
      (lambda (f)
        (lambda (n)
@@ -30,7 +30,7 @@
                               id))))))
              id))
           (lambda (f) f)))))
-    (lambda (f) (lambda (x) (f (f (f (f (f x)))))))))
+    (lambda (f) (lambda (x) (f (f x))))))
 
 (define (logo-hard-program)
   (let ([N68 (build-num 68)])
@@ -41,18 +41,23 @@
   (benchmark-suite "numbers"
     ["logo-hard" (logo-hard-program)])
 
-  (benchmark-suite "nolen-example"
-    ["nolen-example" (nolen-example)])
+  (benchmark-suite "all-in-fd"
+    ["all-in-fd" (all-in-fd)])
 
   (benchmark-suite "four-fours"
-    ["4" (four-fours 4)]
-    ["12-check" (four-fours-at-12-check)]
-    ["12" (four-fours 12)]
     ["256" (four-fours 256)])
 
   (benchmark-suite "test fact"
-    ["fast fact 7 = 5040" (fast-fact-7-5040)]
     ["slow fact 7 = 5040" (slow-fact-7-5040)])
+
+  (benchmark-suite "oxford artifact"
+    ["love in 99000 ways" (love-in-99000-ways)]
+	["four-thrines-small" (four-thrines)]
+	["twine-in-standard" (twine-slow)]
+	["dynamic-then-lexical-3-expressions" (dynamic-then-lexical-3-expressions)]
+	["lexical-then-dynamic-3-expressions" (lexical-then-dynamic-3-expressions)]
+	["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)]
+	#;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
 
   (benchmark-suite "relational graph coloring"
     ["color middle earth" (color-middle-earth)])
@@ -60,14 +65,11 @@
   (benchmark-suite "orchid graph coloring"
     ["color ireland" (do-ireland)])
 
-
   (benchmark-suite "simple interp"
-    ["((\\x x) (\\y y))" (run 1 (q) (simple:evalo `((lambda (x) x) (lambda (y) y)) q))]
-    ["complex-countdown" (run 1 (q) (simple:evalo complex-countdown5 q))])
+    ["complex-countdown 3" (run 1 (q) (simple:evalo complex-countdown3 q))])
 
   (benchmark-suite "full interp"
-    ["((\\x x) (\\y y))" (run 1 (q) (full:evalo `((lambda (x) x) (lambda (y) y)) q))]
-    ["complex-countdown" (run 1 (q) (full:evalo complex-countdown3 q))]
+    ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
     ["6 quines" (run 6 (q) (full:evalo q q))]))
 
 (module+ test
