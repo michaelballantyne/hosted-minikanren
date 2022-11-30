@@ -66,7 +66,7 @@
     ["color ireland" (do-ireland)])
 
   (benchmark-suite "simple interp"
-    ["complex-countdown 3" (run 1 (q) (simple:evalo complex-countdown3 q))])
+    ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))])
 
   (benchmark-suite "full interp"
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
