@@ -14,7 +14,8 @@
    [quote quote-core])
 
   (rename-in racket/base [quasiquote rkt:quasiquote]
-                         [quote rkt:quote])
+                         [quote rkt:quote]
+                         [list rkt:list])
   
   (for-syntax
    (except-in racket/base compile)
@@ -124,12 +125,18 @@
      [(~describe
        "`<datum>"
        (_ q))
-      (let recur ([stx #'q])
-        (syntax-parse stx #:datum-literals (unquote)
-          [(unquote e) #'e]
+      (let recur ([stx #'q] [level 0])
+        (syntax-parse stx #:datum-literals (unquote quasiquote)
+          [(unquote e)
+           (if (= level 0)
+               #'e
+               #`(cons (quote-core unquote) #,(recur #'(e) (- level 1))))]
           [(unquote . rest)
            (raise-syntax-error 'unquote "bad unquote syntax" stx)]
-          [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
+          [(quasiquote e)
+           #`(cons (quote-core quasiquote) #,(recur #'(e) (+ level 1)))]
+          [(a . d)
+           #`(cons #,(recur #'a level) #,(recur #'d level))]
           [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
           [() #'(quote-core ())]))])
    #'rkt:quasiquote))

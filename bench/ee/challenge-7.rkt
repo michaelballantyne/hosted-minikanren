@@ -1,7 +1,7 @@
 #lang racket
 (require "../../main.rkt")
 
-#;(provide scheme-in-scheme-quine-with-quasiquote)
+(provide scheme-in-scheme-quine-with-quasiquote)
 
 (include "../common/evalo-standard.scm")
 
@@ -12,7 +12,7 @@
 ;;;;;; Scheme interpreter (eval-expr) relationally interpreted
 ;;;;;;; Scheme program (,q) being interpreted by eval-expr  <-- WE ARE HERE!
 
-#;(define (scheme-in-scheme-quine-with-quasiquote)
+(define (scheme-in-scheme-quine-with-quasiquote)
   (run 1 (q)
     (evalo
       `(letrec ([eval-quasi
