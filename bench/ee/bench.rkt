@@ -15,7 +15,7 @@
 (require "./challenge-2-extra-slow.rkt")
 (require "./challenge-3.rkt")
 (require "./challenge-4.rkt")
-#;(require "./challenge-7.rkt")
+(require "./challenge-7.rkt")
 
 (displayln "minikanren-ee")
 
