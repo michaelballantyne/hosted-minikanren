@@ -7,8 +7,8 @@
                "threading"
                ["ee-lib" #:version "1.0"]))
 
-(define test-omit-paths '("mk" "bench/common"))
-(define compile-omit-paths '("bench/common"))
+(define test-omit-paths '("mk" "bench/common" "process-bench.rkt"))
+(define compile-omit-paths '("bench/common" "process-bench.rkt"))
 
 ;(define build-deps '("racket-doc" "scribble-lib"))
 ;(define scribblings '(("main.scrbl" ())))
