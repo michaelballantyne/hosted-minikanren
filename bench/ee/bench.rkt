@@ -10,6 +10,7 @@
 (require "test-fact.rkt")
 (require "relational-graph-color.rkt")
 (require "orchid-graph-coloro.rkt")
+(require "./simple-interp-matche-compare.rkt")
 (require "./challenge-1.rkt")
 (require "./challenge-2.rkt")
 (require "./challenge-2-extra-slow.rkt")

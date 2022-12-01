@@ -19,5 +19,5 @@
 (define (fast-fact-7-5040)
   (run 1 (q) (fact q '(0 0 0 0 1 1 0 1 1 1 0 0 1))))
 
-(define (slow-fact-7-5040)
-  (run 1 (q) (fact1 q '(0 0 0 0 1 1 0 1 1 1 0 0 1))))
+(define (slow-fact-6-720)
+  (run 1 (q) (fact1 q '(0 0 0 0 1 0 1 1 0 1))))

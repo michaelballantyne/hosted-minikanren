@@ -3,15 +3,15 @@
 (require "../ee-stdlib/numbers.rkt")
 
 
-(provide first-love love-in-99000-ways)
+(provide first-love love-in-9900-ways)
 
 (include "../common/evalo-standard.scm")
 
 (define (first-love)
    (run 1 (q) (evalo q '(I love you))))
 
- (define (love-in-99000-ways)
-    (run 99000 (q) (evalo q '(I love you))))
+ (define (love-in-9900-ways)
+    (run 9900 (q) (evalo q '(I love you))))
 
 (module+ test
   (require rackunit)

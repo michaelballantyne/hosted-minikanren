@@ -48,29 +48,33 @@
     ["256" (four-fours 256)])
 
   (benchmark-suite "test fact"
-    ["slow fact 7 = 5040" (slow-fact-7-5040)])
+    ["slow fact 6 = 720" (slow-fact-6-720)])
 
   (benchmark-suite "oxford artifact"
-    ["love in 99000 ways" (love-in-99000-ways)]
+    ["love in 9900 ways" (love-in-9900-ways)]
     ["four-thrines-small" (four-thrines)]
-    ["twine-in-standard" (twine-slow)]
+    #;["twine-in-standard" (twine-slow)]
     ["dynamic-then-lexical-3-expressions" (dynamic-then-lexical-3-expressions)]
     ["lexical-then-dynamic-3-expressions" (lexical-then-dynamic-3-expressions)]
     ["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)]
-    ["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
+    #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
 
   (benchmark-suite "relational graph coloring"
-    ["color middle earth" (color-middle-earth)])
+    #;["color middle earth" (color-middle-earth)]
+    ["ways to color iberia" (ways-to-color-iberia)])
 
   (benchmark-suite "orchid graph coloring"
-    ["color ireland" (do-ireland)])
+    ["color kazakhstan" (do-kazakhstan)])
 
   (benchmark-suite "simple interp"
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))])
 
+  (benchmark-suite "simple matche-interp"
+    ["unoptimized-matche-interp" (unoptimized-matche-interp)])
+
   (benchmark-suite "full interp"
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
-    ["6 quines" (run 6 (q) (full:evalo q q))]))
+    ["1 real quine" (run 4 (q) (full:evalo q q))]))
 
 (module+ test
   (require rackunit)
@@ -90,4 +94,9 @@
   (check-equal?
    (run 1 (q) (simple:evalo '((lambda (x) x) (lambda (y) y)) q))
    '((closure y y ())))
+
+  (check-equal?
+   (unoptimized-matche-interp)
+   (optimized-matche-interp))
+
   )
