@@ -11,6 +11,7 @@
 (require "relational-graph-color.rkt")
 (require "orchid-graph-coloro.rkt")
 (require "./simple-interp-matche-compare.rkt")
+(require (prefix-in dmitri: "./dmitri-oc-test.rkt"))
 (require "./challenge-1.rkt")
 (require "./challenge-2.rkt")
 (require "./challenge-2-extra-slow.rkt")
