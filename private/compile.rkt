@@ -66,15 +66,15 @@
          ;; Disabled in order to preserve faster-minikanren search order.
          #;reorder-conj/rel
 
+         propagate-fail/rel
+         ;; remove-no-escape-unifications
          remove-noop/rel
          remove-unused-vars/rel
-         propagate-fail/rel
 
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
          mark-redundant-check/rel
 
          (save-optimized name)
-         
-         generate-relation)]))
 
+         generate-relation)]))
