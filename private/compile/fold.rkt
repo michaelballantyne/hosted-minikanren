@@ -3,6 +3,7 @@
 (require syntax/parse
          syntax/id-table
          syntax/stx
+         racket/function
          racket/match
          (for-template racket/base
                        "../forms.rkt")
@@ -99,6 +100,9 @@
       [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
       [_ (values #'(failure) s)])))
 
+(define (map-maybe-inline* subst stx)
+  (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
+
 (define (compute-levels-for dict next lov)
   (for/fold ([dict dict])
             ([v (in-list lov)]
@@ -134,14 +138,10 @@
 (define (fold/goal g subst ld)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:unary-constraint t)
-     (with-syntax ([(t1^) (stx-map (λ (t) (walk t subst)) #'(t))])
-       (with-syntax ([(v1) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t) #'(t1^))])
-         (values #`(c v1) subst)))]
+     (values #`(c . #,(map-maybe-inline* subst #'(t))) subst)]
     [(== t1 t2) (unify #'t1 #'t2 subst (level-dict-dict ld))]
     [(c:binary-constraint t1 t2)
-     (with-syntax ([(t1^ t2^) (stx-map (λ (t) (walk t subst)) #'(t1 t2))])
-       (with-syntax ([(v1 v2) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t1 t2) #'(t1^ t2^))])
-         (values #`(c v1 v2) subst)))]
+     (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst)]
     [(conj g1 g2)
      (let*-values ([(g1^ s^) (fold/goal #'g1 subst ld)]
                    [(g2^ s^^) (fold/goal #'g2 s^ ld)])
@@ -158,13 +158,9 @@
      (let-values ([(g^ s^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
        (values #`(fresh (x ...) #,g^) subst))]
     [(#%rel-app n t ...)
-     (with-syntax ([(t^ ...) (stx-map (λ (t) (walk t subst)) #'(t ...))])
-       (with-syntax ([(v ...) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t ...) #'(t^ ...))])
-         (values #`(#%rel-app n v ...) subst)))]
+     (values #`(#%rel-app n . #,(map-maybe-inline* subst #'(t ...))) subst)]
     [(apply-relation e t ...)
-     (with-syntax ([(t^ ...) (stx-map (λ (t) (walk t subst)) #'(t ...))])
-       (with-syntax ([(v ...) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t ...) #'(t^ ...))])
-         (values #`(apply-relation e v ...) subst)))]))
+     (values #`(apply-relation e . #,(map-maybe-inline* subst #'(t ...))) subst)]))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
