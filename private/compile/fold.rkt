@@ -105,56 +105,66 @@
              [i (in-naturals)])
     (add-var-debruijn-level v (cons next i) dict)))
 
+(define (add-first-level lov)
+  (add-level-to (level-dict (empty-var-debruijn-level) init-next-var-level-counter) lov))
+
+(struct level-dict (dict next))
+
+(define (add-level-to old-ld lov)
+  (match-define (level-dict dict next) old-ld)
+  (level-dict (compute-levels-for dict next lov) (add1 next)))
+
 (define (fold/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
-     (let-values ([(dict next) (values (compute-levels-for (empty-var-debruijn-level) init-next-var-level-counter (syntax->list #'(x ...)))
-                                       (add1 init-next-var-level-counter))])
-       (let-values ([(new-g _) (fold/goal #'g (empty-subst) dict next)])
-         #`(ir-rel (x ...) #,new-g)))]))
+     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute x)))])
+       #`(ir-rel (x ...) #,new-g))]))
 
 (define (fold/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
-     (let-values ([(dict next) (values (compute-levels-for (empty-var-debruijn-level) init-next-var-level-counter (syntax->list #'(q ...)))
-                                       (add1 init-next-var-level-counter))])
-       (let-values ([(new-g _) (fold/goal #'g (empty-subst) dict next)])
-         #`(run n (q ...) #,new-g)))]
+     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+       #`(run n (q ...) #,new-g))]
     [(run* (q ...) g)
-     (let-values ([(dict next) (values (compute-levels-for (empty-var-debruijn-level) init-next-var-level-counter (syntax->list #'(q ...)))
-                                       (add1 init-next-var-level-counter))])
-       (let-values ([(new-g _) (fold/goal #'g (empty-subst) dict next)])
-         #`(run* (q ...) #,new-g)))]))
+     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+       #`(run* (q ...) #,new-g))]))
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
 ;; no-ops/successes will be removed by a future pass.
-(define (fold/goal g subst dict next)
+(define (fold/goal g subst ld)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:unary-constraint t) (values this-syntax subst)]
-    [(== t1 t2) (unify #'t1 #'t2 subst dict)]
-    [(c:binary-constraint t1 t2) (values this-syntax subst)]
+    [(c:unary-constraint t)
+     (with-syntax ([(t1^) (stx-map (λ (t) (walk t subst)) #'(t))])
+       (with-syntax ([(v1) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t) #'(t1^))])
+         (values #`(c v1) subst)))]
+    [(== t1 t2) (unify #'t1 #'t2 subst (level-dict-dict ld))]
+    [(c:binary-constraint t1 t2)
+     (with-syntax ([(t1^ t2^) (stx-map (λ (t) (walk t subst)) #'(t1 t2))])
+       (with-syntax ([(v1 v2) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t1 t2) #'(t1^ t2^))])
+         (values #`(c v1 v2) subst)))]
     [(conj g1 g2)
-     (let*-values ([(g1^ s^) (fold/goal #'g1 subst dict next)]
-                   [(g2^ s^^) (fold/goal #'g2 s^ dict next)])
+     (let*-values ([(g1^ s^) (fold/goal #'g1 subst ld)]
+                   [(g2^ s^^) (fold/goal #'g2 s^ ld)])
        (values #`(conj #,g1^ #,g2^) s^^))]
     ;; IDEA: basically assume we don't gain any information from disjunction because it could be self-contradictory
     [(disj g1 g2)
-     (let-values ([(g1^ _s1) (fold/goal #'g1 subst dict next)]
-                  [(g2^ _s2) (fold/goal #'g2 subst dict next)])
+     (let-values ([(g1^ _s1) (fold/goal #'g1 subst ld)]
+                  [(g2^ _s2) (fold/goal #'g2 subst ld)])
        (values #`(disj #,g1^ #,g2^) subst))]
     ;; Assume we don't gain any information within a fresh because we can't inline terms that may
     ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
     ;; limitation and should be alleviated by a better design.
     [(fresh (x ...) g)
-     (let-values ([(dict next) (values (compute-levels-for dict next (syntax->list #'(x ...)))
-                                       (add1 next))])
-       (let-values ([(g^ s^) (fold/goal #'g subst dict next)])
-         (values #`(fresh (x ...) #,g^) subst)))]
+     (let-values ([(g^ s^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
+       (values #`(fresh (x ...) #,g^) subst))]
     [(#%rel-app n t ...)
      (with-syntax ([(t^ ...) (stx-map (λ (t) (walk t subst)) #'(t ...))])
        (with-syntax ([(v ...) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t ...) #'(t^ ...))])
          (values #`(#%rel-app n v ...) subst)))]
-    [(apply-relation e t ...) (values this-syntax subst)]))
+    [(apply-relation e t ...)
+     (with-syntax ([(t^ ...) (stx-map (λ (t) (walk t subst)) #'(t ...))])
+       (with-syntax ([(v ...) (stx-map (λ (t t^) (maybe-inline t t^ subst)) #'(t ...) #'(t^ ...))])
+         (values #`(apply-relation e v ...) subst)))]))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
@@ -563,6 +573,39 @@
          (conj
            (== (#%lv-ref b) (cons (quote 1) (quote ())))
            (#%rel-app foo (#%lv-ref b))))))))
+
+(let ([foo 5])
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+        (fresh ((~binders b))
+          (conj
+           (== (quote 1) (#%lv-ref b))
+           (=/= (quote ()) (#%lv-ref b)))))))
+   (generate-prog
+    (ir-rel ()
+       (fresh ((~binders b))
+         (conj
+          (== (#%lv-ref b) (quote 1))
+          (=/= (quote ()) (quote 1))))))))
+
+(let ([foo 5])
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ()
+        (fresh ((~binders b))
+          (conj
+           (== (quote 1) (#%lv-ref b))
+           (symbolo (#%lv-ref b)))))))
+   (generate-prog
+    (ir-rel ()
+       (fresh ((~binders b))
+         (conj
+          (== (#%lv-ref b) (quote 1))
+          (symbolo (quote 1))))))))
+
 
   ;; This test documents a limitation: we don't propagate information out of a fresh,
   ;; so as to avoid inlining out-of-context references. We should be able to do better.
