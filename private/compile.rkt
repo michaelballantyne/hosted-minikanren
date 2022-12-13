@@ -18,6 +18,7 @@
  "compile/first-refs.rkt"
  "compile/remove-noop.rkt"
  "compile/remove-unused-vars.rkt"
+ #;"compile/remove-no-escape.rkt"
  "compile/propagate-fail.rkt"
  "compile/redundant-occurs-check.rkt"
  (for-template "forms.rkt"))
@@ -67,7 +68,8 @@
          #;reorder-conj/rel
 
          propagate-fail/rel
-         ;; remove-no-escape-unifications
+         (save-optimized name)
+         #;remove-no-escape/rel
          remove-noop/rel
          remove-unused-vars/rel
 
@@ -75,6 +77,6 @@
          first-refs/rel
          mark-redundant-check/rel
 
-         (save-optimized name)
+
 
          generate-relation)]))
