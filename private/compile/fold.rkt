@@ -16,8 +16,8 @@
 (define (empty-subst) (make-immutable-free-id-table))
 (define (ext-subst u v s) (free-id-table-set s u v))
 
-(define (empty-var-debruijn-level) (make-immutable-free-id-table))
-(define init-next-var-level-counter 0)
+(struct level-dict (dict next-lev next-0idx))
+
 (define (add-var-debruijn-level u v s) (free-id-table-set s u v))
 (define (var-debruijn-level-get s v) (free-id-table-ref s v #f))
 
@@ -75,30 +75,30 @@
       (and (= (car p1) (car p2))
            (< (cdr p1) (cdr p2)))))
 
-(define (unify u v s dict)
+(define (unify u v s ld)
   (let ([u^ (walk u s)]
         [v^ (walk v s)])
     (syntax-parse (list u^ v^)
       #:literal-sets (mk-literals)
       #:literals (cons quote)
-      [_ #:when (equal-vals? u^ v^) (values #'(success) s)]
+      [_ #:when (equal-vals? u^ v^) (values #'(success) s ld)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
-       (let ([dl1 (var-debruijn-level-get dict #'id1)]
-             [dl2 (var-debruijn-level-get dict #'id2)])
+       (let ([dl1 (var-debruijn-level-get (level-dict-dict ld) #'id1)]
+             [dl2 (var-debruijn-level-get (level-dict-dict ld) #'id2)])
          (if (db<= dl1 dl2)
-             (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
-             (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s))))]
+             (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)
+             (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld)))]
       [((#%lv-ref id1:id) _)
-       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s))]
+       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld)]
       [(_ (#%lv-ref id2:id))
-       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))]
+       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)]
       [((cons a1 d1) (cons a2 d2))
-       (let*-values ([(g1^ s^) (unify #'a1 #'a2 s dict)]
-                     [(g2^ s^^) (unify #'d1 #'d2 s^ dict)])
-         (values #`(conj #,g1^ #,g2^) s^^))]
-      [((rkt-term _) _) (values #`(== #,u^ #,v^) s)]
-      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
-      [_ (values #'(failure) s)])))
+       (let*-values ([(g1^ s^ ld^) (unify #'a1 #'a2 s ld)]
+                     [(g2^ s^^ ld^^) (unify #'d1 #'d2 s^ ld^)])
+         (values #`(conj #,g1^ #,g2^) s^^ ld^^))]
+      [((rkt-term _) _) (values #`(== #,u^ #,v^) s ld)]
+      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s ld)]
+      [_ (values #'(failure) s ld)])))
 
 (define (map-maybe-inline* subst stx)
   (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
@@ -110,27 +110,25 @@
     (add-var-debruijn-level v (cons next i) dict)))
 
 (define (add-first-level lov)
-  (add-level-to (level-dict (empty-var-debruijn-level) init-next-var-level-counter) lov))
-
-(struct level-dict (dict next))
+  (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0) (length lov)))
 
 (define (add-level-to old-ld lov)
-  (match-define (level-dict dict next) old-ld)
-  (level-dict (compute-levels-for dict next lov) (add1 next)))
+  (match-define (level-dict dict next-lev next-0idx) old-ld)
+  (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev) next-0idx))
 
 (define (fold/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
-     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute x)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute x)))])
        #`(ir-rel (x ...) #,new-g))]))
 
 (define (fold/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
-     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
        #`(run n (q ...) #,new-g))]
     [(run* (q ...) g)
-     (let-values ([(new-g _) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
        #`(run* (q ...) #,new-g))]))
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
@@ -138,29 +136,29 @@
 (define (fold/goal g subst ld)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:unary-constraint t)
-     (values #`(c . #,(map-maybe-inline* subst #'(t))) subst)]
-    [(== t1 t2) (unify #'t1 #'t2 subst (level-dict-dict ld))]
+     (values #`(c . #,(map-maybe-inline* subst #'(t))) subst ld)]
+    [(== t1 t2) (unify #'t1 #'t2 subst ld)]
     [(c:binary-constraint t1 t2)
-     (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst)]
+     (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst ld)]
     [(conj g1 g2)
-     (let*-values ([(g1^ s^) (fold/goal #'g1 subst ld)]
-                   [(g2^ s^^) (fold/goal #'g2 s^ ld)])
-       (values #`(conj #,g1^ #,g2^) s^^))]
-    ;; IDEA: basically assume we don't gain any information from disjunction because it could be self-contradictory
+     (let*-values ([(g1^ s^ ld^) (fold/goal #'g1 subst ld)]
+                   [(g2^ s^^ ld^^) (fold/goal #'g2 s^ ld^)])
+       (values #`(conj #,g1^ #,g2^) s^^ ld^^))]
+    ;; IDEA: basically assume we don't gain any subst information from disjunction because it could be self-contradictory
     [(disj g1 g2)
-     (let-values ([(g1^ _s1) (fold/goal #'g1 subst ld)]
-                  [(g2^ _s2) (fold/goal #'g2 subst ld)])
-       (values #`(disj #,g1^ #,g2^) subst))]
-    ;; Assume we don't gain any information within a fresh because we can't inline terms that may
+     (let-values ([(g1^ _s1 _ld1) (fold/goal #'g1 subst ld)]
+                  [(g2^ _s2 _ld2) (fold/goal #'g2 subst ld)])
+       (values #`(disj #,g1^ #,g2^) subst ld))]
+    ;; Assume we don't gain any subst information within a fresh because we can't inline terms that may
     ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
     ;; limitation and should be alleviated by a better design.
     [(fresh (x ...) g)
-     (let-values ([(g^ s^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
-       (values #`(fresh (x ...) #,g^) subst))]
+     (let-values ([(g^ s^ ld^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
+       (values #`(fresh (x ...) #,g^) subst ld^))]
     [(#%rel-app n t ...)
-     (values #`(#%rel-app n . #,(map-maybe-inline* subst #'(t ...))) subst)]
+     (values #`(#%rel-app n . #,(map-maybe-inline* subst #'(t ...))) subst ld)]
     [(apply-relation e t ...)
-     (values #`(apply-relation e . #,(map-maybe-inline* subst #'(t ...))) subst)]))
+     (values #`(apply-relation e . #,(map-maybe-inline* subst #'(t ...))) subst ld)]))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
@@ -260,6 +258,21 @@
           (success)
           (== (#%lv-ref result1)
               (quote (~dat-lit fish)))))))
+
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ((~binder result1))
+       (fresh ((~binder x))
+          (conj
+           (== (#%lv-ref result1) (cons (quote (~dat-lit cat)) (quote (~dat-lit fish))))
+           (== (#%lv-ref result1) (cons (quote (~dat-lit cat)) (quote (~dat-lit fish)))))))))
+    (generate-prog
+     (ir-rel ((~binder result1))
+        (fresh ((~binder x))
+          (conj
+           (== (#%lv-ref result1) (cons (quote (~dat-lit cat)) (quote (~dat-lit fish))))
+           (success))))))
 
   (progs-equal?
     (fold/rel
@@ -458,6 +471,79 @@
 
 (let ([foo 5])
   (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ((~binder a))
+          (fresh ((~binder j1))
+            (fresh ((~binder j2))
+              (conj
+                (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j1)))
+                (== (#%lv-ref j1) (#%lv-ref j2))))))))
+   (generate-prog
+     (ir-rel ((~binder a))
+       (fresh ((~binder j1))
+         (fresh ((~binder j2))
+           (conj
+             (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j1)))
+             (== (#%lv-ref j2) (#%lv-ref j1)))))))))
+
+(let ([foo 5])
+  (progs-equal?
+   (fold/rel
+    (generate-prog
+     (ir-rel ((~binder a))
+       (fresh ((~binder j1))
+         (fresh ((~binder j2))
+           (conj
+             (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j1)))
+             (== (#%lv-ref j2) (#%lv-ref j1))))))))
+(generate-prog
+     (ir-rel ((~binder a))
+       (fresh ((~binder j1))
+         (fresh ((~binder j2))
+           (conj
+             (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j1)))
+             (== (#%lv-ref j2) (#%lv-ref j1)))))))))
+
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ((~binder a))
+          (fresh ((~binder j1))
+            (fresh ((~binder j2))
+              (conj
+                (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j2)))
+                (== (#%lv-ref j1) (#%lv-ref j2))))))))
+    (generate-prog
+      (ir-rel ((~binder a))
+        (fresh ((~binder j1))
+          (fresh ((~binder j2))
+            (conj
+              (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j2)))
+              (== (#%lv-ref j1) (#%lv-ref j2)))))))))
+
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ((~binder a))
+          (fresh ((~binder j1))
+            (fresh ((~binder j2))
+              (conj
+                (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j2)))
+                (== (#%lv-ref j2) (#%lv-ref j1))))))))
+    (generate-prog
+      (ir-rel ((~binder a))
+        (fresh ((~binder j1))
+          (fresh ((~binder j2))
+            (conj
+              (#%rel-app foo (cons (quote (~dat-lit cat)) (#%lv-ref j2)))
+              (== (#%lv-ref j1) (#%lv-ref j2)))))))))
+
+
+(let ([foo 5])
+  (progs-equal?
    (fold/rel
     (generate-prog
      (ir-rel ((~binder a))
@@ -621,4 +707,35 @@
               (== (#%lv-ref a) (cons (quote 1) (quote ())))))))
 
 
-  )
+;; This failing test should demonstrate a limitation in my current
+;; approach.
+;;
+;; I had not counted on unifications underneath a rel-app, and because
+;; we are not doing the reorder conj, that’s no longer a fair
+;; assumption.
+;;
+;; Notice here, that, since we have rel-apps that change the expressed
+;; behavior of a rel-app, and because we have an expressed.
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+        (ir-rel ((~binders a b))
+          (fresh ((~binder z))
+            (fresh ((~binder x))
+              (conj
+                (fresh ((~binder w))
+                  (conj
+                    (#%rel-app foo (#%lv-ref w))
+                    (== (#%lv-ref w) (#%lv-ref x))))
+                (== (#%lv-ref x) (#%lv-ref z))))))))
+    (generate-prog
+      (ir-rel ((~binders a b))
+        (fresh ((~binder z))
+          (fresh ((~binder x))
+            (conj
+              (fresh ((~binder w))
+                (conj
+                  (#%rel-app foo (#%lv-ref w))
+                  (== (#%lv-ref x) (#%lv-ref w))))
+              (== (#%lv-ref z) (#%lv-ref x))))))))))

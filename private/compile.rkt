@@ -18,7 +18,7 @@
  "compile/first-refs.rkt"
  "compile/remove-noop.rkt"
  "compile/remove-unused-vars.rkt"
- #;"compile/remove-no-escape.rkt"
+ "compile/remove-no-escape.rkt"
  "compile/propagate-fail.rkt"
  "compile/redundant-occurs-check.rkt"
  (for-template "forms.rkt"))
