@@ -107,22 +107,22 @@
     (syntax-parse (list u^ v^)
       #:literal-sets (mk-literals)
       #:literals (cons quote)
-      [_ #:when (equal-vals? u^ v^) (values #'(success) s ld)]
+      [_ #:when (equal-vals? u^ v^) (values #'(success) s)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
        (if (db<=/ext (sub-ext-ext s) ld #'id1 #'id2)
-           (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)
-           (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld))]
+           (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
+           (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s)))]
       [((#%lv-ref id1:id) _)
-       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld)]
+       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s))]
       [(_ (#%lv-ref id2:id))
-       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)]
+       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))]
       [((cons a1 d1) (cons a2 d2))
-       (let*-values ([(g1^ s^ ld^) (unify #'a1 #'a2 s ld)]
-                     [(g2^ s^^ ld^^) (unify #'d1 #'d2 s^ ld^)])
-         (values #`(conj #,g1^ #,g2^) s^^ ld^^))]
-      [((rkt-term _) _) (values #`(== #,u^ #,v^) s ld)]
-      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s ld)]
-      [_ (values #'(failure) s ld)])))
+       (let*-values ([(g1^ s^) (unify #'a1 #'a2 s ld)]
+                     [(g2^ s^^) (unify #'d1 #'d2 s^ ld)])
+         (values #`(conj #,g1^ #,g2^) s^^))]
+      [((rkt-term _) _) (values #`(== #,u^ #,v^) s)]
+      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
+      [_ (values #'(failure) s)])))
 
 (define (map-maybe-inline* subst stx)
   (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
@@ -143,16 +143,16 @@
 (define (fold/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute x)) (add-first-level (attribute x)))])
+     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute x)) (add-first-level (attribute x)))])
        #`(ir-rel (x ...) #,new-g))]))
 
 (define (fold/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
        #`(run n (q ...) #,new-g))]
     [(run* (q ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
        #`(run* (q ...) #,new-g))]))
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
@@ -160,33 +160,33 @@
 (define (fold/goal g subst ld)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:unary-constraint t)
-     (values #`(c . #,(map-maybe-inline* subst #'(t))) subst ld)]
+     (values #`(c . #,(map-maybe-inline* subst #'(t))) subst)]
     [(== t1 t2) (unify #'t1 #'t2 subst ld)]
     [(c:binary-constraint t1 t2)
-     (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst ld)]
+     (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst)]
     [(conj g1 g2)
-     (let*-values ([(g1^ s^ ld^) (fold/goal #'g1 subst ld)]
-                   [(g2^ s^^ ld^^) (fold/goal #'g2 s^ ld^)])
-       (values #`(conj #,g1^ #,g2^) s^^ ld^^))]
+     (let*-values ([(g1^ s^) (fold/goal #'g1 subst ld)]
+                   [(g2^ s^^) (fold/goal #'g2 s^ ld)])
+       (values #`(conj #,g1^ #,g2^) s^^))]
     ;; IDEA: basically assume we don't gain any subst information from disjunction because it could be self-contradictory
     [(disj g1 g2)
-     (let-values ([(g1^ _s1 _ld1) (fold/goal #'g1 subst ld)]
-                  [(g2^ _s2 _ld2) (fold/goal #'g2 subst ld)])
-       (values #`(disj #,g1^ #,g2^) subst ld))]
+     (let-values ([(g1^ _s1) (fold/goal #'g1 subst ld)]
+                  [(g2^ _s2) (fold/goal #'g2 subst ld)])
+       (values #`(disj #,g1^ #,g2^) subst))]
     ;; Assume we don't gain any subst information within a fresh because we can't inline terms that may
     ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
     ;; limitation and should be alleviated by a better design.
     [(fresh (x ...) g)
-     (let-values ([(g^ s^ ld^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
-       (values #`(fresh (x ...) #,g^) subst ld^))]
+     (let-values ([(g^ s^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
+       (values #`(fresh (x ...) #,g^) subst))]
     [(#%rel-app n t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
        (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
-         (values #`(#%rel-app n . (u ...)) subst^ ld)))]
+         (values #`(#%rel-app n . (u ...)) subst^)))]
     [(apply-relation e t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
        (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
-         (values #`(apply-relation e . (u ...)) subst^ ld)))]))
+         (values #`(apply-relation e . (u ...)) subst^)))]))
 
 (define (mark-ext* t^ subst)
   (let ((t^ (walk t^ subst)))
