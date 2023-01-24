@@ -776,4 +776,6 @@
                 (conj
                   (#%rel-app foo (#%lv-ref w))
                   (== (#%lv-ref x) (#%lv-ref w))))
-              (== (#%lv-ref z) (#%lv-ref x))))))))))
+              (== (#%lv-ref x) (#%lv-ref z))))))))) ;; this is an artifact of info not propagating through fresh
+
+)
