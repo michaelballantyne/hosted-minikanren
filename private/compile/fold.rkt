@@ -12,9 +12,18 @@
 (provide fold/rel
          fold/run)
 
+(define-struct sub-ext (binds ext))
 
-(define (empty-subst) (make-immutable-free-id-table))
-(define (ext-subst u v s) (free-id-table-set s u v))
+(define (empty-subst ext-vars)
+  (define all-bound (map (curryr cons #t) ext-vars))
+  (sub-ext
+   (make-immutable-free-id-table)
+   (make-immutable-free-id-table all-bound)))
+
+(define (ext-subst u v s)
+  (sub-ext
+   (free-id-table-set (sub-ext-binds s) u v)
+   (sub-ext-ext s)))
 
 (struct level-dict (dict next-lev next-0idx))
 
@@ -26,7 +35,7 @@
     (syntax-parse t
       #:literal-sets (mk-literals)
       [(#%lv-ref v)
-       (let ([val (free-id-table-ref s #'v #f)])
+       (let ([val (free-id-table-ref (sub-ext-binds s) #'v #f)])
          (if val (rec val) t))]
       [_ t])))
 
@@ -35,7 +44,7 @@
     (syntax-parse t
       #:literal-sets (mk-literals)
       [(#%lv-ref v)
-       (let ([val (free-id-table-ref s #'v #f)])
+       (let ([val (free-id-table-ref (sub-ext-binds s) #'v #f)])
          (if val
              (syntax-parse val
                #:literal-sets (mk-literals)
@@ -119,16 +128,16 @@
 (define (fold/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute x)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute x)) (add-first-level (attribute x)))])
        #`(ir-rel (x ...) #,new-g))]))
 
 (define (fold/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
        #`(run n (q ...) #,new-g))]
     [(run* (q ...) g)
-     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst) (add-first-level (attribute q)))])
+     (let-values ([(new-g _s _ld) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
        #`(run* (q ...) #,new-g))]))
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
