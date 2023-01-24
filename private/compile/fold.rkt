@@ -32,7 +32,7 @@
    (free-id-table-set (sub-ext-binds s) u v)
    (sub-ext-ext s)))
 
-(struct level-dict (dict next-lev next-0idx))
+(struct level-dict (dict next-lev))
 
 (define (add-var-debruijn-level u v s) (free-id-table-set s u v))
 (define (var-debruijn-level-get s v) (free-id-table-ref s v #f))
@@ -134,11 +134,11 @@
     (add-var-debruijn-level v (cons next i) dict)))
 
 (define (add-first-level lov)
-  (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0) (length lov)))
+  (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0)))
 
 (define (add-level-to old-ld lov)
-  (match-define (level-dict dict next-lev next-0idx) old-ld)
-  (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev) next-0idx))
+  (match-define (level-dict dict next-lev) old-ld)
+  (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev)))
 
 (define (fold/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
