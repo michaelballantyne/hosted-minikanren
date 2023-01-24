@@ -181,22 +181,27 @@
        (values #`(fresh (x ...) #,g^) subst ld^))]
     [(#%rel-app n t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
-       (let ((ext^ (foldr mark-ext* (sub-ext-ext subst) (syntax->list #'(u ...)))))
-         (values #`(#%rel-app n . (u ...)) (sub-ext (sub-ext-binds subst) ext^) ld)))]
+       (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
+         (values #`(#%rel-app n . (u ...)) subst^ ld)))]
     [(apply-relation e t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
-       (let ((ext^ (foldr mark-ext* (sub-ext-ext subst) (syntax->list #'(u ...)))))
-         (values #`(apply-relation e . (u ...)) (sub-ext (sub-ext-binds subst) ext^) ld)))]))
+       (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
+         (values #`(apply-relation e . (u ...)) subst^ ld)))]))
 
-(define (mark-ext* t^ ext)
-  (syntax-parse t^
-    #:literal-sets (mk-literals)
-    #:literals (cons quote)
-    [(quote vl) ext]
-    [(#%lv-ref v) (free-id-table-set ext #'v #t)]
-    [(cons t1 t2)
-     (mark-ext* #'t2 (mark-ext* #'t1 ext))]
-    [(rkt-term _) ext]))
+(define (mark-ext* t^ subst)
+  (let ((t^ (walk t^ subst)))
+    (syntax-parse t^
+      #:literal-sets (mk-literals)
+      #:literals (cons quote)
+      [(quote vl) subst]
+      [(#%lv-ref v)
+       (mark-vars-ext
+        (sub-ext-binds subst)
+        (sub-ext-ext subst)
+        (list #'v))]
+      [(cons t1 t2)
+       (mark-ext* #'t2 (mark-ext* #'t1 subst))]
+      [(rkt-term _) subst])))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
@@ -777,5 +782,50 @@
                   (#%rel-app foo (#%lv-ref w))
                   (== (#%lv-ref x) (#%lv-ref w))))
               (== (#%lv-ref x) (#%lv-ref z))))))))) ;; this is an artifact of info not propagating through fresh
+
+;; Test shows you must still walk terms in subst to mark ext, b/c maybe-inline
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+       (ir-rel ((~binder a))
+         (fresh ((~binders z))
+          (fresh ((~binders w x y))
+            (conj
+             (conj
+              (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
+              (#%rel-app foo (#%lv-ref w)))
+             (== (#%lv-ref z) (#%lv-ref x))))))))
+      (generate-prog
+        (ir-rel ((~binder a))
+           (fresh ((~binder z))
+            (fresh ((~binders w x y))
+              (conj
+               (conj
+                (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
+                (#%rel-app foo (#%lv-ref w)))
+               (== (#%lv-ref z) (#%lv-ref x)))))))))
+
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+       (ir-rel ((~binder a))
+          (fresh ((~binder z))
+           (fresh ((~binders w x y))
+             (conj
+              (conj
+               (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
+               (#%rel-app foo (#%lv-ref w)))
+              (== (#%lv-ref x) (#%lv-ref z))))))))
+      (generate-prog
+       (ir-rel ((~binder a))
+          (fresh ((~binder z))
+           (fresh ((~binders w x y))
+             (conj
+              (conj
+               (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
+               (#%rel-app foo (#%lv-ref w)))
+              (== (#%lv-ref z) (#%lv-ref x)))))))))
 
 )
