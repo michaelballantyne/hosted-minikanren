@@ -15,10 +15,17 @@
 (define-struct sub-ext (binds ext))
 
 (define (empty-subst ext-vars)
-  (define all-bound (map (curryr cons #t) ext-vars))
-  (sub-ext
+  (mark-vars-ext
    (make-immutable-free-id-table)
-   (make-immutable-free-id-table all-bound)))
+   (make-immutable-free-id-table)
+   ext-vars))
+
+(define (mark-vars-ext binds ext? new-ext-vars)
+  (define ext?^
+    (for/fold ((ext? ext?))
+              ((v (in-list new-ext-vars)))
+      (free-id-table-set ext? v #t)))
+  (sub-ext binds ext?^))
 
 (define (ext-subst u v s)
   (sub-ext
@@ -84,6 +91,16 @@
       (and (= (car p1) (car p2))
            (< (cdr p1) (cdr p2)))))
 
+(define (db<=/ext ext ld p1 p2)
+  (define dl1 (var-debruijn-level-get (level-dict-dict ld) p1))
+  (define dl2 (var-debruijn-level-get (level-dict-dict ld) p2))
+  (define ext?1 (free-id-table-ref ext p1 #f))
+  (define ext?2 (free-id-table-ref ext p2 #f))
+  (cond
+    [(and ext?1 ext?2) (db<= dl1 dl2)]
+    [(not (or ext?1 ext?2)) (db<= dl1 dl2)]
+    [else ext?1]))
+
 (define (unify u v s ld)
   (let ([u^ (walk u s)]
         [v^ (walk v s)])
@@ -92,11 +109,9 @@
       #:literals (cons quote)
       [_ #:when (equal-vals? u^ v^) (values #'(success) s ld)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
-       (let ([dl1 (var-debruijn-level-get (level-dict-dict ld) #'id1)]
-             [dl2 (var-debruijn-level-get (level-dict-dict ld) #'id2)])
-         (if (db<= dl1 dl2)
-             (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)
-             (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld)))]
+       (if (db<=/ext (sub-ext-ext s) ld #'id1 #'id2)
+           (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s) ld)
+           (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld))]
       [((#%lv-ref id1:id) _)
        (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s) ld)]
       [(_ (#%lv-ref id2:id))
@@ -165,9 +180,23 @@
      (let-values ([(g^ s^ ld^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
        (values #`(fresh (x ...) #,g^) subst ld^))]
     [(#%rel-app n t ...)
-     (values #`(#%rel-app n . #,(map-maybe-inline* subst #'(t ...))) subst ld)]
+     (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
+       (let ((ext^ (foldr mark-ext* (sub-ext-ext subst) (syntax->list #'(u ...)))))
+         (values #`(#%rel-app n . (u ...)) (sub-ext (sub-ext-binds subst) ext^) ld)))]
     [(apply-relation e t ...)
-     (values #`(apply-relation e . #,(map-maybe-inline* subst #'(t ...))) subst ld)]))
+     (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
+       (let ((ext^ (foldr mark-ext* (sub-ext-ext subst) (syntax->list #'(u ...)))))
+         (values #`(apply-relation e . (u ...)) (sub-ext (sub-ext-binds subst) ext^) ld)))]))
+
+(define (mark-ext* t^ ext)
+  (syntax-parse t^
+    #:literal-sets (mk-literals)
+    #:literals (cons quote)
+    [(quote vl) ext]
+    [(#%lv-ref v) (free-id-table-set ext #'v #t)]
+    [(cons t1 t2)
+     (mark-ext* #'t2 (mark-ext* #'t1 ext))]
+    [(rkt-term _) ext]))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
