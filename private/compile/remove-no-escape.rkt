@@ -1,12 +1,8 @@
 #lang racket/base
 
-(require racket/contract
-         racket/pretty
-         racket/trace)
 (require syntax/parse
          syntax/id-table
          racket/set
-         rackunit
          racket/match
          racket/function
          racket/list
