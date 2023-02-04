@@ -39,10 +39,10 @@
          ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
          ;; Disabled in order to preserve faster-minikanren search order.
          #;reorder-conj/run
-
+         propagate-fail/run
+         remove-no-escape/run
          remove-noop/run
          remove-unused-vars/run
-         propagate-fail/run
 
          ;; annotation passes, no shape-changing past this point
          first-refs/run
@@ -69,7 +69,7 @@
 
          propagate-fail/rel
          (save-optimized name)
-         #;remove-no-escape/rel
+         remove-no-escape/rel
          remove-noop/rel
          remove-unused-vars/rel
 
