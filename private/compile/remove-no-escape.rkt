@@ -28,10 +28,6 @@
 ;;
 ;; 3. A mapping from each goal in 1. to the set
 ;;
-;; What I need to be able to notice is the cascade?
-;;
-;; If I remove (== j1 (cons j2 j3)), then how do I know if that makes
-;; j2 and j3 removable?
 ;;
 
 ;; CAN A VARIABLE BE IN e IN APPLY RELATION?
@@ -44,6 +40,7 @@
 
   (define-struct gid+removable (gid removable))
 
+  ;; gidtable [Listof Goal] -> [Listof Goal]
   (define (discover-removables gid curr-removables)
     (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
 
