@@ -78,6 +78,17 @@
   (let ([entries-to-add (append-map (λ (id) (list id v)) ls)])
     (apply (curry free-id-table-set* t) entries-to-add)))
 
+;; params contains the parameters of the run or relation, b/c we don't
+;; ever want to remove goals w/a parameter on the LHS
+;;
+;; g->term-ids for each atomic goal, what term-ids does it refer to "on the
+;; RHS" for non-unifications, all term positions are "on the RHS"
+;;
+;; term-id->goal is the reverse of g->term-ids, for each term-id, what
+;; are all the atomic goals in which that term id appears "on the RHS"
+;;
+;; lhs->goals is kind of a converse, for each variable, in what atomic
+;; goals does it appear on the LHS of an ==
 (define-struct goal-id-map (params g->term-ids term-id->goals lhs->goals) #:transparent)
 
 ;; listof id -> goalidtable
