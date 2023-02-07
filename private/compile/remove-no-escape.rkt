@@ -25,8 +25,11 @@
 ;; 3. A mapping from each goal in 1. to the set
 ;;
 ;;
-
 ;; CAN A VARIABLE BE IN e IN APPLY RELATION?
+;;
+;; We (will) assume here that every variable in scope appears in every
+;; apply relation.
+;;
 
 
 ;; gidtable -> [Listof Goal]
@@ -78,6 +81,10 @@
   (let ([entries-to-add (append-map (λ (id) (list id v)) ls)])
     (apply (curry free-id-table-set* t) entries-to-add)))
 
+;; For every term ID, this structure is a bidirectional map to every
+;; RHS occurrence in goal and a single directional map to its LHS
+;; occurrences.
+;;
 ;; params contains the parameters of the run or relation, b/c we don't
 ;; ever want to remove goals w/a parameter on the LHS
 ;;
@@ -165,7 +172,7 @@
 (define (remove-no-escape/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
-     (let ([goal-id-map (remove-no-escape/goal #'g (make-goal-id-map-excluding (attribute x)))])
+     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute x)))])
        (let ([removable-goals (discover-removables goal-id-map)])
          (produce-remove-no-escape/rel stx removable-goals)))]))
 
@@ -174,46 +181,46 @@
 (define (remove-no-escape/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
-     (let ([goal-id-map (remove-no-escape/goal #'g (make-goal-id-map-excluding (attribute q)))])
+     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
        (let ([removable-goals (discover-removables goal-id-map)])
          (produce-remove-no-escape/run stx removable-goals)))]
     [(run* (q ...) g)
-     (let ([goal-id-map (remove-no-escape/goal #'g (make-goal-id-map-excluding (attribute q)))])
+     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
        (let ([removable-goals (discover-removables goal-id-map)])
          (produce-remove-no-escape/run stx removable-goals)))]))
 
 ;; goal goalidmap -> goalidmap
 ;; Traverse, building the structure for atomic goals's variable references.
-(define (remove-no-escape/goal g gidmap)
+(define (build-goal-id-map/goal g gidmap)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:nullary-constraint) gidmap]
     [(c:unary-constraint t)
-     (remove-no-escape/term g #'t gidmap)]
+     (build-goal-id-map/term g #'t gidmap)]
     [(== (#%lv-ref v) t)
-     (remove-no-escape/term g #'t (add-lhs gidmap #'v g))]
+     (build-goal-id-map/term g #'t (add-lhs gidmap #'v g))]
     [(== t1 t2) (raise-syntax-error "We should not be in this position")]
     [(c:binary-constraint t1 t2)
-     (remove-no-escape/term g #'t1
-       (remove-no-escape/term g #'t2 gidmap))]
+     (build-goal-id-map/term g #'t2
+       (build-goal-id-map/term g #'t1 gidmap))]
     [(conj g1 g2)
-     (remove-no-escape/goal #'g2
-       (remove-no-escape/goal #'g1 gidmap))]
+     (build-goal-id-map/goal #'g2
+       (build-goal-id-map/goal #'g1 gidmap))]
     [(disj g1 g2)
      ;; DEFICIENCY: treating the disj like a conj.
-     (remove-no-escape/goal #'g2
-       (remove-no-escape/goal #'g1 gidmap))]
+     (build-goal-id-map/goal #'g2
+       (build-goal-id-map/goal #'g1 gidmap))]
     [(fresh (x ...) g)
-     (remove-no-escape/goal
+     (build-goal-id-map/goal
       #'g
       (add-fresh-vars gidmap (attribute x)))]
     [(#%rel-app n t ...)
      (foldl
-      (curry remove-no-escape/term g)
+      (curry build-goal-id-map/term g)
       gidmap
       (attribute t))]
     [(apply-relation e t ...)
      (foldl
-      (curry remove-no-escape/term g)
+      (curry build-goal-id-map/term g)
       gidmap
       (attribute t))]
 ))
@@ -221,7 +228,7 @@
 ;; goal term goalidmap -> goalidmap
 ;; Traverse this RHS term, building the structure for atomic goals'
 ;; variable references.
-(define (remove-no-escape/term g t gid)
+(define (build-goal-id-map/term g t gid)
   (syntax-parse t
     #:literal-sets (mk-literals)
     #:literals (quote cons)
@@ -231,8 +238,8 @@
     [(#%lv-ref v)
      (add-term-id gid #'v g)]
     [(cons t1 t2)
-     (remove-no-escape/term g #'t2
-       (remove-no-escape/term g #'t1 gid))]))
+     (build-goal-id-map/term g #'t2
+       (build-goal-id-map/term g #'t1 gid))]))
 
 ;; rel [listof goal] -> rel
 (define (produce-remove-no-escape/rel stx lrg)
