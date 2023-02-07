@@ -80,12 +80,16 @@
 
 (define-struct goal-id-map (params g->term-ids term-id->goals lhs->goals) #:transparent)
 
+;; listof id -> goalidtable
+;; build an otherwise-empty goalidtable with the listed parameters
 (define (make-goal-id-map-excluding params)
   (goal-id-map (add-entries (make-immutable-free-id-table) params #t)
                (make-immutable-hasheq)
                (make-immutable-free-id-table)
                (make-immutable-free-id-table)))
 
+;; goalidtable listof id -> bool
+;; add entries for each of these newly freshened variables in the given goalidtable
 (define (add-fresh-vars gid xs)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (goal-id-map
@@ -94,6 +98,8 @@
     (add-entries term-id->goals xs (seteq))
     (add-entries lhs->goals xs (seteq))))
 
+;; goalidtable id -> bool
+;; decide if the given id is known as a parameter in the given goalidtable
 (define (param? gid x)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (free-id-table-ref params x #f))
@@ -101,6 +107,7 @@
 (define (update-free-table/set-val t k v)
   (free-id-table-update t k (curryr set-add v)))
 
+;; [goal#free-id-table] goal -> [goal#free-id-table]
 ;; In h, add id to the set of variables found in g, constructing the set if needed
 (define (update-goal-table/set-val h g id)
   (hash-update
@@ -108,6 +115,7 @@
    (λ (idt) (free-id-table-set idt id #t))
    (λ () (make-immutable-free-id-table (list (cons id #t))))))
 
+;; [goal#free-id-table] goal -> [goal#free-id-table]
 ;; Make sure there’s an entry for this goal in the goal -> ids hash
 (define (update-goal-table/empty-set h g)
   (hash-update
@@ -115,6 +123,8 @@
    identity
    (λ () (make-immutable-free-id-table))))
 
+;; goalidmap id goal -> goal
+;; if x is not a parameter to the relation/run, add goal g to the set of goals that reference x as the LHS of an ==
 (define (add-lhs gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
@@ -126,6 +136,8 @@
       term-id->goals
       (update-free-table/set-val lhs->goals x g))]))
 
+;; goalidmap id goal -> goalidmap
+;; if x is not a parameter to the relation/run, add goal g to the set of goals that reference x not as a LHS of an ==
 (define (add-term-id gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
@@ -137,6 +149,8 @@
       (update-free-table/set-val term-id->goals x g)
       lhs->goals)]))
 
+;; rel -> rel
+;; Build a rel like the given rel, but substituting (success) for every no escape goal
 (define (remove-no-escape/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
@@ -144,6 +158,8 @@
        (let ([removable-goals (discover-removables goal-id-map)])
          (produce-remove-no-escape/rel stx removable-goals)))]))
 
+;; run -> run
+;; Build a run like the given run, but substituting (success) for every no escape goal
 (define (remove-no-escape/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
@@ -155,8 +171,8 @@
        (let ([removable-goals (discover-removables goal-id-map)])
          (produce-remove-no-escape/run stx removable-goals)))]))
 
-;; goal [id#[Setof goal]] [id#[Setof goal]] -> [id#[Setof goal]] [id#[Setof goal]]
-;;
+;; goal goalidmap -> goalidmap
+;; Traverse, building the structure for atomic goals's variable references.
 (define (remove-no-escape/goal g gidmap)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:nullary-constraint) gidmap]
@@ -191,6 +207,9 @@
       (attribute t))]
 ))
 
+;; goal term goalidmap -> goalidmap
+;; Traverse this RHS term, building the structure for atomic goals'
+;; variable references.
 (define (remove-no-escape/term g t gid)
   (syntax-parse t
     #:literal-sets (mk-literals)
@@ -204,11 +223,13 @@
      (remove-no-escape/term g #'t2
        (remove-no-escape/term g #'t1 gid))]))
 
+;; rel [listof goal] -> rel
 (define (produce-remove-no-escape/rel stx lrg)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
      #`(ir-rel (x ...) #,(produce-remove-no-escape/goal #'g lrg))]))
 
+;; run [listof goal] -> run
 (define (produce-remove-no-escape/run stx lrg)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
@@ -216,6 +237,7 @@
     [(run* (q ...) g)
      #`(run* (q ...) #,(produce-remove-no-escape/goal #'g lrg))]))
 
+;; goal [listof goal] -> goal
 (define (produce-remove-no-escape/goal g lrg)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:nullary-constraint) g]
