@@ -63,4 +63,11 @@
    (run 1 (l1) (is-two? l1))
    '(2))
 
+  (test-equal?
+   "We successfully unify with two racket terms on LHS and RHS"
+   (let ([x 1]
+         [y 1])
+     (run 1 (q) (== x y)))
+   '(_.0))
+
   )

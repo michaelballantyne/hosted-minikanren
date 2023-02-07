@@ -9,9 +9,12 @@
          (for-template racket/base
                        "../forms.rkt")
          "../syntax-classes.rkt")
-
 (provide remove-no-escape/rel
          remove-no-escape/run)
+
+;; These are only for testing in the test submodule
+(provide build-goal-id-map/goal
+         make-goal-id-map-excluding)
 
 ;; I proceed under the assumption Michael already renamed-apart my
 ;; variables.
@@ -24,62 +27,68 @@
 ;;
 ;; 3. A mapping from each goal in 1. to the set
 ;;
-;;
 ;; CAN A VARIABLE BE IN e IN APPLY RELATION?
 ;;
 ;; We (will) assume here that every variable in scope appears in every
 ;; apply relation.
+
+(define-struct gidt+removable (gidt removable))
+
+;; gidtable [Listof Goal] -> [Listof Goal]
 ;;
-
-
-;; gidtable -> [Listof Goal]
 ;; Excluding parameters, find all the ==  goals with a LHS var that are eliminable.
 ;; Operates to a fixpoint.
-(define (discover-removables gid)
+;; For the given goal table, compute to a fixpoint a list of all == goals
+;; that we discovered can be removed b/c their LHS var does not escape.
+;;
+;; The conditions are:
+;;
+;; Look for a goal where it occurs on only one LHS, and no "RHS"es depend on that var.
 
-  (define-struct gid+removable (gid removable))
+(define (discover-removables gidt (curr-removables '()))
+  (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gidt)
 
-  ;; gidtable [Listof Goal] -> [Listof Goal]
-  (define (discover-removables gid curr-removables)
-    (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
+  ;; id set -> bool
+  ;; Decide if this id has one LHS, and no RHS uses
+  (define (only-one-use id s)
+    (and (eqv? 1 (set-count s))
+         (let ([goals-using (free-id-table-ref term-id->goals id)])
+           (set-empty? goals-using))))
 
-    (define gid^+removable
-      (for/first ([(id s) (in-free-id-table lhs->goals)]
-                  #:when (eqv? 1 (set-count s))
-                  #:do[(define g (set-first s))
-                       (define goals-using (free-id-table-ref term-id->goals id))]
-                  #:when (set-empty? goals-using))
+  (define gidt^+removable
+    (for/first ([(id s) (in-free-id-table lhs->goals)]
+                #:when (only-one-use id s))
 
-        (define support (hash-ref g->term-ids g))
+      (define g (set-first s))
+      (define g-dependencies (hash-ref g->term-ids g))
 
-        (define new-term-id->goals
-          (for/fold ([term-id->goals term-id->goals])
-                    ([(tid __) (in-free-id-table support)])
-            ;; Since we’ve removed goal g, g is no longer one of the
-            ;; uses of any of the vars on the RHS of g
-            (free-id-table-update term-id->goals tid (curryr set-remove g))))
+      (define new-term-id->goals
+        (for/fold ([term-id->goals term-id->goals])
+                  ([(tid __) (in-free-id-table g-dependencies)])
+          ;; Since we’ve removed goal g, g is no longer one of the
+          ;; uses of any of the vars on the RHS of g
+          (free-id-table-update term-id->goals tid (curryr set-remove g))))
 
-        (gid+removable
-         (goal-id-map
-          params
-          (hash-remove g->term-ids g)
-          (free-id-table-remove new-term-id->goals id)
-          (free-id-table-remove lhs->goals id))
-         g)))
+      (gidt+removable
+       (goal-id-map
+        params
+        (hash-remove g->term-ids g)
+        (free-id-table-remove new-term-id->goals id)
+        (free-id-table-remove lhs->goals id))
+       g)))
 
-    (cond
-      [gid^+removable
-       (discover-removables
-        (gid+removable-gid gid^+removable)
-        (cons (gid+removable-removable gid^+removable) curr-removables))]
-      [else curr-removables]))
+  (cond
+    [gidt^+removable
+     (discover-removables
+      (gidt+removable-gidt gidt^+removable)
+      (cons (gidt+removable-removable gidt^+removable) curr-removables))]
+    [else curr-removables]))
 
-  (discover-removables gid '()))
-
-;; Table [Listof identifier] -> Table
+;; Table [Listof identifier] Any -> Table
 (define (add-entries t ls v)
-  (let ([entries-to-add (append-map (λ (id) (list id v)) ls)])
-    (apply (curry free-id-table-set* t) entries-to-add)))
+  (for/fold ([t t])
+            ([id (in-list ls)])
+    (free-id-table-set t id v)))
 
 ;; For every term ID, this structure is a bidirectional map to every
 ;; RHS occurrence in goal and a single directional map to its LHS
@@ -121,6 +130,17 @@
 (define (param? gid x)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (free-id-table-ref params x #f))
+
+;; goalidtable goal -> goalidtable
+;; Mark the given goal as though it contains every id that’s been introduced so far
+;; For use when a goal is an apply-relation and any code at all could be in the expression e.
+;; A super-duper conservative approximation
+(define (mark-all-vars-used-in gid g)
+  (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
+  (define ids (free-id-table-keys term-id->goals))
+  (for/fold ([gid gid])
+            ([id (in-list ids)])
+    (add-term-id gid id g)))
 
 (define (update-free-table/set-val t k v)
   (free-id-table-update t k (curryr set-add v)))
@@ -174,7 +194,7 @@
     [(ir-rel (x ...) g)
      (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute x)))])
        (let ([removable-goals (discover-removables goal-id-map)])
-         (produce-remove-no-escape/rel stx removable-goals)))]))
+         #`(ir-rel (x ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]))
 
 ;; run -> run
 ;; Build a run like the given run, but substituting (success) for every no escape goal
@@ -183,11 +203,11 @@
     [(run n (q ...) g)
      (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
        (let ([removable-goals (discover-removables goal-id-map)])
-         (produce-remove-no-escape/run stx removable-goals)))]
+         #`(run n (q ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]
     [(run* (q ...) g)
      (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
        (let ([removable-goals (discover-removables goal-id-map)])
-         (produce-remove-no-escape/run stx removable-goals)))]))
+         #`(run* (q ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]))
 
 ;; goal goalidmap -> goalidmap
 ;; Traverse, building the structure for atomic goals's variable references.
@@ -198,7 +218,9 @@
      (build-goal-id-map/term g #'t gidmap)]
     [(== (#%lv-ref v) t)
      (build-goal-id-map/term g #'t (add-lhs gidmap #'v g))]
-    [(== t1 t2) (raise-syntax-error "We should not be in this position")]
+    [(== t1 t2) ;; This is a special case, e.g. rkt-expr on either side. Handled as a degenerate case.
+     (build-goal-id-map/term g #'t2
+       (build-goal-id-map/term g #'t1 gidmap))]
     [(c:binary-constraint t1 t2)
      (build-goal-id-map/term g #'t2
        (build-goal-id-map/term g #'t1 gidmap))]
@@ -221,9 +243,8 @@
     [(apply-relation e t ...)
      (foldl
       (curry build-goal-id-map/term g)
-      gidmap
-      (attribute t))]
-))
+      (mark-all-vars-used-in gidmap g)
+      (attribute t))]))
 
 ;; goal term goalidmap -> goalidmap
 ;; Traverse this RHS term, building the structure for atomic goals'
@@ -241,20 +262,6 @@
      (build-goal-id-map/term g #'t2
        (build-goal-id-map/term g #'t1 gid))]))
 
-;; rel [listof goal] -> rel
-(define (produce-remove-no-escape/rel stx lrg)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     #`(ir-rel (x ...) #,(produce-remove-no-escape/goal #'g lrg))]))
-
-;; run [listof goal] -> run
-(define (produce-remove-no-escape/run stx lrg)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     #`(run n (q ...) #,(produce-remove-no-escape/goal #'g lrg))]
-    [(run* (q ...) g)
-     #`(run* (q ...) #,(produce-remove-no-escape/goal #'g lrg))]))
-
 ;; goal [listof goal] -> goal
 (define (produce-remove-no-escape/goal g lrg)
   (syntax-parse g #:literal-sets (mk-literals)
@@ -264,7 +271,7 @@
      (cond
        [(memq g lrg) #'(success)]
        [else g])]
-    [(== t1 t2) (raise-syntax-error "We should not be in this position")]
+    [(== t1 t2) g] ;; degenerate case w/e.g. 2 racket terms
     [(c:binary-constraint t1 t2) g]
     [(conj g1 g2)
      #`(conj #,(produce-remove-no-escape/goal #'g1 lrg)
@@ -277,13 +284,23 @@
     [(#%rel-app n t ...) g]
     [(apply-relation e t ...) g]))
 
+
 (module* test racket/base
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
            rackunit
+           syntax/macro-testing
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
+
+
+
+  ;; (phase1-eval
+  ;;  (syntax-parse (generate-prog (ir-rel ((~binder a)) (== (#%lv-ref a) (#%lv-ref a)))) #:literal-sets (mk-literals)
+  ;;                [(ir-rel (x ...) g)
+  ;;                 (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute x)))]))
 
   ;; Simple example of what pass should do
   (progs-equal?
@@ -638,7 +655,6 @@
                 (== (#%lv-ref j2) (cons '6 (#%lv-ref j1))))
                (== (#%lv-ref j3) (cons '5 (#%lv-ref j2))))
                (#%rel-app foo15 (cons (#%lv-ref j1) (cons (#%lv-ref j2) (#%lv-ref j3))))))))))
-
 
 ;; (fresh (j1)
 ;;        (conj
