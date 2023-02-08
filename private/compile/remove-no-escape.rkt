@@ -2,6 +2,7 @@
 
 (require syntax/parse
          syntax/id-table
+         syntax/id-set
          racket/set
          racket/match
          racket/function
@@ -45,10 +46,10 @@
 ;;
 ;; Look for a goal where it occurs on only one LHS, and no "RHS"es depend on that var.
 
-(define (discover-removables gidt (curr-removables '()))
+(define (discover-removables gidt (curr-removables (seteq)))
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gidt)
 
-  ;; id set -> bool
+  ;; id [setof goal] -> bool
   ;; Decide if this id has one LHS, and no RHS uses
   (define (only-one-use id s)
     (and (eqv? 1 (set-count s))
@@ -64,7 +65,7 @@
 
       (define new-term-id->goals
         (for/fold ([term-id->goals term-id->goals])
-                  ([(tid __) (in-free-id-table g-dependencies)])
+                  ([tid (in-free-id-set g-dependencies)])
           ;; Since we’ve removed goal g, g is no longer one of the
           ;; uses of any of the vars on the RHS of g
           (free-id-table-update term-id->goals tid (curryr set-remove g))))
@@ -81,7 +82,7 @@
     [gidt^+removable
      (discover-removables
       (gidt+removable-gidt gidt^+removable)
-      (cons (gidt+removable-removable gidt^+removable) curr-removables))]
+      (set-add curr-removables (gidt+removable-removable gidt^+removable)))]
     [else curr-removables]))
 
 ;; Table [Listof identifier] Any -> Table
@@ -110,7 +111,7 @@
 ;; listof id -> goalidtable
 ;; build an otherwise-empty goalidtable with the listed parameters
 (define (make-goal-id-map-excluding params)
-  (goal-id-map (add-entries (make-immutable-free-id-table) params #t)
+  (goal-id-map (immutable-free-id-set params)
                (make-immutable-hasheq)
                (make-immutable-free-id-table)
                (make-immutable-free-id-table)))
@@ -125,12 +126,6 @@
     (add-entries term-id->goals xs (seteq))
     (add-entries lhs->goals xs (seteq))))
 
-;; goalidtable id -> bool
-;; decide if the given id is known as a parameter in the given goalidtable
-(define (param? gid x)
-  (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
-  (free-id-table-ref params x #f))
-
 ;; goalidtable goal -> goalidtable
 ;; Mark the given goal as though it contains every id that’s been introduced so far
 ;; For use when a goal is an apply-relation and any code at all could be in the expression e.
@@ -142,31 +137,31 @@
             ([id (in-list ids)])
     (add-term-id gid id g)))
 
-(define (update-free-table/set-val t k v)
-  (free-id-table-update t k (curryr set-add v)))
+(define (update-free-table/set-val t x g)
+  (free-id-table-update t x (curryr set-add g)))
 
-;; [goal#free-id-table] goal -> [goal#free-id-table]
+;; [goal#free-id-set] goal -> [goal#free-id-set]
 ;; In h, add id to the set of variables found in g, constructing the set if needed
 (define (update-goal-table/set-val h g id)
   (hash-update
    h g
-   (λ (idt) (free-id-table-set idt id #t))
-   (λ () (make-immutable-free-id-table (list (cons id #t))))))
+   (λ (idt) (free-id-set-add idt id))
+   (λ () (immutable-free-id-set (list id)))))
 
-;; [goal#free-id-table] goal -> [goal#free-id-table]
+;; [goal#free-id-set] goal -> [goal#free-id-set]
 ;; Make sure there’s an entry for this goal in the goal -> ids hash
 (define (update-goal-table/empty-set h g)
   (hash-update
    h g
    identity
-   (λ () (make-immutable-free-id-table))))
+   (λ () (immutable-free-id-set))))
 
 ;; goalidmap id goal -> goal
 ;; if x is not a parameter to the relation/run, add goal g to the set of goals that reference x as the LHS of an ==
 (define (add-lhs gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
-    [(param? gid x) gid]
+    [(free-id-set-member? params x) gid]
     [else
      (goal-id-map
       params
@@ -179,7 +174,7 @@
 (define (add-term-id gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
-    [(param? gid x) gid]
+    [(free-id-set-member? params x) gid]
     [else
      (goal-id-map
       params
@@ -262,25 +257,25 @@
      (build-goal-id-map/term g #'t2
        (build-goal-id-map/term g #'t1 gid))]))
 
-;; goal [listof goal] -> goal
-(define (produce-remove-no-escape/goal g lrg)
+;; goal [setof goal] -> goal
+(define (produce-remove-no-escape/goal g goals)
   (syntax-parse g #:literal-sets (mk-literals)
     [(c:nullary-constraint) g]
     [(c:unary-constraint t) g]
     [(== (#%lv-ref v) t)
      (cond
-       [(memq g lrg) #'(success)]
+       [(set-member? goals g) #'(success)]
        [else g])]
     [(== t1 t2) g] ;; degenerate case w/e.g. 2 racket terms
     [(c:binary-constraint t1 t2) g]
     [(conj g1 g2)
-     #`(conj #,(produce-remove-no-escape/goal #'g1 lrg)
-             #,(produce-remove-no-escape/goal #'g2 lrg))]
+     #`(conj #,(produce-remove-no-escape/goal #'g1 goals)
+             #,(produce-remove-no-escape/goal #'g2 goals))]
     [(disj g1 g2)
-     #`(disj #,(produce-remove-no-escape/goal #'g1 lrg)
-             #,(produce-remove-no-escape/goal #'g2 lrg))]
+     #`(disj #,(produce-remove-no-escape/goal #'g1 goals)
+             #,(produce-remove-no-escape/goal #'g2 goals))]
     [(fresh (x ...) g)
-     #`(fresh (x ...) #,(produce-remove-no-escape/goal #'g lrg))]
+     #`(fresh (x ...) #,(produce-remove-no-escape/goal #'g goals))]
     [(#%rel-app n t ...) g]
     [(apply-relation e t ...) g]))
 
