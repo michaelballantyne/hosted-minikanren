@@ -28,8 +28,11 @@
     [(conj (success) g2) (remove-noop/goal #'g2)]
     [(conj g1 (success)) (remove-noop/goal #'g1)]
     [(conj g1 g2)
-     #`(conj #,(remove-noop/goal #'g1)
-             #,(remove-noop/goal #'g2))]
+     (with-syntax ([g1^ (remove-noop/goal #'g1)]
+                   [g2^ (remove-noop/goal #'g2)])
+       (if (and (eq? #'g1^ #'g1) (eq? #'g2^ #'g2))
+           g
+           (remove-noop/goal #`(conj g1^ g2^))))]
     [(disj g1 g2)
      #`(disj #,(remove-noop/goal #'g1)
              #,(remove-noop/goal #'g2))]
@@ -130,6 +133,20 @@
       (ir-rel ((~binder q))
         (== (#%lv-ref q) (quote 5)))))
 
+  ;; Should be able to remove successes from nested calls
+  (progs-equal?
+    (remove-noop/rel
+      (generate-prog
+        (ir-rel ((~binder q))
+          (conj
+            (conj
+              (success)
+              (success))
+            (== (#%lv-ref q) (quote 5))))))
+    (generate-prog
+      (ir-rel ((~binder q))
+        (== (#%lv-ref q) (quote 5)))))
+
   (progs-equal?
     (remove-noop/rel
       (generate-prog
@@ -155,7 +172,7 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (== (#%lv-ref q) (#%lv-ref x))))))
-          
+
   (progs-equal?
     (remove-noop/rel
       (generate-prog

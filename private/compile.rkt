@@ -47,7 +47,7 @@
          ;; annotation passes, no shape-changing past this point
          first-refs/run
          mark-redundant-check/run
-         
+
          generate-run)]))
 
 (define optimized-relation-code (make-free-id-table))
