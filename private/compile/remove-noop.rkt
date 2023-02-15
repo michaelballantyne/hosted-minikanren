@@ -25,14 +25,13 @@
     [(c:nullary-constraint) this-syntax]
     [(c:unary-constraint t) this-syntax]
     [(c:binary-constraint t1 t2) this-syntax]
-    [(conj (success) g2) (remove-noop/goal #'g2)]
-    [(conj g1 (success)) (remove-noop/goal #'g1)]
     [(conj g1 g2)
      (with-syntax ([g1^ (remove-noop/goal #'g1)]
                    [g2^ (remove-noop/goal #'g2)])
-       (if (and (eq? #'g1^ #'g1) (eq? #'g2^ #'g2))
-           g
-           (remove-noop/goal #`(conj g1^ g2^))))]
+       (syntax-parse (list #'g1^ #'g2^) #:literal-sets (mk-literals)
+         [((success) g2) #'g2]
+         [(g1 (success)) #'g1]
+         [(g1 g2) #'(conj g1 g2)]))]
     [(disj g1 g2)
      #`(disj #,(remove-noop/goal #'g1)
              #,(remove-noop/goal #'g2))]
