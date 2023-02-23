@@ -69,10 +69,17 @@
      t^]
     [(#%lv-ref v)
      t^]
-    [(cons t1 t2)
-     (walk-to-last-var t s)]
-    [(rkt-term _)
-     (walk-to-last-var t s)]))
+    [(cons t1^ t2^)
+     (syntax-parse t
+       #:literal-sets (mk-literals)
+       #:literals (cons quote)
+       [(#%lv-ref _)
+        (walk-to-last-var t s)]
+       [(cons t1 t2)
+        #`(cons #,(maybe-inline #'t1 (walk #'t1^ s) s)
+                #,(maybe-inline #'t2 (walk #'t2^ s) s))])]
+     [(rkt-term _)
+      (walk-to-last-var t s)]))
 
 (define (equal-vals? u v)
   (syntax-parse (list u v)
@@ -99,7 +106,7 @@
   (cond
     [(and ext?1 ext?2) (db<= dl1 dl2)]
     [(not (or ext?1 ext?2)) (db<= dl1 dl2)]
-    [else ext?1]))
+    [else ext?1 ]))
 
 (define (unify u v s ld)
   (let ([u^ (walk u s)]
@@ -827,5 +834,24 @@
                (== (#%lv-ref w) (cons (#%lv-ref x) (#%lv-ref y)))
                (#%rel-app foo (#%lv-ref w)))
               (== (#%lv-ref z) (#%lv-ref x)))))))))
+
+(progs-equal?
+  (fold/rel
+    (generate-prog
+      (ir-rel ((~binders vars val))
+       (fresh ((~binders varsf))
+        (conj
+         (== (#%lv-ref varsf) (#%lv-ref vars))
+         (== (#%lv-ref val)
+             (cons '7
+              (#%lv-ref varsf))))))))
+    (generate-prog
+      (ir-rel ((~binders vars val))
+        (fresh ((~binders varsf))
+         (conj
+          (== (#%lv-ref varsf) (#%lv-ref vars))
+          (== (#%lv-ref val)
+              (cons '7
+               (#%lv-ref vars))))))))
 
 )

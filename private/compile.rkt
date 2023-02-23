@@ -47,7 +47,7 @@
          ;; annotation passes, no shape-changing past this point
          first-refs/run
          mark-redundant-check/run
-         
+
          generate-run)]))
 
 (define optimized-relation-code (make-free-id-table))
@@ -63,20 +63,17 @@
      (~> this-syntax
          fold/rel
 
+
          ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
          ;; Disabled in order to preserve faster-minikanren search order.
          #;reorder-conj/rel
 
          propagate-fail/rel
-         (save-optimized name)
          remove-no-escape/rel
          remove-noop/rel
          remove-unused-vars/rel
-
+         (save-optimized name)
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
          mark-redundant-check/rel
-
-
-
          generate-relation)]))

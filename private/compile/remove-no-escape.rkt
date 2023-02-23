@@ -321,6 +321,15 @@
       (fresh ((~binder j))
         (success)))))
 
+  ;; TODO desired output would recognize disjs are independent branches
+  ;; (generate-prog
+  ;;  (ir-rel ((~binders a d))
+  ;;   (fresh ((~binder j))
+  ;;    (disj
+  ;;     (success)
+  ;;     (success)))))
+  ;;
+  ;;
   ;; Disjunctions before any conjs are just simple branches, treat simply
   (progs-equal?
    (remove-no-escape/rel
@@ -334,8 +343,8 @@
      (ir-rel ((~binders a d))
       (fresh ((~binder j))
        (disj
-        (success)
-        (success))))))
+        (== (#%lv-ref j) (cons (#%lv-ref a) (#%lv-ref d)))
+        (== (#%lv-ref j) (cons (#%lv-ref a) (#%lv-ref d))))))))
 
   ;; This shows the kind of cascade we are wanting to capture all at
   ;; once rather than a 3-loop through algorithm.
