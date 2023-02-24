@@ -18,6 +18,7 @@
  "compile/first-refs.rkt"
  "compile/remove-noop.rkt"
  "compile/remove-unused-vars.rkt"
+ "compile/remove-no-escape.rkt"
  "compile/propagate-fail.rkt"
  "compile/redundant-occurs-check.rkt"
  (for-template "forms.rkt"))
@@ -38,15 +39,15 @@
          ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
          ;; Disabled in order to preserve faster-minikanren search order.
          #;reorder-conj/run
-
+         propagate-fail/run
+         remove-no-escape/run
          remove-noop/run
          remove-unused-vars/run
-         propagate-fail/run
 
          ;; annotation passes, no shape-changing past this point
          first-refs/run
          mark-redundant-check/run
-         
+
          generate-run)]))
 
 (define optimized-relation-code (make-free-id-table))
@@ -62,19 +63,17 @@
      (~> this-syntax
          fold/rel
 
+
          ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
          ;; Disabled in order to preserve faster-minikanren search order.
          #;reorder-conj/rel
 
          propagate-fail/rel
-         ;; remove-no-escape-unifications
+         remove-no-escape/rel
          remove-noop/rel
          remove-unused-vars/rel
-
+         (save-optimized name)
          ;; annotation passes, no shape-changing past this point
          first-refs/rel
          mark-redundant-check/rel
-
-         (save-optimized name)
-
          generate-relation)]))

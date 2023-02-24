@@ -10,5 +10,17 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.9
         with:
           version: 8.7
-      - run: raco pkg install -j 2 --auto
-      - run: raco test -j 2 -c minikanren-ee
+      - run: raco pkg install --auto
+      - run: raco setup minikanren-ee
+      - run: raco test -c minikanren-ee
+
+  run_unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Bogdanp/setup-racket@v1.6
+        with:
+          version: 8.7
+      - run: raco pkg install --auto
+      - run: raco setup minikanren-ee
+      - run: raco test private/compile/*.rkt
