@@ -16,6 +16,11 @@
      (let ([maybe-redirected-path (or (hash-ref resolved-redirects path (lambda () #f)) path)])
        (base-resolver maybe-redirected-path relative-to error-stx load?))]))
 
+
+;; Hack to share test log
+(define-namespace-anchor runner-ns)
+(require (only-in rackunit))
+
 ;; (-> module-path? (hashof symbol? module-path?) any)
 ;;
 ;; Loads the module at the given module path while redirecting uses of the
@@ -30,6 +35,10 @@
 (define (run-with-redirections module-path redirects)
   (parameterize ([current-namespace (make-base-empty-namespace)]
                  [current-module-name-resolver (make-redirecting-resolver redirects)])
+
+    ;; Hack to share test log
+    (namespace-attach-module (namespace-anchor->namespace runner-ns) 'rackunit)
+
     (namespace-require module-path)))
 
 (module+ main
