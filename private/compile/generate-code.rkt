@@ -17,9 +17,32 @@
          syntax/stx
          "../syntax-classes.rkt")
 
-(provide generate-relation
-         generate-run
+(provide generate-plain/rel
+         generate-plain/run
+         generate-specialized/rel
+         generate-specialized/run
+
          compiled-names)
+
+
+(define specialize-unify? (make-parameter #t))
+
+(define (generate-plain/rel stx)
+  (parameterize ([specialize-unify? #f])
+    (generate-relation stx)))
+
+(define (generate-plain/run stx)
+  (parameterize ([specialize-unify? #f])
+    (generate-run stx)))
+
+(define (generate-specialized/rel stx)
+  (parameterize ([specialize-unify? #t])
+    (generate-relation stx)))
+
+(define (generate-specialized/run stx)
+  (parameterize ([specialize-unify? #t])
+    (generate-run stx)))
+
 
 (define/hygienic (generate-relation stx) #:expression
   (syntax-parse stx
@@ -75,8 +98,10 @@
      #`(mku:conj #,(generate-goal #'g1)
                  #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
-     (compile-block #'(x ...) #'g)
-     #;#`(mk:fresh (x ...) #,(generate-goal #'g))]
+     ;(displayln `(specialize block ,(specialize-unify?)))
+     (if (specialize-unify?)
+       (compile-block #'(x ...) #'g)
+       #`(mk:fresh (x ...) #,(generate-goal #'g)))]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
@@ -308,16 +333,27 @@
 
 (define/hygienic (generate-== stx) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))
+
+  ;(displayln `(specialize == ,(specialize-unify?)))
+
+  (if (specialize-unify?)
+    (syntax-parse stx
+      #:literal-sets (mk-literals)
+      #:literals (quote cons)
+      [(== (~and t1 (#%lv-ref v:id)) t2)
+       (generate-specialized-unify #'v #'t2 no-occur?)]
+      [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
+       (generate-specialized-unify #'(check-term e #'e) #'t2 no-occur?)]
+      ;; This could arise if we unify two rkt-terms. No way to specialize.
+      [_
+       (generate-plain-== stx no-occur?)])
+    (generate-plain-== stx no-occur?)))
+
+(define/hygienic (generate-plain-== stx no-occur?) #:expression
   (syntax-parse stx
-    #:literal-sets (mk-literals)
-    #:literals (quote cons)
-    [(== (~and t1 (#%lv-ref v:id)) t2)
-     (generate-specialized-unify #'v #'t2 no-occur?)]
-    [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
-     (generate-specialized-unify #'(check-term e #'e) #'t2 no-occur?)]
-    ;; We should not see this case, but if we do, we don’t know squat.
     [(== t1 t2)
-     #`(mku:== #,(generate-term #'t1) #,(generate-term #'t2))]))
+     #`(lambda (st)
+         #,(generate-runtime-unify (generate-term #'t1) (generate-term #'t2) #'st no-occur?))]))
 
 (define/hygienic (generate-term stx) #:expression
   (syntax-parse stx

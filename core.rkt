@@ -6,7 +6,8 @@
 ; `define-goal-macro` and define-term-macro allow sugar definitions.
 ;
 
-(require "private/interface-macros.rkt")
+(require "private/interface-macros.rkt"
+         (for-syntax (only-in "private/compile.rkt" set-optimization-mode!)))
 
 (provide run run* relation define-relation defrel
          quote cons #%term-datum #%lv-ref
@@ -18,7 +19,7 @@
          relation-code
          relation-code/optimized
          relation-code/compiled
-         (for-syntax gen:term-macro gen:goal-macro))
+         (for-syntax gen:term-macro gen:goal-macro set-optimization-mode!))
 
 ; Syntax
 

@@ -2,123 +2,195 @@
 
 (require text-table text-table/utils)
 
-(define master-base
+(define no-opt
 #<<here
 Benchmark Suite numbers:
-logo-hard: 1099
+logo-hard: 1423
 Benchmark Suite all-in-fd:
-all-in-fd: 0
+all-in-fd: 752
 Benchmark Suite four-fours:
-256: 187
+256: 223
 Benchmark Suite test fact:
-slow fact 7 = 5040: 7158
+slow fact 6 = 720: 306
 Benchmark Suite oxford artifact:
-love in 99000 ways: 42318
-four-thrines-small: 1490
-twine-in-standard: 180357
-dynamic-then-lexical-3-expressions: 38
-lexical-then-dynamic-3-expressions: 778
-append-backward-and-small-synthesis: 563
-scheme-in-scheme-quine-with-quasiquote: 205247
+love in 9900 ways: 3089
+four-thrines-small: 1564
+dynamic-then-lexical-3-expressions: 36
+lexical-then-dynamic-3-expressions: 975
+append-backward-and-small-synthesis: 579
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 341
 Benchmark Suite relational graph coloring:
-color middle earth: 222051
+ways to color iberia: 53
 Benchmark Suite orchid graph coloring:
-color ireland: 14054
+color kazakhstan: 351
 Benchmark Suite simple interp:
-complex-countdown 2: 2396
+complex-countdown 2: 2200
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 284
 Benchmark Suite full interp:
-complex-countdown 2: 2388
-6 quines: 6101
+complex-countdown 2: 2198
+1 real quine: 2133
 here
 )
 
-(define master-ee
+(define all-opt
 #<<here
 Benchmark Suite numbers:
-logo-hard: 938
+logo-hard: 1062
 Benchmark Suite all-in-fd:
-all-in-fd: 0
+all-in-fd: 671
 Benchmark Suite four-fours:
-256: 155
+256: 178
 Benchmark Suite test fact:
-slow fact 7 = 5040: 5621
+slow fact 6 = 720: 210
 Benchmark Suite oxford artifact:
-love in 99000 ways: 40640
-four-thrines-small: 1375
-twine-in-standard: 178777
-dynamic-then-lexical-3-expressions: 35
-lexical-then-dynamic-3-expressions: 678
-append-backward-and-small-synthesis: 455
-scheme-in-scheme-quine-with-quasiquote: 188430
-Benchmark Suite relational graph coloring:
-color middle earth: 196181
-Benchmark Suite orchid graph coloring:
-color ireland: 13294
-Benchmark Suite simple interp:
-complex-countdown 2: 428
-Benchmark Suite full interp:
-complex-countdown 2: 426
-6 quines: 5696
-here
-)
-
-(define opt-base
-#<<here
-Benchmark Suite numbers:
-logo-hard: 989
-Benchmark Suite all-in-fd:
-all-in-fd: 0
-Benchmark Suite four-fours:
-256: 171
-Benchmark Suite test fact:
-slow fact 7 = 5040: 6500
-Benchmark Suite oxford artifact:
-love in 99000 ways: 40737
-four-thrines-small: 1448
-twine-in-standard: 179128
-dynamic-then-lexical-3-expressions: 40
-lexical-then-dynamic-3-expressions: 971
-append-backward-and-small-synthesis: 550
-scheme-in-scheme-quine-with-quasiquote: 203552
-Benchmark Suite relational graph coloring:
-color middle earth: 202096
-Benchmark Suite orchid graph coloring:
-color ireland: 13557
-Benchmark Suite simple interp:
-complex-countdown 2: 2225
-Benchmark Suite full interp:
-complex-countdown 2: 2218
-6 quines: 5709
-here
-)
-
-(define opt-ee
-#<<here
-Benchmark Suite numbers:
-logo-hard: 698
-Benchmark Suite all-in-fd:
-all-in-fd: 0
-Benchmark Suite four-fours:
-256: 123
-Benchmark Suite test fact:
-slow fact 7 = 5040: 4432
-Benchmark Suite oxford artifact:
-love in 99000 ways: 37937
-four-thrines-small: 1290
-twine-in-standard: 158663
+love in 9900 ways: 2946
+four-thrines-small: 1441
 dynamic-then-lexical-3-expressions: 30
-lexical-then-dynamic-3-expressions: 863
-append-backward-and-small-synthesis: 338
-scheme-in-scheme-quine-with-quasiquote: 158146
+lexical-then-dynamic-3-expressions: 849
+append-backward-and-small-synthesis: 370
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 5
 Benchmark Suite relational graph coloring:
-color middle earth: 177128
+ways to color iberia: 46
 Benchmark Suite orchid graph coloring:
-color ireland: 10492
+color kazakhstan: 285
 Benchmark Suite simple interp:
-complex-countdown 2: 357
+complex-countdown 2: 378
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 274
 Benchmark Suite full interp:
-complex-countdown 2: 356
-6 quines: 5545
+complex-countdown 2: 377
+1 real quine: 2020
+here
+)
+
+(define prop-only
+#<<here
+Benchmark Suite numbers:
+logo-hard: 1085
+Benchmark Suite all-in-fd:
+all-in-fd: 638
+Benchmark Suite four-fours:
+256: 183
+Benchmark Suite test fact:
+slow fact 6 = 720: 271
+Benchmark Suite oxford artifact:
+love in 9900 ways: 3278
+four-thrines-small: 1683
+dynamic-then-lexical-3-expressions: 39
+lexical-then-dynamic-3-expressions: 1022
+append-backward-and-small-synthesis: 585
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 395
+Benchmark Suite relational graph coloring:
+ways to color iberia: 62
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 377
+Benchmark Suite simple interp:
+complex-countdown 2: 2596
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 397
+Benchmark Suite full interp:
+complex-countdown 2: 2741
+1 real quine: 2729
+here
+)
+
+(define dead-code
+#<<here
+Benchmark Suite numbers:
+logo-hard: 1529
+Benchmark Suite all-in-fd:
+all-in-fd: 653
+Benchmark Suite four-fours:
+256: 237
+Benchmark Suite test fact:
+slow fact 6 = 720: 393
+Benchmark Suite oxford artifact:
+love in 9900 ways: 3677
+four-thrines-small: 1857
+dynamic-then-lexical-3-expressions: 53
+lexical-then-dynamic-3-expressions: 1090
+append-backward-and-small-synthesis: 602
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 366
+Benchmark Suite relational graph coloring:
+ways to color iberia: 54
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 357
+Benchmark Suite simple interp:
+complex-countdown 2: 2629
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 288
+Benchmark Suite full interp:
+complex-countdown 2: 2451
+1 real quine: 2619
+here
+)
+
+(define occurs-check
+#<<here
+Benchmark Suite numbers:
+logo-hard: 1288
+Benchmark Suite all-in-fd:
+all-in-fd: 683
+Benchmark Suite four-fours:
+256: 218
+Benchmark Suite test fact:
+slow fact 6 = 720: 322
+Benchmark Suite oxford artifact:
+love in 9900 ways: 3496
+four-thrines-small: 1726
+dynamic-then-lexical-3-expressions: 42
+lexical-then-dynamic-3-expressions: 1031
+append-backward-and-small-synthesis: 550
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 7
+Benchmark Suite relational graph coloring:
+ways to color iberia: 60
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 373
+Benchmark Suite simple interp:
+complex-countdown 2: 430
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 292
+Benchmark Suite full interp:
+complex-countdown 2: 380
+1 real quine: 2178
+here
+)
+
+(define faster-mk
+#<<here
+Benchmark Suite numbers:
+logo-hard: 1209
+Benchmark Suite all-in-fd:
+all-in-fd: 484
+Benchmark Suite four-fours:
+256: 201
+Benchmark Suite test fact:
+slow fact 6 = 720: 294
+Benchmark Suite oxford artifact:
+love in 9900 ways: 3492
+four-thrines-small: 1777
+dynamic-then-lexical-3-expressions: 40
+lexical-then-dynamic-3-expressions: 1188
+append-backward-and-small-synthesis: 756
+Benchmark Suite dmitri oc bench check:
+dmitri leo 801: 478
+Benchmark Suite relational graph coloring:
+ways to color iberia: 70
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 446
+Benchmark Suite simple interp:
+complex-countdown 2: 2748
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 370
+Benchmark Suite full interp:
+complex-countdown 2: 2849
+1 real quine: 2695
 here
 )
 
@@ -138,14 +210,14 @@ here
         0
         (exact->inexact (/ b-n n-n)))))
 
-(define headers (list 'benchmark 'master-base 'master-ee 'opt-base 'opt-ee))
+(define headers (list 'benchmark 'faster-mk 'no-opt 'prop-only 'dead-code 'occurs-check 'all-opt))
 
 (define speedups
-  (for/list ([data (list master-base master-ee opt-base opt-ee)])
+  (for/list ([data (list faster-mk no-opt prop-only dead-code occurs-check all-opt)])
     (speedup
-     (to-numbers master-base)
+     (to-numbers faster-mk)
      (to-numbers data))))
 
-(print-table (cons headers (transpose (cons (to-names master-base) speedups)))
+(print-table (cons headers (transpose (cons (to-names faster-mk) speedups)))
              #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v))))
 

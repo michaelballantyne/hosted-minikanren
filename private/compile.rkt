@@ -5,6 +5,7 @@
  syntax/stx
  syntax/parse
  syntax/id-table
+ racket/function
  (for-template "runtime.rkt")
  (for-template racket/base)
  (for-template (prefix-in mk: "../mk/mk.rkt"))
@@ -26,33 +27,56 @@
 (provide compiled-names
          compile-run
          compile-relation
-         optimized-relation-code)
+         optimized-relation-code
+         set-optimization-mode!)
 
+(define all-opts (hash
+                   'constant-prop #t
+                   'dead-code #t
+                   'occurs-check #t
+                   'unification-spec #t))
+
+(define optimization-mode all-opts)
+
+(define (set-optimization-mode! mode)
+  (set! optimization-mode mode))
+
+(define (compose1r . procs) (apply compose1 (reverse procs)))
 
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
     [(~or (run _ (_ ...) _)
           (run* (_ ...) _))
-     (~> this-syntax
-         fold/run
 
-         ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
-         ;; Disabled in order to preserve faster-minikanren search order.
-         #;reorder-conj/run
-         propagate-fail/run
-         remove-no-escape/run
-         remove-noop/run
-         remove-unused-vars/run
+     (define passes
+       (append
+         (if (hash-ref optimization-mode 'constant-prop)
+           (list fold/run)
+           '())
+         (if (hash-ref optimization-mode 'dead-code)
+           (list propagate-fail/run
+                 remove-no-escape/run
+                 remove-noop/run
+                 remove-unused-vars/run)
+           '())
+         (if (hash-ref optimization-mode 'occurs-check)
+           (list mark-redundant-check/run)
+           '())
+         (if (hash-ref optimization-mode 'unification-spec)
+           (list
+             first-refs/run
+             generate-specialized/run)
+           (list
+             generate-plain/run))))
 
-         ;; annotation passes, no shape-changing past this point
-         first-refs/run
-         mark-redundant-check/run
+     ;(displayln `(compiling ,stx))
+     ;(displayln passes)
 
-         generate-run)]))
+     ((apply compose1r passes) this-syntax)]))
 
 (define optimized-relation-code (make-free-id-table))
 
-(define (save-optimized stx name)
+(define ((save-optimized name) stx)
   (when name
     (free-id-table-set! optimized-relation-code name stx))
   stx)
@@ -60,20 +84,31 @@
 (define/hygienic (compile-relation stx name) #:expression
   (syntax-parse stx
     [(ir-rel (x ...) g)
-     (~> this-syntax
-         fold/rel
 
 
-         ;; TODO: reconsider conjunction reordering, perhaps make optional or a lint.
-         ;; Disabled in order to preserve faster-minikanren search order.
-         #;reorder-conj/rel
+     (define passes
+       (append
+         (if (hash-ref optimization-mode 'constant-prop)
+           (list fold/rel)
+           '())
+         (if (hash-ref optimization-mode 'dead-code)
+           (list propagate-fail/rel
+                 remove-no-escape/rel
+                 remove-noop/rel
+                 remove-unused-vars/rel)
+           '())
+         (if (hash-ref optimization-mode 'occurs-check)
+           (list mark-redundant-check/rel)
+           '())
+         (list (save-optimized name))
+         (if (hash-ref optimization-mode 'unification-spec)
+           (list
+             first-refs/rel
+             generate-specialized/rel)
+           (list
+             generate-plain/rel))))
 
-         propagate-fail/rel
-         remove-no-escape/rel
-         remove-noop/rel
-         remove-unused-vars/rel
-         (save-optimized name)
-         ;; annotation passes, no shape-changing past this point
-         first-refs/rel
-         mark-redundant-check/rel
-         generate-relation)]))
+     ;(displayln `(compiling ,name))
+     ;(displayln passes)
+
+     ((apply compose1r passes) this-syntax)]))
