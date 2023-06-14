@@ -21,24 +21,38 @@
     [(run* (q ...) g)
      #`(run* (q ...) #,(propagate-fail/goal #'g))]))
 
-(define HAS-RKT-TERM 'contains-rkt-term)
+(define CANNOT-DROP 'cannot-drop)
 
-(define (contains-rkt-term/cache g)
-  (or (syntax-property g HAS-RKT-TERM)
+(define (atomic-goal-conjunction? g)
+  (syntax-parse g #:literal-sets (mk-literals)
+    [(c:nullary-constraint) #true]
+    [(c:unary-constraint t) #true]
+    [(c:binary-constraint t1 t2) #true]
+    [(conj g1 g2) (and (atomic-goal-conjunction? #'g1)
+                       (atomic-goal-conjunction? #'g2))]
+    [else #false]))
+
+(define (cannot-drop? g)
+  (or (syntax-property g CANNOT-DROP)
+      (not (atomic-goal-conjunction? g))
       (contains-rkt-term? g)))
 
+;; TODO: This may be quadratic when it could be linear.
 (define (propagate-fail/conj g1 g2)
   (let ([g1^ (propagate-fail/goal g1)]
         [g2^ (propagate-fail/goal g2)])
     (syntax-parse #`(conj #,g1^ #,g2^)
       #:literal-sets (mk-literals)
       [(conj (failure) _) #'(failure)]
-      [(conj _ (failure)) #:when (not (contains-rkt-term/cache g1^))
-       (if (contains-rkt-term/cache g1^)
-         (syntax-property this-syntax HAS-RKT-TERM #t)
-         #'(failure))]
-      ;; the syntax property prevents exponential blowup
-      ;; in left-associative conj-es containing a rkt-term
+      ;; This pattern is only possible when _ cannot be dropped.
+      ;; In that case g1^ will already have the CANNOT-DROP property.
+      [(conj (conj _ (failure)) (failure)) g1^]
+      ;; When g1^ cannot be dropped, but doesn’t have a failure at the
+      ;; end already
+      [(conj _ (failure)) #:when (cannot-drop? g1^)
+       (syntax-property this-syntax CANNOT-DROP #t)]
+      ;; When g1^ can be dropped, therefore we drop it
+      [(conj _ (failure)) #'(failure)]
       [_ this-syntax])))
 
 (define (propagate-fail/goal g)
@@ -200,5 +214,18 @@
         (conj
          (== (#%lv-ref q) (rkt-term 5))
          (failure)))))
+
+  (progs-equal?
+   (propagate-fail/rel
+     (generate-prog
+       (ir-rel ((~binder q))
+         (conj
+          (conj (== (rkt-term 5) (#%lv-ref q))
+                (failure))
+          (failure)))))
+   (generate-prog
+     (ir-rel ((~binder q))
+       (conj (== (rkt-term 5) (#%lv-ref q))
+             (failure)))))
 
   )

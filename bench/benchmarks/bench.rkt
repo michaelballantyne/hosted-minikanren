@@ -82,7 +82,7 @@
     #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
 
   (benchmark-suite "dmitri oc bench check"
-    ["dmitri leo 801" (dmitri:leo-801)])
+    ["dmitri leo 8000" (dmitri:leo-801)])
 
   (benchmark-suite "relational graph coloring"
     #;["color middle earth" (color-middle-earth)]
