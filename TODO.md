@@ -35,4 +35,6 @@ So make the fresh in the IR always -no-delay and make the conde would expand to 
 
 ## (OBVIATED) Multi-deeply-nested quasiquotes 
 
-## 
+## with-reference-compilers section 
+
+## make minikanren-ee use binding spaces so that we can use e.g. quasiquote w/ both racket and miniKanren in the same file
