@@ -13,9 +13,13 @@ This is the project stuff is the compiler passes that relate to the project stuf
 
 Some analyses that we wanted to/should do in compiler passes wrt "call out to racket" forms 
 
-### auto rkt-term ifization of terms in the bodies of project
+### (DONE) auto rkt-term ifization of terms in the bodies of project
 
-## (DONE) Add an implementation of list as a term macro 
+We now follow the older model, WITS
+If a variable reference does not resolve to a miniKanren reference, assume it is a racket-term reference
+
+
+## (DONE) Add an imementation of list as a term macro 
 
 ## Reconcile Mitch’s testing framework w/syntax-spec
 
@@ -37,4 +41,4 @@ So make the fresh in the IR always -no-delay and make the conde would expand to 
 
 ## with-reference-compilers section 
 
-## make minikanren-ee use binding spaces so that we can use e.g. quasiquote w/ both racket and miniKanren in the same file
+## (DONE) make minikanren-ee use binding spaces so that we can use e.g. quasiquote w/ both racket and miniKanren in the same file
