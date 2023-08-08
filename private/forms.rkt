@@ -1,35 +1,38 @@
 #lang racket/base
 (provide
- (all-defined-out)
+
+ conj
+ disj
+ fresh
+ ==
+ =/=
+ absento
+ symbolo
+ stringo
+ numbero
+ #%lv-ref
+
+ #%rel-app
+ rkt-term
+ apply-relation
+
+ success
+ failure
+
+ ir-rel
+ 
  (for-syntax mk-literals))
 
 (require
   ee-lib/define
+  "spec.rkt"
   (for-syntax
-   racket/base))
+   racket/base
+   syntax/parse))
 
-(define-literal-forms mk-literals
-  "miniKanren forms cannot be used in a Racket expression context"
-  [conj
-   disj
-   fresh
-   ==
-   =/=
-   absento
-   symbolo
-   stringo
-   numbero
-   #%lv-ref
-   #%rkt-ref
+(begin-for-syntax
+  (define-literal-set mk-literals
+    #:literal-sets (term-literals goal-literals)
+    ()))
 
-   #%rel-app
-   rkt-term
-   apply-relation
 
-   ;; nullary constraints
-   success
-   failure
-
-   #%term-datum
-
-   ir-rel])

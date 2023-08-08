@@ -1,6 +1,8 @@
 #lang racket
 (require minikanren-ee)
 
+;; TODO
+
 ;; This should be turned into an error at the expander layer instead
 ;; of errors in later passes.
 ;;
@@ -13,15 +15,15 @@
 ;; the pass gets to see the binding of every logic variable.
 ;;
 
-(define-relation (bar y)
+#;(define-relation (bar y)
   (apply-relation
    (relation (x)
      (== x y))
    y))
 
-(run 1 (q) (bar2 q))
+#;(run 1 (q) (bar2 q))
 
-(run 1 (q)
+#;(run 1 (q)
      (apply-relation
       (relation (x)
         (== x q))

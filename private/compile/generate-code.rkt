@@ -22,7 +22,7 @@
          generate-specialized/rel
          generate-specialized/run
 
-         compiled-names)
+         generate-relation)
 
 
 (define specialize-unify? (make-parameter #t))
@@ -56,8 +56,6 @@
     [(run* (q ...) g)
      #`(mk:run* (q ...) #,(generate-goal #'g))]))
 
-(define compiled-names (make-free-id-table))
-
 (define constraint-impls
   (make-free-id-table
    (hash #'symbolo #'mk:symbolo
@@ -87,8 +85,7 @@
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
     [(#%rel-app n:id t ...)
-     (def/stx n^ (free-id-table-ref compiled-names #'n))
-     #`(n^ #,@ (stx-map generate-term #'(t ...)))]
+     #`(n #,@ (stx-map generate-term #'(t ...)))]
     [(disj g1 g2)
      #`(mk:conde
          #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]

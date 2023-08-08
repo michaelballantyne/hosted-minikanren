@@ -248,7 +248,6 @@
   (syntax-parse t
     #:literal-sets (mk-literals)
     #:literals (quote cons)
-    [(#%term-datum l) gid]
     [(quote d) gid]
     [(rkt-term e) gid]
     [(#%lv-ref v)

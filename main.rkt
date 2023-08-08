@@ -32,7 +32,8 @@
  (except-out
   (all-from-out "core.rkt")
   conj2 disj2 fresh1 run-core run*-core quote-core)
- conj disj fresh conde run run* quasiquote unquote matche defrel/match quote list)
+ conj disj fresh conde run run* unquote matche defrel/match
+ (for-space mk quote quasiquote list))
 
 (define-syntax run
   (syntax-parser
@@ -94,20 +95,13 @@
            (conj c1.g+ ...)
            (conde c* ...))])]))
 
-(begin-for-syntax
-  (struct term+expression [term-transformer orig-macro]
-    #:methods gen:term-macro
-    [(define (term-macro-transform s stx)
-       ((term+expression-term-transformer s) stx))]
-    #:property prop:procedure
-    (λ (s stx)
-      (syntax-parse stx
-        [(_ . rest)
-         #:with orig-macro (term+expression-orig-macro s)
-         #'(orig-macro . rest)]))))
+(define-syntax define-syntax/space
+  (syntax-parser
+    [(_ name space rhs)
+     #`(define-syntax #,((make-interned-syntax-introducer (syntax-e #'space)) #'name) rhs)]))
 
-(define-syntax quote
-  (term+expression
+(define-syntax/space quote mk
+  (term-macro
    (syntax-parser
      [(~describe
        "'<datum>"
@@ -116,11 +110,10 @@
         (syntax-parse stx #:datum-literals ()
           [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
           [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-          [() #'(quote-core ())]))])
-   #'rkt:quote))
+          [() #'(quote-core ())]))])))
 
-(define-syntax quasiquote
-  (term+expression
+(define-syntax/space quasiquote mk
+  (term-macro
    (syntax-parser 
      [(~describe
        "`<datum>"
@@ -138,11 +131,10 @@
           [(a . d)
            #`(cons #,(recur #'a level) #,(recur #'d level))]
           [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-          [() #'(quote-core ())]))])
-   #'rkt:quasiquote))
+          [() #'(quote-core ())]))])))
 
-(define-syntax list
-  (term+expression
+(define-syntax/space list mk
+  (term-macro
    (syntax-parser
      [(~describe
        "(list <term> ...)"
@@ -151,8 +143,7 @@
      [(~describe
        "(list <term> ...)"
        (_ t t-rest ...))
-      #'(cons t (list t-rest ...))])
-   #'rkt:list))
+      #'(cons t (list t-rest ...))])))
 
 (begin-for-syntax
   ; p is a pattern expression

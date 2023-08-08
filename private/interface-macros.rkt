@@ -11,160 +11,110 @@
   syntax/parse/define
   racket/math
   (prefix-in mk: "../mk/mk.rkt")
+  "spec.rkt"
   "forms.rkt"
   "runtime.rkt"
+  syntax-spec
   (for-syntax
    syntax/stx
    racket/syntax
    syntax/id-table
-   ee-lib
+   (only-in ee-lib lookup)
    racket/base
    syntax/parse
    racket/generic
-   "expand.rkt"
    "compile.rkt"
    (only-in syntax/parse [define/syntax-parse def/stx])
-   "env-rep.rkt"
    "syntax-classes.rkt"))
 
 (provide run run* relation define-relation
          (rename-out [define-relation defrel])
-         quote cons #%term-datum #%lv-ref
+         quote cons
          absento symbolo stringo numbero =/= ==
-         conj disj fresh #%rel-app
-         #%rkt-ref apply-relation rkt-term
+         conj disj fresh
+         #%rel-app #%lv-ref
+         apply-relation rkt-term
+         (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
          relation-code/optimized
-         relation-code/compiled
-         (for-syntax gen:term-macro gen:goal-macro))
+         relation-code/compiled)
 
 ; Syntax
 
-(define-for-syntax expanded-relation-code (make-free-id-table))
 
-(define-for-syntax compiled-relation-code (make-free-id-table))
+(begin-for-syntax
+  (define-local-symbol-table expanded-relation-code)
+  (define-local-symbol-table compiled-relation-code))
 
 ; run, run*, and define-relation are the interface with Racket
 
-(define-syntax run
-  (expression-macro
-   (syntax-parser
-     [(~describe
-       "(run <numeric-expr> (<id> ...+) <goal>)"
-       (_ n:expr b:bindings+/c g:goal/c))
-      (with-scope sc
-        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-        (define expanded (expand-goal (add-scope #'g sc)))
-        (compile-run #`(mk:run (check-natural n #'n) (x^ ...) #,expanded)))])))
+(syntax-spec
+ (host-interface/expression
+  (run n:racket-expr (x:term-variable ...) g:goal)
+  #:binding {(bind x) g}
 
-(define-syntax run*
-  (expression-macro
-   (syntax-parser
-     [(~describe
-       "(run* (<id> ...+) <goal>)"
-       (_ b:bindings+/c g:goal/c))
-      (with-scope sc
-        (def/stx (x^ ...) (bind-logic-vars! (add-scope #'(b.x ...) sc)))
-        (define expanded (expand-goal (add-scope #'g sc)))
-        (compile-run #`(mk:run* (x^ ...) #,expanded)))])))
+  (compile-run #'(mk:run (check-natural n #'n) (x ...) g)))
 
-(define-syntax relation
-  (syntax-parser
-    [(~describe
-      "(relation (<id> ...) <goal>)"
-      (_ b:bindings/c g:goal/c))
-     ; some awkwardness to let us capture the expanded and optimized mk code
-     (define expanded (expand-relation #'(ir-rel b g)))
-     #`(relation-value #,(compile-relation expanded #f))]))
+ ;; TODO: probably have just one core run, do run* as a macro?
+ (host-interface/expression
+  (run* (x:term-variable ...) g:goal)
+  #:binding {(bind x) g}
 
-(define-syntax relation-rhs
-  (syntax-parser
-    [(_ b g name compiled-name)
-     ; duplicate the effect from define-relation for the case when in the top-level;
-     ; the phase1-effect won't have run in time.
-     (free-id-table-set! compiled-names #'name #'compiled-name)
-     ; some awkwardness to let us capture the expanded and optimized mk code
-     (define expanded (expand-relation #'(ir-rel b g)))
-     (free-id-table-set! expanded-relation-code
-                         #'name
-                         expanded)
-     (define compiled (compile-relation expanded #'name))
-     (free-id-table-set! compiled-relation-code
-                         #'name
-                         compiled)
-     compiled]))
+  (compile-run #'(mk:run* (x ...) g)))
 
-(define-syntax define-relation
-  (syntax-parser
-    [(~describe
-      "(define-relation (<name:id> <arg:id> ...) <goal>)"
-      (_ h:define-header/c (~or* (~seq g:goal/c) (~seq ~! (~fail "body should be a single goal")))))
-     #`(begin
-         ; Bind static information for expansion
-         (define-syntax h.name
-           (relation-binding-rep #,(length (syntax->list #'(h.v ...)))))
-         ; Binding for the the compiled function.
-         ; Expansion of `relation` expands and compiles the
-         ; body in the definition context's second pass.
-         (define tmp (relation-rhs (h.v ...) g h.name tmp))
-         (phase1-effect
-           (free-id-table-set! compiled-names #'h.name #'tmp)))]))
+ (host-interface/expression
+  (relation (x:term-variable ...) g:goal)
+  #:binding {(bind x) g}
+  ;; TODO: not 100% sure I need the ir-relation nonterminal in the spec
+  #`(relation-value #,(compile-relation #'(ir-rel (x ...) g) #f)))
 
-(define-syntax phase1-effect
-  (syntax-parser
-    [(_ e ...)
-     (if (eq? 'module (syntax-local-context))
-         #'(begin-for-syntax e ...)
-         (begin
-           (syntax-local-eval #'(begin e ...))
-           #'(begin)))]))
-     
+ (host-interface/definition
+  (define-relation (name:relation-name x:term-variable ...) g:goal)
+  #:binding [(export name) {(bind x) g}]
+
+  #:lhs
+  [#'name]
+  #:rhs
+  [(symbol-table-set! expanded-relation-code
+                      #'name
+                      #'(ir-rel (x ...) g))
+   (define compiled (compile-relation #'(ir-rel (x ...) g) #'name))
+   (symbol-table-set! compiled-relation-code
+                      #'name
+                      compiled)
+   compiled])
+ 
+ )
 
 (define-syntax-rule
   (define-goal-macro m f)
-  (define-syntax m (goal-macro-rep f)))
+  (define-syntax m (goal-macro f)))
 
 (define-syntax-rule
   (define-term-macro m f)
-  (define-syntax m (term-macro-rep f)))
+  (define-syntax m (term-macro f)))
 
-(define-syntax relation-code
-  (syntax-parser
-    [(_ name)
-     (if (eq? 'expression (syntax-local-context))
-         (let ()
-           (when (not (lookup #'name relation-binding?))
-             (raise-syntax-error #f "not bound to a relation" #'name))
-           (define code (free-id-table-ref expanded-relation-code #'name #f))
-           (when (not code)
-             (error 'relation-code "can only access code of relations defined in the current module"))
-           #`#'#,code)
-         #'(#%expression (relation-code name)))]))
+(syntax-spec
+ (host-interface/expression
+  (relation-code name:relation-name)
+  (define code (symbol-table-ref expanded-relation-code #'name #f))
+  (when (not code)
+    (error 'relation-code "can only access code of relations defined in the current module"))
+  #`#'#,code)
 
-(define-syntax relation-code/optimized
-  (syntax-parser
-    [(_ name)
-     (if (eq? 'expression (syntax-local-context))
-         (let ()
-           (when (not (lookup #'name relation-binding?))
-             (raise-syntax-error #f "not bound to a relation" #'name))
-           (define code (free-id-table-ref optimized-relation-code #'name #f))
-           (when (not code)
-             (error 'relation-code "can only access code of relations defined in the current module"))
-           #`#'#,code)
-         #'(#%expression (relation-code/optimized name)))]))
+ (host-interface/expression
+  (relation-code/optimized name:relation-name)
+  (define code (symbol-table-ref optimized-relation-code #'name #f))
+  (when (not code)
+    (error 'relation-code/optimized "can only access code of relations defined in the current module"))
+  #`#'#,code)
+ 
+ (host-interface/expression
+  (relation-code/compiled name:relation-name)
+  (define code (symbol-table-ref compiled-relation-code #'name #f))
+  (when (not code)
+    (error 'relation-code/compiled "can only access code of relations defined in the current module"))
+  #`#'#,code))
 
-(define-syntax relation-code/compiled
-  (syntax-parser
-    [(_ name)
-     (if (eq? 'expression (syntax-local-context))
-         (let ()
-           (when (not (lookup #'name relation-binding?))
-             (raise-syntax-error #f "not bound to a relation" #'name))
-           (define code (free-id-table-ref compiled-relation-code #'name #f))
-           (when (not code)
-             (error 'relation-code "can only access code of relations defined in the current module"))
-           #`#'#,code)
-         #'(#%expression (relation-code/compiled name)))]))

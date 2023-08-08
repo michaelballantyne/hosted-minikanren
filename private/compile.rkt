@@ -12,7 +12,6 @@
  (only-in syntax/parse [define/syntax-parse def/stx])
  (only-in threading ~>)
  "syntax-classes.rkt"
- "env-rep.rkt"
  "compile/generate-code.rkt"
  "compile/reorder-conj.rkt"
  "compile/fold.rkt"
@@ -24,8 +23,7 @@
  "compile/redundant-occurs-check.rkt"
  (for-template "forms.rkt"))
 
-(provide compiled-names
-         compile-run
+(provide compile-run
          compile-relation
          optimized-relation-code
          set-optimization-mode!)
@@ -74,11 +72,11 @@
 
      ((apply compose1r passes) this-syntax)]))
 
-(define optimized-relation-code (make-free-id-table))
+(define-local-symbol-table optimized-relation-code)
 
 (define ((save-optimized name) stx)
   (when name
-    (free-id-table-set! optimized-relation-code name stx))
+    (symbol-table-set! optimized-relation-code name stx))
   stx)
 
 (define/hygienic (compile-relation stx name) #:expression

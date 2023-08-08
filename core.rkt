@@ -10,16 +10,18 @@
          (for-syntax (only-in "private/compile.rkt" set-optimization-mode!)))
 
 (provide run run* relation define-relation defrel
-         quote cons #%term-datum #%lv-ref
+         quote cons
          absento symbolo stringo numbero =/= ==
-         conj disj fresh #%rel-app
-         #%rkt-ref apply-relation rkt-term
+         conj disj fresh
+         #%rel-app #%lv-ref
+         apply-relation rkt-term
+         (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?
          relation-code
          relation-code/optimized
          relation-code/compiled
-         (for-syntax gen:term-macro gen:goal-macro set-optimization-mode!))
+         (for-syntax set-optimization-mode!))
 
 ; Syntax
 
