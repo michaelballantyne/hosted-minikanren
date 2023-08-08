@@ -67,7 +67,6 @@
    #:bind-literal-set goal-literals
    #:allow-extension goal-macro
 
-   ;; TODO: rename these to the more standard succeed and fail
    succeed
    fail
     
