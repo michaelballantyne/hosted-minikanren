@@ -13,18 +13,6 @@ This is the project stuff is the compiler passes that relate to the project stuf
 
 Some analyses that we wanted to/should do in compiler passes wrt "call out to racket" forms 
 
-### (DONE) auto rkt-term ifization of terms in the bodies of project
-
-We now follow the older model, WITS
-If a variable reference does not resolve to a miniKanren reference, assume it is a racket-term reference
-
-
-## (DONE) Add an imementation of list as a term macro 
-
-## Reconcile Mitch’s testing framework w/syntax-spec
-
-B/c some of the ways they handle fresh names may not be the same.
-
 ## Make the implementation of `matche` match what we have written the implementation to be
 
 ## Change the IR to do n-ary conj and disj and make suspensions explicit 
@@ -35,10 +23,23 @@ So make the fresh in the IR always -no-delay and make the conde would expand to 
 
 (b/c if you look at our benchmark results, mk/ee w/no optimizations doesn’t have the same results as faster-mk.) Search order stuff. And we have some things that looks like regressions (currently slower and changes search order.)
 
+## Write the with-reference-compilers subsection 
+
+# Finished stuff
+
 ## (DONE) Make fresh1 have any number of variables and only 1 body.
 
 ## (OBVIATED) Multi-deeply-nested quasiquotes 
 
-## with-reference-compilers section 
-
 ## (DONE) make minikanren-ee use binding spaces so that we can use e.g. quasiquote w/ both racket and miniKanren in the same file
+
+## (DONE) Add an iplementation of list as a term macro 
+
+### (DONE) auto rkt-term ifization of terms in the bodies of project
+
+We now follow the older model, WITS
+If a variable reference does not resolve to a miniKanren reference, assume it is a racket-term reference
+
+## (DONE) Reconcile Mitch’s testing framework w/syntax-spec
+
+B/c some of the ways they handle fresh names may not be the same.
