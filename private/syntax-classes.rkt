@@ -9,7 +9,7 @@
          bindings+/c
          define-header/c
          
-         nullary-constraint
+         primitive-goal
          unary-constraint
          binary-constraint
          binary-goal-constructor)
@@ -37,9 +37,9 @@
     "duplicate parameter name"))
 
 ;; meant for IR purposes only
-(define-syntax-class nullary-constraint
+(define-syntax-class primitive-goal
   #:literal-sets (mk-literals)
-  (pattern (~or success failure)))
+  (pattern (~or succeed fail)))
 (define-syntax-class unary-constraint
   #:literal-sets (mk-literals)
   (pattern (~or symbolo stringo numbero)))

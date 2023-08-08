@@ -74,8 +74,8 @@
   (syntax-parse stx
     #:literal-sets (mk-literals)
     #:literals (quote cons)
-    [(success) #'mku:succeed]
-    [(failure) #'mku:fail]
+    [succeed #'mku:succeed]
+    [fail #'mku:fail]
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      #`(c^ #,(generate-term #'t))]
@@ -365,7 +365,7 @@
      #`(cons #,(generate-term #'t1) #,(generate-term #'t2))]))
 
 (module* test racket/base
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (require (prefix-in mku: "../../mk/private-unstable.rkt")
            "../runtime.rkt")

@@ -68,8 +68,8 @@
    #:allow-extension goal-macro
 
    ;; TODO: rename these to the more standard succeed and fail
-   success
-   failure
+   succeed
+   fail
     
    (symbolo t:term)
    (numbero t:term)

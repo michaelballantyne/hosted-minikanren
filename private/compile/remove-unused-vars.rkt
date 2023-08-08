@@ -30,7 +30,7 @@
 (define (remove-unused-vars g)
   (syntax-parse g
     #:literal-sets (mk-literals)
-    [(c:nullary-constraint) (values this-syntax (immutable-free-id-set))]
+    [c:primitive-goal (values this-syntax (immutable-free-id-set))]
     [(c:unary-constraint t) (values this-syntax (term-refs #'t))]
     [(c:binary-constraint t1 t2) (values this-syntax (free-id-set-union (term-refs #'t1) (term-refs #'t2)))]
     [(disj g1 g2)
@@ -69,7 +69,7 @@
 (module* test racket/base
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (submod "..")))

@@ -22,15 +22,15 @@
 
 (define (remove-noop/goal g)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:nullary-constraint) this-syntax]
+    [c:primitive-goal this-syntax]
     [(c:unary-constraint t) this-syntax]
     [(c:binary-constraint t1 t2) this-syntax]
     [(conj g1 g2)
      (with-syntax ([g1^ (remove-noop/goal #'g1)]
                    [g2^ (remove-noop/goal #'g2)])
        (syntax-parse (list #'g1^ #'g2^) #:literal-sets (mk-literals)
-         [((success) g2) #'g2]
-         [(g1 (success)) #'g1]
+         [(succeed g2) #'g2]
+         [(g1 succeed) #'g1]
          [(g1 g2) #'(conj g1 g2)]))]
     [(disj g1 g2)
      #`(disj #,(remove-noop/goal #'g1)
@@ -44,7 +44,7 @@
 (module+ test
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
@@ -53,10 +53,10 @@
     (remove-noop/rel
       (generate-prog
         (ir-rel ()
-          (success))))
+          succeed)))
     (generate-prog
       (ir-rel ()
-        (success))))
+        succeed)))
 
   (progs-equal?
     (remove-noop/rel
@@ -64,7 +64,7 @@
         (ir-rel ((~binder q))
           (conj
             (== (#%lv-ref q) (quote 5))
-            (success)))))
+            succeed))))
     (generate-prog
       (ir-rel ((~binder q))
         (== (#%lv-ref q) (quote 5)))))
@@ -74,7 +74,7 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (success)
+            succeed
             (== (#%lv-ref q) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -85,11 +85,11 @@
       (generate-prog
         (ir-rel ()
           (fresh ()
-            (success)))))
+            succeed))))
     (generate-prog
       (ir-rel ()
         (fresh ()
-              (success)))))
+              succeed))))
 
   (progs-equal?
     (remove-noop/rel
@@ -98,8 +98,8 @@
           (conj
             (conj
               (== (#%lv-ref q) (quote 5))
-              (success))
-            (success)))))
+              succeed)
+            succeed))))
     (generate-prog
       (ir-rel ((~binders q p))
         (== (#%lv-ref q) (quote 5)))))
@@ -111,7 +111,7 @@
           (conj
             (== (#%lv-ref q) (quote 5))
             (conj
-              (success)
+              succeed
                 (== (#%lv-ref p) (quote 6)))))))
     (generate-prog
       (ir-rel ((~binders q p))
@@ -124,9 +124,9 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (success)
+            succeed
             (conj
-              (success)
+              succeed
               (== (#%lv-ref q) (quote 5)))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -139,8 +139,8 @@
         (ir-rel ((~binder q))
           (conj
             (conj
-              (success)
-              (success))
+              succeed
+              succeed)
             (== (#%lv-ref q) (quote 5))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -153,7 +153,7 @@
           (fresh ((~binder x))
             (conj
               (== (#%lv-ref q) (#%lv-ref x))
-              (success))))))
+              succeed)))))
     (generate-prog
       (ir-rel ((~binder q))
         (fresh ((~binder x))
@@ -165,7 +165,7 @@
         (ir-rel ((~binder q))
           (fresh ((~binder x))
             (conj
-              (success)
+              succeed
               (== (#%lv-ref q) (#%lv-ref x)))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -177,21 +177,21 @@
       (generate-prog
         (ir-rel ((~binder q))
           (disj
-            (success)
-            (success)))))
+            succeed
+            succeed))))
     (generate-prog
       (ir-rel ((~binder q))
         (disj
-          (success)
-          (success)))))
+          succeed
+          succeed))))
 
   (progs-equal?
     (remove-noop/rel
       (generate-prog
         (ir-rel ((~binder q))
           (disj
-            (conj (success) (== (#%lv-ref q) (quote 5)))
-            (conj (== (#%lv-ref q) (quote 6)) (success))))))
+            (conj succeed (== (#%lv-ref q) (quote 5)))
+            (conj (== (#%lv-ref q) (quote 6)) succeed)))))
     (generate-prog
       (ir-rel ((~binder q))
         (disj

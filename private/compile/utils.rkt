@@ -11,7 +11,7 @@
   (define (goal-contains? g)
     (syntax-parse g
       #:literal-sets (mk-literals)
-      [(c:nullary-constraint) #f]
+      [c:primitive-goal #f]
       [(c:unary-constraint t)
        (term-contains? #'t)]
       [(c:binary-constraint t1 t2)

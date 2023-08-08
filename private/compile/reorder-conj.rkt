@@ -36,7 +36,7 @@
                   [(fresh (x:id ...) g)
                    (set! lvars (cons (syntax->list #'(x ...)) lvars))
                    (recur #'g)]
-                  [(~or (c:nullary-constraint)
+                  [(~or c:primitive-goal
                         (c:unary-constraint t)
                         (c:binary-constraint t1 t2))
                    (set! constraints (cons this-syntax constraints))]
@@ -59,7 +59,7 @@
 (module+ test
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
@@ -69,12 +69,12 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (success)
+            succeed
             (== (#%lv-ref q) (quote 2))))))
     (generate-prog
       (ir-rel ((~binder q))
         (conj
-          (success)
+          succeed
           (== (#%lv-ref q) (quote 2))))))
 
   )

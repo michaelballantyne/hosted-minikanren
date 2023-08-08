@@ -16,8 +16,8 @@
  rkt-term
  apply-relation
 
- success
- failure
+ succeed
+ fail
 
  ir-rel
  

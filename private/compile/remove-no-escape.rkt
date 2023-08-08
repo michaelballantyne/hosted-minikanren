@@ -183,7 +183,7 @@
       lhs->goals)]))
 
 ;; rel -> rel
-;; Build a rel like the given rel, but substituting (success) for every no escape goal
+;; Build a rel like the given rel, but substituting succeed for every no escape goal
 (define (remove-no-escape/rel stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(ir-rel (x ...) g)
@@ -192,7 +192,7 @@
          #`(ir-rel (x ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]))
 
 ;; run -> run
-;; Build a run like the given run, but substituting (success) for every no escape goal
+;; Build a run like the given run, but substituting succeed for every no escape goal
 (define (remove-no-escape/run stx)
   (syntax-parse stx #:literal-sets (mk-literals)
     [(run n (q ...) g)
@@ -208,7 +208,7 @@
 ;; Traverse, building the structure for atomic goals's variable references.
 (define (build-goal-id-map/goal g gidmap)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:nullary-constraint) gidmap]
+    [c:primitive-goal gidmap]
     [(c:unary-constraint t)
      (build-goal-id-map/term g #'t gidmap)]
     [(== (#%lv-ref v) t)
@@ -259,11 +259,11 @@
 ;; goal [setof goal] -> goal
 (define (produce-remove-no-escape/goal g goals)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:nullary-constraint) g]
+    [c:primitive-goal g]
     [(c:unary-constraint t) g]
     [(== (#%lv-ref v) t)
      (cond
-       [(set-member? goals g) #'(success)]
+       [(set-member? goals g) #'succeed]
        [else g])]
     [(== t1 t2) g] ;; degenerate case w/e.g. 2 racket terms
     [(c:binary-constraint t1 t2) g]
@@ -282,7 +282,7 @@
 (module* test racket/base
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            syntax/macro-testing
            (for-syntax racket/base
                        syntax/parse
@@ -306,7 +306,7 @@
     (generate-prog
      (ir-rel ((~binder a))
         (fresh ((~binder j))
-          (success)))))
+          succeed))))
 
   ;; Example of what pass should do, w/cons RHS
   (progs-equal?
@@ -318,15 +318,15 @@
   (generate-prog
     (ir-rel ((~binders a d))
       (fresh ((~binder j))
-        (success)))))
+        succeed))))
 
   ;; TODO desired output would recognize disjs are independent branches
   ;; (generate-prog
   ;;  (ir-rel ((~binders a d))
   ;;   (fresh ((~binder j))
   ;;    (disj
-  ;;     (success)
-  ;;     (success)))))
+  ;;     succeed
+  ;;     succeed))))
   ;;
   ;;
   ;; Disjunctions before any conjs are just simple branches, treat simply
@@ -362,9 +362,9 @@
       (fresh ((~binders j1 j2 j3))
        (conj
         (conj
-         (success)
-         (success))
-        (success))))))
+         succeed
+         succeed)
+        succeed)))))
 
   ;; This program, before constant folding, was the following.
   ;; Remember that constant folding will normalize away a whole lot
@@ -386,19 +386,19 @@
           (conj
            (== (#%lv-ref j34) (cons (#%lv-ref a1) (#%lv-ref j12)))
            (conj
-            (success)
+            succeed
             (== (#%lv-ref j23) (#%lv-ref j12))))
-          (success))))))
+          succeed)))))
     (generate-prog
      (ir-rel ((~binder a1))
        (fresh ((~binders j12 j23 j34))
          (conj
           (conj
-           (success)
+           succeed
            (conj
-            (success)
-            (success)))
-          (success))))))
+            succeed
+            succeed))
+          succeed)))))
 
 ;; This was another one where, after folding, most of the difficulty
 ;; has simplified away.
@@ -411,19 +411,19 @@
         (conj
          (== (#%lv-ref j3) (cons (#%lv-ref a) (#%lv-ref b)))
          (conj
-           (success)
+           succeed
            (== (#%lv-ref j1) (#%lv-ref b))))
-        (success))))))
+        succeed)))))
    (generate-prog
     (ir-rel ((~binders a b))
      (fresh ((~binders j1 j2 j3))
        (conj
         (conj
-         (success)
+         succeed
          (conj
-           (success)
-           (success)))
-        (success))))))
+           succeed
+           succeed))
+        succeed)))))
 
 ;; It’s not just the innermost fresh block at which we’d like remove
 ;; no-escape unifications
@@ -442,8 +442,8 @@
       (fresh ((~binder x))
        (conj
         (fresh ((~binder j))
-          (success))
-        (success)))))))
+          succeed)
+        succeed))))))
 
 ;; We do no inlining of conses, and we do not in this pass look at
 ;; anything besides unifications. Removing disequalities would be
@@ -479,7 +479,7 @@
    (generate-prog
     (ir-rel ((~binder a))
        (fresh ((~binders j k))
-         (success))))))
+         succeed)))))
 
   ;; We do not remove unifications where the LHS variable is a
   ;; parameter, b/c that’s external
@@ -583,7 +583,7 @@
         (fresh ((~binder j))
           (conj
             (#%rel-app foo12a (#%lv-ref x) (#%lv-ref a))
-            (success))))))))
+            succeed)))))))
 
 ;; Down a disj it’s removable if it’s removable in one of the
 ;; disjuncts.
@@ -629,7 +629,7 @@
             (conj
              (conj
               (== (#%lv-ref x) (cons '7 '8))
-              (success))
+              succeed)
               (#%rel-app foo14 (cons '7 (#%lv-ref x))))))))))
 
 ;; Only when there’s exactly one reference to that other variable do
@@ -681,21 +681,21 @@
 ;;         (== j1 (cons 5 6))
 ;;         (disj
 ;;          (== cat cat)
-;;          (success))))
+;;          succeed)))
 
 ;; (fresh (j1)
 ;;        (conj
 ;;         (== j1 (cons 5 6))
 ;;         (disj
 ;;          (foo j1)
-;;          (success))))
+;;          succeed)))
 
 ;; (fresh (j1)
 ;;        (disj
 ;;         (conj
 ;;          (== j1 (cons 5 6))
 ;;          (foo j1))
-;;         (success)))
+;;         succeed))
 
 ;; (fresh (j1)
 ;;        (conj
@@ -713,7 +713,7 @@
 ;;          (bar j2))
 ;;         (disj
 ;;          (foo j1)
-;;          (success))))
+;;          succeed)))
 ;; ;; ->
 ;; (fresh (j1 j2)
 ;;        (conj
@@ -722,7 +722,7 @@
 ;;          (conj
 ;;           (== j1 (cons 5 6))
 ;;           (foo j1))
-;;          (success))))
+;;          succeed)))
 ;; ;;;;;
 
 ;; (fresh (j1)
@@ -732,11 +732,11 @@
 ;;          (conj
 ;;           (foo j1)
 ;;           (bar j1))
-;;          (success))))
+;;          succeed)))
 
 ;; (fresh (j1)
 ;;        (conj
 ;;         (disj
 ;;          (foo j1)
-;;          (success))
+;;          succeed)
 ;;         (== j1 (cons 5 6))))

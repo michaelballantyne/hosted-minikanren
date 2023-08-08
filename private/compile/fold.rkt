@@ -114,7 +114,7 @@
     (syntax-parse (list u^ v^)
       #:literal-sets (mk-literals)
       #:literals (cons quote)
-      [_ #:when (equal-vals? u^ v^) (values #'(success) s)]
+      [_ #:when (equal-vals? u^ v^) (values #'succeed s)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
        (if (db<=/ext (sub-ext-ext s) ld #'id1 #'id2)
            (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
@@ -129,7 +129,7 @@
          (values #`(conj #,g1^ #,g2^) s^^))]
       [((rkt-term _) _) (values #`(== #,u^ #,v^) s)]
       [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
-      [_ (values #'(failure) s)])))
+      [_ (values #'fail s)])))
 
 (define (map-maybe-inline* subst stx)
   (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
@@ -213,7 +213,7 @@
 (module+ test
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
@@ -247,7 +247,7 @@
     (generate-prog
       (ir-rel ((~binder q))
         (conj
-          (success)
+          succeed
           (== (#%lv-ref q) (quote 5))))))
 
   (progs-equal?
@@ -259,8 +259,8 @@
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (failure)
-            (success)))))
+            fail
+            succeed))))
 
   (progs-equal?
     (fold/rel
@@ -294,7 +294,7 @@
               (== (#%lv-ref x) (quote (~dat-lit dog)))
               (conj
                 (== (#%lv-ref y) (quote (~dat-lit mouse)))
-                (success))))))))
+                succeed)))))))
 
   (progs-equal?
    (fold/rel
@@ -305,7 +305,7 @@
     (generate-prog
      (ir-rel ((~binder result1))
         (conj
-          (success)
+          succeed
           (== (#%lv-ref result1)
               (quote (~dat-lit fish)))))))
 
@@ -322,7 +322,7 @@
         (fresh ((~binder x))
           (conj
            (== (#%lv-ref result1) (cons (quote (~dat-lit cat)) (quote (~dat-lit fish))))
-           (success))))))
+           succeed)))))
 
   (progs-equal?
     (fold/rel
@@ -331,7 +331,7 @@
           (== (quote 5) (quote 5)))))
     (generate-prog
       (ir-rel ()
-        (success))))
+        succeed)))
 
   (progs-equal?
     (fold/rel
@@ -340,7 +340,7 @@
           (== (quote 5) (quote 6)))))
     (generate-prog
       (ir-rel ()
-        (failure))))
+        fail)))
 
   (progs-equal?
     (fold/rel
@@ -359,7 +359,7 @@
               (cons (quote 5) (#%lv-ref q))))))
     (generate-prog
       (ir-rel ((~binder q))
-        (success))))
+        succeed)))
 
   (progs-equal?
     (fold/rel
@@ -372,7 +372,7 @@
     (generate-prog
       (ir-rel ((~binders q p))
         (conj
-          (success)
+          succeed
           (== (#%lv-ref p) (#%lv-ref q))))))
 
   (progs-equal?
@@ -403,7 +403,7 @@
     (generate-prog
       (ir-rel ((~binder q))
         (conj
-          (success)
+          succeed
           (== (#%lv-ref q) (quote 2))))))
 
   (progs-equal?
@@ -498,10 +498,10 @@
                 (fresh ((~binder y))
                   (conj
                    (== (#%lv-ref y) (#%lv-ref x))
-                   (success)))
+                   succeed))
                 (conj
                  (== (#%lv-ref x) (quote 1))
-                 (success))))))))
+                 succeed)))))))
 
 (let ([foo 5])
   (progs-equal?

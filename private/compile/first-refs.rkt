@@ -28,7 +28,7 @@
 
 (define (annotate-goal g id-refs)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:nullary-constraint) (values this-syntax id-refs)]
+    [c:primitive-goal (values this-syntax id-refs)]
     [(c:unary-constraint t)
      (let-values ([(t^ refs^) (annotate-term #'t id-refs)])
        (values #`(c #,t^) refs^))]
@@ -82,7 +82,7 @@
 (module+ test
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (only-in "prop-vars.rkt" FIRST-REF)

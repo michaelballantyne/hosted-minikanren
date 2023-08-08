@@ -331,7 +331,7 @@
 ;;;;;;;;;;;;;;;;;;;;;; PASS IMPLEMENTATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (mark-redundant-check/goal g s)
   (syntax-parse g #:literal-sets (mk-literals)
-    [(c:nullary-constraint) (values this-syntax s)]
+    [c:primitive-goal (values this-syntax s)]
     [(c:unary-constraint t) (values this-syntax s)]
     [(== t1 t2)
      (let-values ([(s^ can-skip?) (unify #'t1 #'t2 s)])
@@ -360,7 +360,7 @@
 (module* test racket/base
   (require "./test/unit-test-progs.rkt"
            "../forms.rkt"
-           rackunit
+           (except-in rackunit fail)
            (for-syntax racket/base
                        "./test/unit-test-progs.rkt"
                        (only-in "prop-vars.rkt" SKIP-CHECK)
