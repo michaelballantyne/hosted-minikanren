@@ -2,10 +2,6 @@
 
 ## Implement and use `define-extension`
 
-## Success and failure -> succeed and fail
-
-Make sure the underlying implementation uses the built in basic ones rather than == #t #f or something
-
 ## Replace the `apply-relation` ffi w/project
 
 ## Allow free lexical variables in goal expressions
@@ -49,3 +45,8 @@ If a variable reference does not resolve to a miniKanren reference, assume it is
 ## (DONE) Reconcile Mitch’s testing framework w/syntax-spec
 
 B/c some of the ways they handle fresh names may not be the same.
+
+## (DONE) Success and failure -> succeed and fail
+
+Make sure the underlying implementation uses the built in basic ones rather than == #t #f or something
+
