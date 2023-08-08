@@ -1,5 +1,11 @@
 # TODO as of 2023-08-04
 
+## Implement and use `define-extension`
+
+## Success and failure -> succeed and fail
+
+Make sure the underlying implementation uses the built in basic ones rather than == #t #f or something
+
 ## Replace the `apply-relation` ffi w/project
 
 ## Allow free lexical variables in goal expressions
