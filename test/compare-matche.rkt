@@ -81,6 +81,51 @@
 		(=/= y x)
 		(lookupo x vars^ vals^ val)))))))))
 
+(namespace-require 'racket)
+(namespace-require "../main.rkt")
+(namespace-require 'racket/pretty)
+
+(define-syntax-rule (print-output-after-optimizations name opts relname rel)
+  (begin
+    (eval #'(begin-for-syntax (set-optimization-mode! opts)))
+    (eval #'rel)
+    (eval #'(pretty-print (syntax->datum (relation-code/optimized relname))))))
+
+(define-syntax-rule (print-all-optimized-variants relname rel)
+  (begin
+
+    (print-output-after-optimizations constant-prop (hash
+                                                     'constant-prop #t
+                                                     'dead-code #f
+                                                     'occurs-check #f
+                                                     'unification-spec #f)
+                                      relname
+                                      rel)
+
+    (print-output-after-optimizations dead-code (hash
+                                              'constant-prop #t
+                                              'dead-code #t
+                                              'occurs-check #f
+                                              'unification-spec #f)
+                                      relname
+                                      rel)
+
+    (print-output-after-optimizations occurs-check (hash
+                                              'constant-prop #t
+                                              'dead-code #t
+                                              'occurs-check #t
+                                              'unification-spec #f)
+                                      relname
+                                      rel)))
+
+(print-all-optimized-variants leo2 (defrel/match (leo2 x y)
+                                    [(0 ,y)]
+                                    [((S . ,x1) (S . ,y1))
+                                     (leo2 x1 y1)]))
+
+
+
+
 ;; (pretty-print (syntax->datum (relation-code unoptimized-eval-expro)))
 ;; (pretty-print (syntax->datum (relation-code/optimized unoptimized-eval-expro)))
 
