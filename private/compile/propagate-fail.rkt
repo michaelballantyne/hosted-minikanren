@@ -6,20 +6,7 @@
          "utils.rkt"
          "../syntax-classes.rkt")
 
-(provide propagate-fail/rel
-         propagate-fail/run)
-
-(define (propagate-fail/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     #`(ir-rel (x ...) #,(propagate-fail/goal #'g))]))
-
-(define (propagate-fail/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     #`(run n (q ...) #,(propagate-fail/goal #'g))]
-    [(run* (q ...) g)
-     #`(run* (q ...) #,(propagate-fail/goal #'g))]))
+(provide propagate-fail/entry)
 
 (define CANNOT-DROP 'cannot-drop)
 
@@ -54,6 +41,9 @@
       ;; When g1^ can be dropped, therefore we drop it
       [(conj _ fail) #'fail]
       [_ this-syntax])))
+
+(define (propagate-fail/entry g fvs fvs-fresh?)
+  (propagate-fail/goal g))
 
 (define (propagate-fail/goal g)
   (syntax-parse g #:literal-sets (mk-literals)

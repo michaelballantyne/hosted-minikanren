@@ -41,36 +41,51 @@
 
 (define (compose1r . procs) (apply compose1 (reverse procs)))
 
+(define (transform-goal g fvs fvs-free?)
+
+  (define (specialize-pass-to-free-variables p)
+    (λ (g) (p g fvs fvs-free?)))
+
+  (define passes
+    (append
+     (if (hash-ref optimization-mode 'constant-prop)
+         (list fold/entry)
+         '())
+     (if (hash-ref optimization-mode 'dead-code)
+         (list propagate-fail/entry
+               remove-no-escape/entry
+               remove-noop/entry
+               remove-unused-vars/entry)
+         '())
+     (if (hash-ref optimization-mode 'occurs-check)
+         (list mark-redundant-check/entry)
+         '())
+     (if (hash-ref optimization-mode 'unification-spec)
+         (list first-refs/entry)
+         '())))
+
+  ((apply compose1r (map specialize-pass-to-free-variables passes)) g)
+  )
+
+
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
-    [(~or (run _ (_ ...) _)
-          (run* (_ ...) _))
+    [(run* (q ...) g)
 
-     (define passes
-       (append
-         (if (hash-ref optimization-mode 'constant-prop)
-           (list fold/run)
-           '())
-         (if (hash-ref optimization-mode 'dead-code)
-           (list propagate-fail/run
-                 remove-no-escape/run
-                 remove-noop/run
-                 remove-unused-vars/run)
-           '())
-         (if (hash-ref optimization-mode 'occurs-check)
-           (list mark-redundant-check/run)
-           '())
-         (if (hash-ref optimization-mode 'unification-spec)
-           (list
-             first-refs/run
-             generate-specialized/run)
-           (list
-             generate-plain/run))))
+     (define generator
+       (if (hash-ref optimization-mode 'unification-spec)
+           generate-specialized/run
+           generate-plain/run))
 
-     ;(displayln `(compiling ,stx))
-     ;(displayln passes)
+     (generator #`(run* (q ...) #,(transform-goal #'g (attribute q) #t)))]
+    [(run n (q ...) g)
 
-     ((apply compose1r passes) this-syntax)]))
+     (define generator
+       (if (hash-ref optimization-mode 'unification-spec)
+           generate-specialized/run
+           generate-plain/run))
+
+     (generator #`(run n (q ...) #,(transform-goal #'g (attribute q) #t)))]))
 
 (define-local-symbol-table optimized-relation-code)
 
@@ -83,30 +98,9 @@
   (syntax-parse stx
     [(ir-rel (x ...) g)
 
+     (define generator
+       (if (hash-ref optimization-mode 'unification-spec)
+           generate-specialized/run
+           generate-plain/run))
 
-     (define passes
-       (append
-         (if (hash-ref optimization-mode 'constant-prop)
-           (list fold/rel)
-           '())
-         (if (hash-ref optimization-mode 'dead-code)
-           (list propagate-fail/rel
-                 remove-no-escape/rel
-                 remove-noop/rel
-                 remove-unused-vars/rel)
-           '())
-         (if (hash-ref optimization-mode 'occurs-check)
-           (list mark-redundant-check/rel)
-           '())
-         (list (save-optimized name))
-         (if (hash-ref optimization-mode 'unification-spec)
-           (list
-             first-refs/rel
-             generate-specialized/rel)
-           (list
-             generate-plain/rel))))
-
-     ;(displayln `(compiling ,name))
-     ;(displayln passes)
-
-     ((apply compose1r passes) this-syntax)]))
+     (generator #`(ir-rel (x ...) #,(transform-goal #'g (attribute x) #f)))]))

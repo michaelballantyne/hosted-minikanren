@@ -8,23 +8,15 @@
          (only-in "prop-vars.rkt" FIRST-REF)
          "../syntax-classes.rkt")
 
-(provide first-refs/rel
-         first-refs/run)
+(provide first-refs/entry)
 
-(define (first-refs/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     (let-values ([(g^ _) (annotate-goal #'g (immutable-free-id-set (syntax->list #'(x ...))))])
-       #`(ir-rel (x ...) #,g^))]))
 
-(define (first-refs/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     (let-values ([(g^ _) (annotate-goal #'g (immutable-free-id-set))])
-       #`(run n (q ...) #,g^))]
-    [(run* (q ...) g)
-     (let-values ([(g^ _) (annotate-goal #'g (immutable-free-id-set))])
-       #`(run* (q ...) #,g^))]))
+(define (first-refs/entry g fvs fvs-fresh?)
+  (let*-values ([(id-refs) (if fvs-fresh?
+                             (immutable-free-id-set)
+                             (immutable-free-id-set fvs))]
+                [(g^ _) (annotate-goal g id-refs)])
+    g^))
 
 (define (annotate-goal g id-refs)
   (syntax-parse g #:literal-sets (mk-literals)

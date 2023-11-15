@@ -6,23 +6,11 @@
          "../syntax-classes.rkt"
          syntax/id-set)
 
-(provide remove-unused-vars/rel
-         remove-unused-vars/run)
+(provide remove-unused-vars/entry)
 
-(define (remove-unused-vars/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     (let-values ([(g^ _) (remove-unused-vars #'g)])
-       #`(ir-rel (x ...) #,g^))]))
-
-(define (remove-unused-vars/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     (let-values ([(g^ _) (remove-unused-vars #'g)])
-       #`(run n (q ...) #,g^))]
-    [(run* (q ...) g)
-     (let-values ([(g^ _) (remove-unused-vars #'g)])
-       #`(run* (q ...) #,g^))]))
+(define (remove-unused-vars/entry g fvs fvs-fresh?)
+  (let-values ([(g^ _) (remove-unused-vars g)])
+    g^))
 
 ;; produce a new goal where only referenced logic variables get freshened
 ;; and a set of referenced free identifiers.

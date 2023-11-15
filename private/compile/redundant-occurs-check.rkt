@@ -10,8 +10,7 @@
          "../syntax-classes.rkt"
          (only-in "prop-vars.rkt" SKIP-CHECK))
 
-(provide mark-redundant-check/rel
-         mark-redundant-check/run)
+(provide mark-redundant-check/entry)
 
 ;; TODO docs on the conventions, names, and high-level idea, since this is non-trivial
 
@@ -225,13 +224,13 @@
 (define (empty-subst) (make-immutable-free-id-table))
 
 (define (add-fresh-vars s vars)
-  (stx-fold (λ (lv s) (add-var s lv (fresh))) s vars))
+  (foldl (λ (lv s) (add-var s lv (fresh))) s vars))
 
 (define (mark-terms-external s terms)
-  (stx-fold (λ (t s) (color t (external) s)) s terms))
+  (foldl (λ (t s) (color t (external) s)) s terms))
 
 (define (mark-vars-external s vars)
-  (mark-terms-external s #`#,(stx-map (λ (v) #`(#%lv-ref #,v)) vars)))
+  (mark-terms-external s (map (λ (v) #`(#%lv-ref #,v)) vars)))
 
 (define (mark-subst-top s)
   (for/fold ([s^ (make-immutable-free-id-table)])
@@ -303,30 +302,12 @@
         (free-id-table-set s k v)))))
 
 ;;;;;;;;;;;;;;;;;;;;;; EXTERNAL API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (mark-redundant-check/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     (let* ([vars #'(x ...)]
-            [s (empty-subst)]
-            [s^ (add-fresh-vars s vars)]
-            [s^^ (mark-vars-external s^ vars)])
-       (define-values (new-g _) (mark-redundant-check/goal #'g s^^))
-       #`(ir-rel (x ...) #,new-g))]))
-
-(define (mark-redundant-check/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     (let* ([vars #'(q ...)]
-            [s (empty-subst)]
-            [s^ (add-fresh-vars s vars)])
-       (define-values (new-g _) (mark-redundant-check/goal #'g s^))
-       #`(run n (q ...) #,new-g))]
-    [(run* (q ...) g)
-     (let* ([vars #'(q ...)]
-            [s (empty-subst)]
-            [s^ (add-fresh-vars s vars)])
-       (define-values (new-g _) (mark-redundant-check/goal #'g s^))
-       #`(run* (q ...) #,new-g))]))
+(define (mark-redundant-check/entry g fvs fvs-fresh?)
+  (let* ([s (empty-subst)]
+         [s^ (add-fresh-vars s fvs)]
+         [s^^ (if fvs-fresh? s^ (mark-vars-external s^ fvs))])
+    (define-values (new-g _) (mark-redundant-check/goal g s^^))
+    new-g))
 
 ;;;;;;;;;;;;;;;;;;;;;; PASS IMPLEMENTATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (mark-redundant-check/goal g s)
@@ -350,10 +331,10 @@
                   [(g2^ s2) (mark-redundant-check/goal #'g2 s)])
        (values #`(disj #,g1^ #,g2^) (union s1 s2)))]
     [(fresh (x ...) g)
-     (let-values ([(new-g s^) (mark-redundant-check/goal #'g (add-fresh-vars s #'(x ...)))])
+     (let-values ([(new-g s^) (mark-redundant-check/goal #'g (add-fresh-vars s (attribute x)))])
        (values #`(fresh (x ...) #,new-g) s^))]
-    [(#%rel-app n t ...) (values this-syntax (mark-terms-external s #'(t ...)))]
-    [(apply-relation e t ...) (values this-syntax (mark-terms-external s #'(t ...)))]))
+    [(#%rel-app n t ...) (values this-syntax (mark-terms-external s (attribute t)))]
+    [(apply-relation e t ...) (values this-syntax (mark-terms-external s (attribute t)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -5,20 +5,10 @@
                        "../forms.rkt")
          "../syntax-classes.rkt")
 
-(provide remove-noop/rel
-         remove-noop/run)
+(provide remove-noop/entry)
 
-(define (remove-noop/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     #`(ir-rel (x ...) #,(remove-noop/goal #'g))]))
-
-(define (remove-noop/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     #`(run n (q ...) #,(remove-noop/goal #'g))]
-    [(run* (q ...) g)
-     #`(run* (q ...) #,(remove-noop/goal #'g))]))
+(define (remove-noop/entry g fvs fvs-fresh?)
+  (remove-noop/goal g))
 
 (define (remove-noop/goal g)
   (syntax-parse g #:literal-sets (mk-literals)

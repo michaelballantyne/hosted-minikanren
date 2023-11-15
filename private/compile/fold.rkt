@@ -9,8 +9,7 @@
                        "../forms.rkt")
          "../syntax-classes.rkt")
 
-(provide fold/rel
-         fold/run)
+(provide fold/entry)
 
 (define-struct sub-ext (binds ext))
 
@@ -147,20 +146,10 @@
   (match-define (level-dict dict next-lev) old-ld)
   (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev)))
 
-(define (fold/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute x)) (add-first-level (attribute x)))])
-       #`(ir-rel (x ...) #,new-g))]))
-
-(define (fold/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
-       #`(run n (q ...) #,new-g))]
-    [(run* (q ...) g)
-     (let-values ([(new-g _s) (fold/goal #'g (empty-subst (attribute q)) (add-first-level (attribute q)))])
-       #`(run* (q ...) #,new-g))]))
+;; GoalStx [Listof Id] Boolean -> GoalStx
+(define (fold/entry g fvs fvs-fresh?)
+  (define-values (new-g _s) (fold/goal g (empty-subst fvs) (add-first-level fvs)))
+  new-g)
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
 ;; no-ops/successes will be removed by a future pass.

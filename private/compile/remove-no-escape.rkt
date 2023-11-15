@@ -10,8 +10,7 @@
          (for-template racket/base
                        "../forms.rkt")
          "../syntax-classes.rkt")
-(provide remove-no-escape/rel
-         remove-no-escape/run)
+(provide remove-no-escape/entry)
 
 ;; These are only for testing in the test submodule
 (provide build-goal-id-map/goal
@@ -182,27 +181,10 @@
       (update-free-table/set-val term-id->goals x g)
       lhs->goals)]))
 
-;; rel -> rel
-;; Build a rel like the given rel, but substituting succeed for every no escape goal
-(define (remove-no-escape/rel stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(ir-rel (x ...) g)
-     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute x)))])
-       (let ([removable-goals (discover-removables goal-id-map)])
-         #`(ir-rel (x ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]))
-
-;; run -> run
-;; Build a run like the given run, but substituting succeed for every no escape goal
-(define (remove-no-escape/run stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(run n (q ...) g)
-     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
-       (let ([removable-goals (discover-removables goal-id-map)])
-         #`(run n (q ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]
-    [(run* (q ...) g)
-     (let ([goal-id-map (build-goal-id-map/goal #'g (make-goal-id-map-excluding (attribute q)))])
-       (let ([removable-goals (discover-removables goal-id-map)])
-         #`(run* (q ...) #,(produce-remove-no-escape/goal #'g removable-goals))))]))
+(define (remove-no-escape/entry g fvs fvs-fresh?)
+ (let ([goal-id-map (build-goal-id-map/goal g (make-goal-id-map-excluding fvs))])
+   (let ([removable-goals (discover-removables goal-id-map)])
+     (produce-remove-no-escape/goal g removable-goals))))
 
 ;; goal goalidmap -> goalidmap
 ;; Traverse, building the structure for atomic goals's variable references.
