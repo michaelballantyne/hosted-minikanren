@@ -10,7 +10,6 @@
 
 (provide first-refs/entry)
 
-
 (define (first-refs/entry g fvs fvs-fresh?)
   (let*-values ([(id-refs) (if fvs-fresh?
                              (immutable-free-id-set)
@@ -76,9 +75,16 @@
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (only-in "prop-vars.rkt" FIRST-REF)
                        (submod "..")))
+
+(begin-for-syntax
+  (define (first-refs/rel stx)
+    (syntax-parse stx #:literal-sets (mk-literals)
+                  [(ir-rel (x ...) g)
+                   #`(ir-rel (x ...) #,(first-refs/entry #'g (attribute x) #f))])))
 
   (progs-equal?
     (first-refs/rel

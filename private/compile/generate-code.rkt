@@ -17,44 +17,19 @@
          syntax/stx
          "../syntax-classes.rkt")
 
-(provide generate-plain/rel
-         generate-plain/run
-         generate-specialized/rel
-         generate-specialized/run
-
-         generate-relation)
+(provide generate-goal/entry generate-relation)
 
 
 (define specialize-unify? (make-parameter #t))
 
-(define (generate-plain/rel stx)
-  (parameterize ([specialize-unify? #f])
-    (generate-relation stx)))
-
-(define (generate-plain/run stx)
-  (parameterize ([specialize-unify? #f])
-    (generate-run stx)))
-
-(define (generate-specialized/rel stx)
-  (parameterize ([specialize-unify? #t])
-    (generate-relation stx)))
-
-(define (generate-specialized/run stx)
-  (parameterize ([specialize-unify? #t])
-    (generate-run stx)))
-
+(define (generate-goal/entry g specialize?)
+  (parameterize ([specialize-unify? specialize?])
+    (generate-goal g)))
 
 (define/hygienic (generate-relation stx) #:expression
   (syntax-parse stx
     [(_ (x^ ...) g^)
      #`(lambda (x^ ...) #,(generate-goal #'g^))]))
-
-(define/hygienic (generate-run stx) #:expression
-  (syntax-parse stx
-    [(run n (q ...) g)
-     #`(mk:run (check-natural n #'n) (q ...) #,(generate-goal #'g))]
-    [(run* (q ...) g)
-     #`(mk:run* (q ...) #,(generate-goal #'g))]))
 
 (define constraint-impls
   (make-free-id-table

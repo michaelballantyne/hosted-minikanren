@@ -39,9 +39,30 @@
 (define (set-optimization-mode! mode)
   (set! optimization-mode mode))
 
-(define (compose1r . procs) (apply compose1 (reverse procs)))
+(define-local-symbol-table optimized-relation-code)
 
-(define (transform-goal g fvs fvs-free?)
+(define ((save-optimized name) g fvs fvs-free?)
+  (when name
+    (symbol-table-set! optimized-relation-code name g))
+  g)
+
+(define/hygienic (compile-run stx) #:expression
+  (syntax-parse stx
+    [(run* (q ...) g)
+     #`(mk:run* (q ...) #,(compile-goal #f #'g (attribute q) #t))]
+    [(run n (q ...) g)
+     #`(mk:run (check-natural n #'n) (q ...) #,(compile-goal #f #'g (attribute q) #t))]))
+
+(define/hygienic (compile-relation stx name) #:expression
+  (syntax-parse stx
+    [(ir-rel (x ...) g)
+     #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
+
+(define (compile-goal name g fvs fvs-free?)
+  (define g^ (optimize-goal name g fvs fvs-free?))
+  (generate-goal/entry g^ (hash-ref optimization-mode 'unification-spec)))
+
+(define (optimize-goal name g fvs fvs-free?)
 
   (define (specialize-pass-to-free-variables p)
     (λ (g) (p g fvs fvs-free?)))
@@ -62,45 +83,11 @@
          '())
      (if (hash-ref optimization-mode 'unification-spec)
          (list first-refs/entry)
-         '())))
+         '())
+     (list (save-optimized name))))
 
   ((apply compose1r (map specialize-pass-to-free-variables passes)) g)
   )
 
+(define (compose1r . procs) (apply compose1 (reverse procs)))
 
-(define/hygienic (compile-run stx) #:expression
-  (syntax-parse stx
-    [(run* (q ...) g)
-
-     (define generator
-       (if (hash-ref optimization-mode 'unification-spec)
-           generate-specialized/run
-           generate-plain/run))
-
-     (generator #`(run* (q ...) #,(transform-goal #'g (attribute q) #t)))]
-    [(run n (q ...) g)
-
-     (define generator
-       (if (hash-ref optimization-mode 'unification-spec)
-           generate-specialized/run
-           generate-plain/run))
-
-     (generator #`(run n (q ...) #,(transform-goal #'g (attribute q) #t)))]))
-
-(define-local-symbol-table optimized-relation-code)
-
-(define ((save-optimized name) stx)
-  (when name
-    (symbol-table-set! optimized-relation-code name stx))
-  stx)
-
-(define/hygienic (compile-relation stx name) #:expression
-  (syntax-parse stx
-    [(ir-rel (x ...) g)
-
-     (define generator
-       (if (hash-ref optimization-mode 'unification-spec)
-           generate-specialized/run
-           generate-plain/run))
-
-     (generator #`(ir-rel (x ...) #,(transform-goal #'g (attribute x) #f)))]))
