@@ -14,7 +14,7 @@
 
 #|
 
-The subst w/external variable annotations, called sub-ext, is used
+The subst w/external variable annotations, called subst, is used
 track which variables came from the "outside", or in the case of FFI,
 which ones we now know nothing more about. Things marked external are
 the variables, etc we cannot eliminate (in the later elimination
@@ -25,30 +25,39 @@ which ones are eliminable to make good choices on which variable(s) to
 propagate further into terms.
 
 |#
+(module subst racket/base
+  (require syntax/id-table racket/match)
+  (provide init-subst mark-vars-ext ext-subst subst-ref subst-ext?)
 
+(struct subst (binds ext))
 
+(define (subst-ref s v)
+  (free-id-table-ref (subst-binds s) v #f))
 
-(define-struct sub-ext (binds ext))
+(define (subst-ext? s v)
+  (free-id-table-ref (subst-ext s) v #f))
 
 (define empty-subst
-  (sub-ext (make-immutable-free-id-table)
-           (make-immutable-free-id-table)))
+  (subst (make-immutable-free-id-table)
+         (make-immutable-free-id-table)))
 
 (define (init-subst ext-vars)
   (mark-vars-ext empty-subst ext-vars))
 
 (define (mark-vars-ext subext new-ext-vars)
   (define ext?^
-    (for/fold ([ext? (sub-ext-ext subext)])
+    (for/fold ([ext? (subst-ext subext)])
               ([v (in-list new-ext-vars)])
       (free-id-table-set ext? v #t)))
-  (sub-ext (sub-ext-binds subext) ext?^))
+  (subst (subst-binds subext) ext?^))
 
 (define (ext-subst u v s)
-  (sub-ext
-   (free-id-table-set (sub-ext-binds s) u v)
-   (sub-ext-ext s)))
+  (subst
+   (free-id-table-set (subst-binds s) u v)
+   (subst-ext s)))
 
+)
+(require 'subst)
 
 #|
 
@@ -63,7 +72,6 @@ ribcage model of environments, aka two-level lexical addresses when
 you have multi-arg lambdas.
 
 |#
-
 (module levels racket/base
   (require syntax/id-table racket/match)
   (provide levels-init levels-add levels-var<=?)
@@ -102,12 +110,10 @@ you have multi-arg lambdas.
 ;;
 ;; If they have the same external status, which one has the earlier debruijn level
 ;; If they do not have the same external status, is id1 the external one.
-(define (id1-better-representative-element? ext ld p1 p2)
-  (define ext?1 (free-id-table-ref ext p1 #f))
-  (define ext?2 (free-id-table-ref ext p2 #f))
+(define (id1-better-representative-element? s ld p1 p2)
   (cond
     ;; If only one is external, is it the first one?
-    [(xor ext?1 ext?2) ext?1]
+    [(xor (subst-ext? s p1) (subst-ext? s p2)) (subst-ext? s p1)]
     [else (levels-var<=? ld p1 p2)]))
 
 
@@ -116,7 +122,7 @@ you have multi-arg lambdas.
     (syntax-parse t
       #:literal-sets (mk-literals)
       [(#%lv-ref v)
-       (let ([val (free-id-table-ref (sub-ext-binds s) #'v #f)])
+       (let ([val (subst-ref s #'v)])
          (if val (rec val) t))]
       [_ t])))
 
@@ -125,7 +131,7 @@ you have multi-arg lambdas.
     (syntax-parse t
       #:literal-sets (mk-literals)
       [(#%lv-ref v)
-       (let ([val (free-id-table-ref (sub-ext-binds s) #'v #f)])
+       (let ([val (subst-ref s #'v)])
          (if val
              (syntax-parse val
                #:literal-sets (mk-literals)
@@ -175,7 +181,7 @@ you have multi-arg lambdas.
       #:literals (cons quote)
       [_ #:when (equal-vals? u^ v^) (values #'succeed s)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
-       (if (id1-better-representative-element? (sub-ext-ext s) ld #'id1 #'id2)
+       (if (id1-better-representative-element? s ld #'id1 #'id2)
            (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
            (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s)))]
       [((#%lv-ref id1:id) _)
