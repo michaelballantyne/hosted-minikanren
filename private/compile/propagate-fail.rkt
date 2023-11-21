@@ -8,6 +8,38 @@
 
 (provide propagate-fail/entry)
 
+#|
+
+If we can determine that a sequence of conjunctions will fail, we
+induce failure as early as possible WITHOUT distrubing the order of
+answers. In so doing we obviate any intermediate work we can.
+
+For example, if we have
+
+(defrel (g q p)
+  (conde
+    ((== q 5) fail (foo p 6))
+    ((foo q 5) fail (== p 6))))
+
+this should be able to be
+
+(defrel (g q p)
+  (conde
+    (fail)
+    ((foo q 5) fail)))
+
+We were able to remove the atomic failing equations both before and
+after the failure, and we were able to remove *any* failing goals
+after the failure. However we were not able to remove the relation
+call before the fail in the 2nd disjunct because of search order and
+because we don't know it to be atomic.
+
+We also cannot eliminate the first failure because the failure itself
+in disjunction can impact the order of the search.
+
+|#
+
+
 (define CANNOT-DROP 'cannot-drop)
 
 (define (atomic-goal-conjunction? g)
