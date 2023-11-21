@@ -12,25 +12,18 @@
          "../syntax-classes.rkt")
 (provide remove-no-escape/entry)
 
-;; These are only for testing in the test submodule
+;; These are only provided out of this module for testing in the test submodule
 (provide build-goal-id-map/goal
          make-goal-id-map-excluding)
 
 ;; I proceed under the assumption Michael already renamed-apart my
 ;; variables.
 ;;
-;; For each variable, I have a structure.
-;; 1. The set of ==s with j1 on the LHS (which can be more than 1)
-;;
-;; 2. The set of primitive goals with a reference to j1 in it *not* on
-;; the LHS.
-;;
-;; 3. A mapping from each goal in 1. to the set
-;;
-;; CAN A VARIABLE BE IN e IN APPLY RELATION?
+;; CAN A VARIABLE BE IN e IN APPLY RELATION OR IN GOAL-FROM-EXPRESSION?
 ;;
 ;; We (will) assume here that every variable in scope appears in every
-;; apply relation.
+;; expression in apply relation or goal-from-expression (aka the ones
+;; that use the FFI).
 
 (define-struct gidt+removable (gidt removable))
 
@@ -98,7 +91,7 @@
 ;; ever want to remove goals w/a parameter on the LHS
 ;;
 ;; g->term-ids for each atomic goal, what term-ids does it refer to "on the
-;; RHS" for non-unifications, all term positions are "on the RHS"
+;; RHS". For non-unifications, all term positions are "on the RHS"
 ;;
 ;; term-id->goal is the reverse of g->term-ids, for each term-id, what
 ;; are all the atomic goals in which that term id appears "on the RHS"
@@ -127,7 +120,7 @@
 
 ;; goalidtable goal -> goalidtable
 ;; Mark the given goal as though it contains every id that’s been introduced so far
-;; For use when a goal is an apply-relation and any code at all could be in the expression e.
+;; For use when a goal is an apply-relation or goal-from-expression and any code at all could be in the expression e.
 ;; A super-duper conservative approximation
 (define (mark-all-vars-used-in gid g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
@@ -217,6 +210,19 @@
       (curry build-goal-id-map/term g)
       gidmap
       (attribute t))]
+    ;; If later we become able to see which terms are used, (improved syntax spec)
+    ;; Then we should only mark the terms which are used inside.
+    ;;
+    ;; A half-measure to get part of the benefit would be another more
+    ;; sophisticated static analysis; if we can tell for some
+    ;; still-dynamically-extant varaible that, no matter happens in e,
+    ;; that lexically, even transitively, there's no way e could have
+    ;; reference to that variable, we needn't mark that one as used.
+    ;;
+    ;; But that's not as much benefit as the first option, so we will
+    ;; aim for that first one instead.
+    [(goal-from-expression e)
+     (mark-all-vars-used-in gidmap g)]
     [(apply-relation e t ...)
      (foldl
       (curry build-goal-id-map/term g)
@@ -271,7 +277,11 @@
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
 
-
+  (begin-for-syntax
+    (define (remove-no-escape/rel stx)
+      (syntax-parse stx
+        [(ir-rel (x ...) g)
+         #`(ir-rel (x ...) #,(remove-no-escape/entry #'g (attribute x) #f))])))
 
   ;; (phase1-eval
   ;;  (syntax-parse (generate-prog (ir-rel ((~binder a)) (== (#%lv-ref a) (#%lv-ref a)))) #:literal-sets (mk-literals)
