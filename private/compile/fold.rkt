@@ -5,36 +5,111 @@
          syntax/stx
          racket/function
          racket/match
+         racket/bool
          (for-template racket/base
                        "../forms.rkt")
          "../syntax-classes.rkt")
 
 (provide fold/entry)
 
+#|
+
+The subst w/external variable annotations, called sub-ext, is used
+track which variables came from the "outside", or in the case of FFI,
+which ones we now know nothing more about. Things marked external are
+the variables, etc we cannot eliminate (in the later elimination
+passes). So, in this pass, we use that information in advance to
+decide which variables to put on the LHS, which direction of var-var
+equations to fold. More specifically, we use that information about
+which ones are eliminable to make good choices on which variable(s) to
+propagate further into terms.
+
+|#
+
+
+
 (define-struct sub-ext (binds ext))
 
-(define (empty-subst ext-vars)
-  (mark-vars-ext
-   (make-immutable-free-id-table)
-   (make-immutable-free-id-table)
-   ext-vars))
+(define empty-subst
+  (sub-ext (make-immutable-free-id-table)
+           (make-immutable-free-id-table)))
 
-(define (mark-vars-ext binds ext? new-ext-vars)
+(define (init-subst ext-vars)
+  (mark-vars-ext empty-subst ext-vars))
+
+(define (mark-vars-ext subext new-ext-vars)
   (define ext?^
-    (for/fold ((ext? ext?))
-              ((v (in-list new-ext-vars)))
+    (for/fold ([ext? (sub-ext-ext subext)])
+              ([v (in-list new-ext-vars)])
       (free-id-table-set ext? v #t)))
-  (sub-ext binds ext?^))
+  (sub-ext (sub-ext-binds subext) ext?^))
 
 (define (ext-subst u v s)
   (sub-ext
    (free-id-table-set (sub-ext-binds s) u v)
    (sub-ext-ext s)))
 
-(struct level-dict (dict next-lev))
 
-(define (add-var-debruijn-level u v s) (free-id-table-set s u v))
-(define (var-debruijn-level-get s v) (free-id-table-ref s v #f))
+#|
+
+The level dict structure exists for the variables currently in scope.
+For each logic variable in scope, meaning introduced by some fresh or
+the relation entry, we track a pair. The first element of that pair is
+the debruijn/lexical depth at which it was introduced (so how many
+freshes from the top of the entry to this relation/run was that var
+introduced). The second element of that pair is how far into the list
+of variables introduced at that fresh was it listed? Think like the
+ribcage model of environments, aka two-level lexical addresses when
+you have multi-arg lambdas.
+
+|#
+
+(module levels racket/base
+  (require syntax/id-table racket/match)
+  (provide levels-init levels-add levels-var<=?)
+  (struct level-dict (dict next-lev))
+
+  (define (add-var-debruijn-level u v s) (free-id-table-set s u v))
+  (define (var-debruijn-level-get s v) (free-id-table-ref s v #f))
+
+  (define (compute-levels-for dict next lov)
+    (for/fold ([dict dict])
+              ([v (in-list lov)]
+               [i (in-naturals)])
+      (add-var-debruijn-level v (cons next i) dict)))
+
+  (define (levels-init lov)
+    (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0)))
+
+  (define (levels-add old-ld lov)
+    (match-define (level-dict dict next-lev) old-ld)
+    (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev)))
+
+  ;; Which variable came from the earlier fresh/defrel, aka which has the smaller first num.
+  ;; If a tie, which one came earlier in that fresh's var list.
+  (define (levels-var<=? ld p1 p2)
+    (define dl1 (var-debruijn-level-get (level-dict-dict ld) p1))
+    (define dl2 (var-debruijn-level-get (level-dict-dict ld) p2))
+    (or (<= (car dl1) (car dl2))
+        (and (= (car dl1) (car dl2))
+             (< (cdr dl1) (cdr dl2)))))
+
+  )
+(require 'levels)
+
+;; Decide if p1 should be the representative variable and p2 should
+;; refer to p1
+;;
+;; If they have the same external status, which one has the earlier debruijn level
+;; If they do not have the same external status, is id1 the external one.
+(define (id1-better-representative-element? ext ld p1 p2)
+  (define ext?1 (free-id-table-ref ext p1 #f))
+  (define ext?2 (free-id-table-ref ext p2 #f))
+  (cond
+    ;; If only one is external, is it the first one?
+    [(xor ext?1 ext?2) ext?1]
+    [else (levels-var<=? ld p1 p2)]))
+
 
 (define (walk t s)
   (let rec ([t t])
@@ -92,21 +167,6 @@
           (equal-vals? #'d1 #'d2))]
     [_ #f]))
 
-(define (db<= p1 p2)
-  (or (<= (car p1) (car p2))
-      (and (= (car p1) (car p2))
-           (< (cdr p1) (cdr p2)))))
-
-(define (db<=/ext ext ld p1 p2)
-  (define dl1 (var-debruijn-level-get (level-dict-dict ld) p1))
-  (define dl2 (var-debruijn-level-get (level-dict-dict ld) p2))
-  (define ext?1 (free-id-table-ref ext p1 #f))
-  (define ext?2 (free-id-table-ref ext p2 #f))
-  (cond
-    [(and ext?1 ext?2) (db<= dl1 dl2)]
-    [(not (or ext?1 ext?2)) (db<= dl1 dl2)]
-    [else ext?1 ]))
-
 (define (unify u v s ld)
   (let ([u^ (walk u s)]
         [v^ (walk v s)])
@@ -115,7 +175,7 @@
       #:literals (cons quote)
       [_ #:when (equal-vals? u^ v^) (values #'succeed s)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
-       (if (db<=/ext (sub-ext-ext s) ld #'id1 #'id2)
+       (if (id1-better-representative-element? (sub-ext-ext s) ld #'id1 #'id2)
            (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
            (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s)))]
       [((#%lv-ref id1:id) _)
@@ -133,22 +193,9 @@
 (define (map-maybe-inline* subst stx)
   (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
 
-(define (compute-levels-for dict next lov)
-  (for/fold ([dict dict])
-            ([v (in-list lov)]
-             [i (in-naturals)])
-    (add-var-debruijn-level v (cons next i) dict)))
-
-(define (add-first-level lov)
-  (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0)))
-
-(define (add-level-to old-ld lov)
-  (match-define (level-dict dict next-lev) old-ld)
-  (level-dict (compute-levels-for dict next-lev lov) (add1 next-lev)))
-
 ;; GoalStx [Listof Id] Boolean -> GoalStx
 (define (fold/entry g fvs fvs-fresh?)
-  (define-values (new-g _s) (fold/goal g (empty-subst fvs) (add-first-level fvs)))
+  (define-values (new-g _s) (fold/goal g (init-subst fvs) (levels-init fvs)))
   new-g)
 
 ;; INVARIANT: goals cannot be removed, only added (by inserting conjunctions where there were previously flat goals).
@@ -173,7 +220,7 @@
     ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
     ;; limitation and should be alleviated by a better design.
     [(fresh (x ...) g)
-     (let-values ([(g^ s^) (fold/goal #'g subst (add-level-to ld (attribute x)))])
+     (let-values ([(g^ s^) (fold/goal #'g subst (levels-add ld (attribute x)))])
        (values #`(fresh (x ...) #,g^) subst))]
     [(#%rel-app n t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
@@ -184,6 +231,7 @@
        (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
          (values #`(apply-relation e . (u ...)) subst^)))]))
 
+;; Mark all variables in a term as external (as in we know nothing about them from this point forward).
 (define (mark-ext* t^ subst)
   (let ((t^ (walk t^ subst)))
     (syntax-parse t^
@@ -191,10 +239,7 @@
       #:literals (cons quote)
       [(quote vl) subst]
       [(#%lv-ref v)
-       (mark-vars-ext
-        (sub-ext-binds subst)
-        (sub-ext-ext subst)
-        (list #'v))]
+       (mark-vars-ext subst (list #'v))]
       [(cons t1 t2)
        (mark-ext* #'t2 (mark-ext* #'t1 subst))]
       [(rkt-term _) subst])))
@@ -824,6 +869,18 @@
                (#%rel-app foo (#%lv-ref w)))
               (== (#%lv-ref z) (#%lv-ref x)))))))))
 
+
+;; In later passes, we would like to be able to eliminate the varsf
+;; variable. We should be able to.
+;;
+;; To enable this, we want to select vars as the representative
+;; element here and rewrite the reference from varsf to vars.
+;;
+;; In general, we would like to select/use variables bound in outer
+;; scope as the representative, since the narrower the scope of the
+;; variable the more likely it is that we can eliminate it, since
+;; variable scoping is concentric.
+;;
 (progs-equal?
   (fold/rel
     (generate-prog
