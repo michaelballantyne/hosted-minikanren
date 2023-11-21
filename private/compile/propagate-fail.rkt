@@ -90,6 +90,7 @@ in disjunction can impact the order of the search.
      #`(fresh (x ...)
          #,(propagate-fail/goal #'g))]
     [(#%rel-app n t ...) this-syntax]
+    [(goal-from-expression e) this-syntax]
     [(apply-relation e t ...) this-syntax]))
 
 (module+ test
@@ -97,8 +98,15 @@ in disjunction can impact the order of the search.
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
+
+  (begin-for-syntax
+    (define (propagate-fail/rel stx)
+      (syntax-parse stx
+        [(ir-rel (x ...) g)
+         #`(ir-rel (x ...) #,(propagate-fail/entry #'g (attribute x) #f))])))
 
   (progs-equal?
     (propagate-fail/rel
