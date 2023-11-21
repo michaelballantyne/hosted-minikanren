@@ -232,6 +232,12 @@ you have multi-arg lambdas.
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
        (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
          (values #`(#%rel-app n . (u ...)) subst^)))]
+    ;; TODO: If in the future we can analyze e and know all and only
+    ;; the variables that /are/ referenced, we should mark those
+    ;; variables as "external after this line" so that in later lines
+    ;; we can choose better representatives
+    [(goal-from-expression e)
+     (values this-syntax subst)]
     [(apply-relation e t ...)
      (with-syntax ([(u ...) (map-maybe-inline* subst #'(t ...))])
        (let ((subst^ (foldr mark-ext* subst (syntax->list #'(u ...)))))
