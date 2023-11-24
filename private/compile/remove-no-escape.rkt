@@ -12,6 +12,13 @@
          "../syntax-classes.rkt")
 (provide remove-no-escape/entry)
 
+#|
+
+PURPOSE: Remove unifications that bind names that are not used and do not escape.
+
+|#
+
+
 ;; These are only provided out of this module for testing in the test submodule
 (provide build-goal-id-map/goal
          make-goal-id-map-excluding)

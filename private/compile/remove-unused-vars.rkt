@@ -9,28 +9,28 @@
 (provide remove-unused-vars/entry)
 
 (define (remove-unused-vars/entry g fvs fvs-fresh?)
-  (let-values ([(g^ _) (remove-unused-vars g)])
+  (let-values ([(g^ _) (remove-unused-vars g fvs)])
     g^))
 
 ;; produce a new goal where only referenced logic variables get freshened
 ;; and a set of referenced free identifiers.
-;; (-> goal? (values goal? immutable-free-id-set?))
-(define (remove-unused-vars g)
+;; (goal? [Listof identifier] -> (values goal? immutable-free-id-set?))
+(define (remove-unused-vars g fvs)
   (syntax-parse g
     #:literal-sets (mk-literals)
     [c:primitive-goal (values this-syntax (immutable-free-id-set))]
     [(c:unary-constraint t) (values this-syntax (term-refs #'t))]
     [(c:binary-constraint t1 t2) (values this-syntax (free-id-set-union (term-refs #'t1) (term-refs #'t2)))]
     [(disj g1 g2)
-     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1)]
-                  [(g2^ g2-refs) (remove-unused-vars #'g2)])
+     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 fvs)]
+                  [(g2^ g2-refs) (remove-unused-vars #'g2 fvs)])
        (values #`(disj #,g1^ #,g2^) (free-id-set-union g1-refs g2-refs)))]
     [(conj g1 g2)
-     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1)]
-                  [(g2^ g2-refs) (remove-unused-vars #'g2)])
+     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 fvs)]
+                  [(g2^ g2-refs) (remove-unused-vars #'g2 fvs)])
        (values #`(conj #,g1^ #,g2^) (free-id-set-union g1-refs g2-refs)))]
     [(fresh (x ...) g)
-     (let-values ([(g^ g-refs) (remove-unused-vars #'g)])
+     (let-values ([(g^ g-refs) (remove-unused-vars #'g (append (attribute x) fvs))])
        (define vars-to-keep (filter (λ (lv) (free-id-set-member? g-refs lv)) (syntax->list #'(x ...))))
        (define free-refs (free-id-set-subtract g-refs (immutable-free-id-set vars-to-keep)))
        (values #`(fresh (#,@vars-to-keep) #,g^) free-refs))]
@@ -39,6 +39,8 @@
              (for/fold ([var-refs (immutable-free-id-set)])
                        ([t (in-syntax #'(t ...))])
                (free-id-set-union var-refs (term-refs t))))]
+    [(goal-from-expression e)
+     (values this-syntax (immutable-free-id-set fvs))]
     [(apply-relation e t ...)
      (values this-syntax
              (for/fold ([var-refs (immutable-free-id-set)])
@@ -59,8 +61,15 @@
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
+
+  (begin-for-syntax
+    (define (remove-unused-vars/rel stx)
+      (syntax-parse stx
+        [(ir-rel (x ...) g)
+         #`(ir-rel (x ...) #,(remove-unused-vars/entry #'g (attribute x) #f))])))
 
   (progs-equal?
     (remove-unused-vars/rel
@@ -72,6 +81,25 @@
       (ir-rel ((~binders a))
         (fresh ((~binders x))
           (== (#%lv-ref x) (#%lv-ref a))))))
+
+;; When there's a goal from expression; we must assume that every
+;; variable is refrered to from within that expression.
+  (progs-equal?
+    (remove-unused-vars/rel
+      (generate-prog
+        (ir-rel ((~binders a))
+          (fresh ((~binders x y))
+            (conj
+              ;; This isn't a valid program ofc; just compiler pass test
+              (goal-from-expression #t)
+              (== (#%lv-ref x) (#%lv-ref a)))))))
+    (generate-prog
+      (ir-rel ((~binders a))
+        (fresh ((~binders x y))
+          (conj
+            ;; This isn't a valid program ofc; just compiler pass test
+            (goal-from-expression #t)
+            (== (#%lv-ref x) (#%lv-ref a)))))))
 
   (progs-equal?
     (remove-unused-vars/rel

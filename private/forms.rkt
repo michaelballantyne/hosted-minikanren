@@ -15,12 +15,13 @@
  #%rel-app
  rkt-term
  apply-relation
+ goal-from-expression
 
  succeed
  fail
 
  ir-rel
- 
+
  (for-syntax mk-literals))
 
 (require
