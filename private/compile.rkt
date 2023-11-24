@@ -6,6 +6,7 @@
  syntax/parse
  syntax/id-table
  racket/function
+ racket/stxparam-exptime
  (for-template "runtime.rkt")
  (for-template racket/base)
  (for-template (prefix-in mk: "../mk/mk.rkt"))
@@ -60,7 +61,8 @@
      #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
 
 (define (compile-expression-from-goal g)
-  #`(goal-value #,(compile-goal #f g '() #f)))
+  (define vars-in-scope (syntax-parameter-value #'surrounding-term-vars-in-scope))
+  #`(goal-value #,(compile-goal #f g vars-in-scope #f)))
 
 (define (compile-goal name g fvs fvs-free?)
   (define g^ (optimize-goal name g fvs fvs-free?))

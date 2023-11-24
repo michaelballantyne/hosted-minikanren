@@ -3,6 +3,7 @@
 (require syntax/parse
          (only-in racket/sequence in-syntax)
          (for-template racket/base "../forms.rkt")
+         (only-in "prop-vars.rkt" TERM-VARS-IN-SCOPE)
          "../syntax-classes.rkt"
          syntax/id-set)
 
@@ -14,6 +15,7 @@
 
 ;; produce a new goal where only referenced logic variables get freshened
 ;; and a set of referenced free identifiers.
+;; EFFECT annotates goal from expression form w/syntax property listing vars in scope at that expression
 ;; (goal? [Listof identifier] -> (values goal? immutable-free-id-set?))
 (define (remove-unused-vars g fvs)
   (syntax-parse g
@@ -40,7 +42,7 @@
                        ([t (in-syntax #'(t ...))])
                (free-id-set-union var-refs (term-refs t))))]
     [(goal-from-expression e)
-     (values this-syntax (immutable-free-id-set fvs))]
+     (values (syntax-property this-syntax TERM-VARS-IN-SCOPE fvs) (immutable-free-id-set fvs))]
     [(apply-relation e t ...)
      (values this-syntax
              (for/fold ([var-refs (immutable-free-id-set)])

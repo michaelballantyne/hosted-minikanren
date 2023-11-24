@@ -1,5 +1,5 @@
-#lang racket
-(require minikanren-ee)
+#lang racket/base
+(require "../main.rkt")
 
 ;; TODO
 

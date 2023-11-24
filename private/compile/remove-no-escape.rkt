@@ -271,6 +271,7 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
     [(fresh (x ...) g)
      #`(fresh (x ...) #,(produce-remove-no-escape/goal #'g goals))]
     [(#%rel-app n t ...) g]
+    [(goal-from-expression e) g]
     [(apply-relation e t ...) g]))
 
 
@@ -533,7 +534,8 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
           (conj
             (== (#%lv-ref x) (cons (#%lv-ref j) '5))
             (#%rel-app foo9 (#%lv-ref x))))))))
-   (generate-prog
+
+  (generate-prog
     (ir-rel ((~binder a))
       (fresh ((~binder x))
         (fresh ((~binder j))

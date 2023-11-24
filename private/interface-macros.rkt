@@ -33,7 +33,7 @@
          absento symbolo stringo numbero =/= ==
          conj disj fresh
          #%rel-app #%lv-ref
-         expression-from-goal
+         expression-from-goal goal-from-expression
          apply-relation rkt-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro

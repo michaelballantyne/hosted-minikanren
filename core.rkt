@@ -15,6 +15,7 @@
          conj disj fresh
          #%rel-app #%lv-ref
          apply-relation rkt-term
+         goal-from-expression expression-from-goal
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?

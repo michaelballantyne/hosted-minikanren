@@ -1,6 +1,8 @@
 #lang racket/base
 (require ee-lib/errors
          racket/math
+         (for-syntax racket/base)
+         racket/stxparam
          (prefix-in mku: "../mk/private-unstable.rkt"))
 
 (provide (all-defined-out))
@@ -24,9 +26,9 @@
        val
        blame-stx)))
 
-(define (check-goal val blame-stx)
+(define (check-and-unseal-goal val blame-stx)
   (if (goal-value? val)
-      val
+      (goal-value-proc val)
       (raise-argument-error/stx
        'goal-from-expression
        "goal-value?"
@@ -53,3 +55,5 @@
     (if S^
         (mku:and-foldl mku:update-constraints (mku:state S^ (mku:state-C st)) added)
         #f)))
+
+(define-syntax-parameter surrounding-term-vars-in-scope '())

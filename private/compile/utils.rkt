@@ -26,6 +26,7 @@
       [(fresh (x ...) g) (goal-contains? #'g)]
       [(#%rel-app n t ...)
        (ormap term-contains? (syntax->list #'(t ...)))]
+      [(goal-from-expression e) #t]
       [(#%apply-relation e t ...)
        (ormap term-contains? (syntax->list #'(t ...)))]))
 

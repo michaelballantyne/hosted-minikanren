@@ -2,6 +2,7 @@
 
 (require (for-template (prefix-in mk: "../../mk/main.rkt")
                        racket/base
+                       racket/stxparam
                        (prefix-in mku: "../../mk/private-unstable.rkt")
                        "../forms.rkt"
                        "../runtime.rkt")
@@ -74,7 +75,11 @@
      (if (specialize-unify?)
        (compile-block #'(x ...) #'g)
        #`(mk:fresh (x ...) #,(generate-goal #'g)))]
-    [(goal-from-expression e) #'e]
+    [(goal-from-expression e)
+     #:with (var-in-scope ...) (syntax-property this-syntax TERM-VARS-IN-SCOPE)
+     #'(check-and-unseal-goal (syntax-parameterize ([surrounding-term-vars-in-scope (list #'var-in-scope ...)])
+                                e)
+                              #'e)]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
