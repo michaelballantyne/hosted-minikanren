@@ -5,9 +5,9 @@
                        "../forms.rkt")
          "../syntax-classes.rkt")
 
-(provide contains-rkt-term?)
+(provide contains-term-from-expression?)
 
-(define (contains-rkt-term? g)
+(define (contains-term-from-expression? g)
   (define (goal-contains? g)
     (syntax-parse g
       #:literal-sets (mk-literals)
@@ -36,10 +36,10 @@
       #:literals (quote cons)
       [(quote _) #f]
       [(#%lv-ref _) #f]
-      [(rkt-term _) #t]
+      [(term-from-expression _) #t]
       [(cons t1 t2)
-       (or (contains-rkt-term? #'t1)
-           (contains-rkt-term? #'t2))]))
+       (or (contains-term-from-expression? #'t1)
+           (contains-term-from-expression? #'t2))]))
 
   (goal-contains? g))
 

@@ -54,7 +54,7 @@ in disjunction can impact the order of the search.
 (define (cannot-drop? g)
   (or (syntax-property g CANNOT-DROP)
       (not (atomic-goal-conjunction? g))
-      (contains-rkt-term? g)))
+      (contains-term-from-expression? g)))
 
 ;; TODO: This may be quadratic when it could be linear.
 (define (propagate-fail/conj g1 g2)

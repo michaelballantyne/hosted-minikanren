@@ -141,6 +141,7 @@ you have multi-arg lambdas.
              t))]
       [_ t])))
 
+;;
 (define (maybe-inline t t^ s)
   (syntax-parse t^
     #:literal-sets (mk-literals)
@@ -158,7 +159,13 @@ you have multi-arg lambdas.
        [(cons t1 t2)
         #`(cons #,(maybe-inline #'t1 (walk #'t1^ s) s)
                 #,(maybe-inline #'t2 (walk #'t2^ s) s))])]
-     [(rkt-term _)
+    ;; we believe this is correct b/c we are inlining the chain to the
+    ;; last var before we reach t^, but not inlining the expression t^
+    ;; itself, lest we duplicate any side effects.
+    ;;
+    ;; But it's a bit weird to put term-from-expression terms in the
+    ;; compile-time subst at all.
+     [(term-from-expression _)
       (walk-to-last-var t s)]))
 
 (define (equal-vals? u v)
@@ -192,8 +199,8 @@ you have multi-arg lambdas.
        (let*-values ([(g1^ s^) (unify #'a1 #'a2 s ld)]
                      [(g2^ s^^) (unify #'d1 #'d2 s^ ld)])
          (values #`(conj #,g1^ #,g2^) s^^))]
-      [((rkt-term _) _) (values #`(== #,u^ #,v^) s)]
-      [(_ (rkt-term _)) (values #`(== #,v^ #,u^) s)]
+      [((term-from-expression _) _) (values #`(== #,u^ #,v^) s)]
+      [(_ (term-from-expression _)) (values #`(== #,v^ #,u^) s)]
       [_ (values #'fail s)])))
 
 (define (map-maybe-inline* subst stx)
@@ -255,7 +262,9 @@ you have multi-arg lambdas.
        (mark-vars-ext subst (list #'v))]
       [(cons t1 t2)
        (mark-ext* #'t2 (mark-ext* #'t1 subst))]
-      [(rkt-term _) subst])))
+      ;; TODO: If in the future we can analyze e, we should mark the
+      ;; variables in it as external
+      [(term-from-expression _) subst])))
 
 (module+ test
   (require "./test/unit-test-progs.rkt"
@@ -401,10 +410,10 @@ you have multi-arg lambdas.
     (fold/rel
       (generate-prog
         (ir-rel ()
-          (== (rkt-term 5) (rkt-term 6)))))
+          (== (term-from-expression 5) (term-from-expression 6)))))
     (generate-prog
       (ir-rel ()
-        (== (rkt-term 5) (rkt-term 6)))))
+        (== (term-from-expression 5) (term-from-expression 6)))))
 
   (progs-equal?
     (fold/rel
@@ -435,18 +444,18 @@ you have multi-arg lambdas.
       (generate-prog
         (ir-rel ()
           (conj
-            (== (quote 5) (rkt-term 5))
+            (== (quote 5) (term-from-expression 5))
             (conj
-              (== (quote (~dat-lit 3)) (rkt-term 3))
+              (== (quote (~dat-lit 3)) (term-from-expression 3))
               (== (cons (quote 3) (quote 4))
-                  (rkt-term (cons 3 4))))))))
+                  (term-from-expression (cons 3 4))))))))
     (generate-prog
       (ir-rel ()
         (conj
-          (== (rkt-term 5) (quote 5))
+          (== (term-from-expression 5) (quote 5))
           (conj
-            (== (rkt-term 3) (quote (~dat-lit 3)))
-            (== (rkt-term (cons 3 4))
+            (== (term-from-expression 3) (quote (~dat-lit 3)))
+            (== (term-from-expression (cons 3 4))
                 (cons (quote 3) (quote 4))))))))
 
   (progs-equal?
@@ -487,7 +496,7 @@ you have multi-arg lambdas.
              (fresh ((~binders a b c))
                (conj
                 (conj
-                 (== (#%lv-ref a) (rkt-term '(1 2 3)))
+                 (== (#%lv-ref a) (term-from-expression '(1 2 3)))
                  (== (#%lv-ref b) (#%lv-ref a)))
                  (== (#%lv-ref c) (#%lv-ref b)))))))
    (generate-prog
@@ -495,7 +504,7 @@ you have multi-arg lambdas.
             (fresh ((~binders a b c))
               (conj
                 (conj
-                 (== (#%lv-ref a) (rkt-term '(1 2 3)))
+                 (== (#%lv-ref a) (term-from-expression '(1 2 3)))
                  (== (#%lv-ref b) (#%lv-ref a)))
                  (== (#%lv-ref c) (#%lv-ref a)))))))
 
@@ -919,6 +928,23 @@ you have multi-arg lambdas.
           (== (#%lv-ref varsf) (#%lv-ref vars))
           (== (#%lv-ref val)
               (cons '7
-               (#%lv-ref vars))))))))
+                    (#%lv-ref vars))))))))
+
+;; Reordering here would be a mistake
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+       (ir-rel ((~binders vars val))
+         (fresh ((~binders varsf))
+          (conj
+           (== (#%lv-ref varsf) (term-from-expression (begin (printf "hey") 5)))
+           (#%rel-app foo (term-from-expression (begin (printf "hi") 5)) (#%lv-ref varsf)))))))
+    (generate-prog
+     (ir-rel ((~binders vars val))
+       (fresh ((~binders varsf))
+        (conj
+         (== (#%lv-ref varsf) (term-from-expression (begin (printf "hey") 5)))
+         (#%rel-app foo (term-from-expression (begin (printf "hi") 5)) (#%lv-ref varsf))))))))
 
 )
