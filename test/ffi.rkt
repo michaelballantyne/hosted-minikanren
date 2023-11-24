@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../main.rkt"
+         racket/list
          (except-in rackunit fail))
 
 (check-equal?
@@ -48,4 +49,88 @@
  (run 1 (q)
       (goal-from-expression
        (succeed-or-fail #true)))
+ '(_.0))
+
+(define (real-succeed-or-fail b)
+  (if b
+      (expression-from-goal succeed)
+      (expression-from-goal fail)))
+
+(check-equal?
+ (run 1 (q)
+      (goal-from-expression
+       (real-succeed-or-fail #true)))
+ '(_.0))
+
+(check-equal?
+ (run 1 (q) (== (term-from-expression (expression-from-term q)) 'cat))
+ '(cat))
+
+(check-equal?
+ (run 1 (q) (== (term-from-expression
+                 (expression-from-term
+                  (term-from-expression
+                   (expression-from-term q))))
+                'cat))
+ '(cat))
+
+(check-equal?
+ (run 1 (q)
+      (fresh (y)
+             (== q
+                 (term-from-expression
+                  (make-list
+                   3
+                   (expression-from-term (cons y 5)))))))
+ '(((_.0 . 5) (_.0 . 5) (_.0 . 5))))
+
+(check-equal?
+ (run 1 (q) (== (term-from-expression
+                 (cons
+                  (expression-from-term
+                   (term-from-expression
+                    (expression-from-term q)))
+                  'fish))
+                'cat))
+ '())
+
+(run 1 (q)
+     (peano x)
+     (project (x)
+              (if (even-length? x)
+                  (== q 1)
+                  (== q 0))))
+
+(number? (expression-from-term 5))
+
+(run 1 (q)
+     (fresh (x)
+       (peano x)
+       (goal-from-expression
+        (if (even-length? (expression-from-term x))
+            (expression-from-goal (== q 1))
+            (expression-from-goal (== q 0))))))
+
+(check-equal?
+ (run 1 (q)
+      (fresh (x)
+       (== x 'cat)
+       (== (term-from-expression
+            (cons
+             (expression-from-term
+              (term-from-expression
+               (expression-from-term x)))
+             'fish))
+           q)))
+ '((cat . fish)))
+
+(define (cat-or-dog b tv)
+  (if b
+      (expression-from-goal (== (term-from-expression tv) 'cat))
+      (expression-from-goal (== (term-from-expression tv) 'dog))))
+
+(check-equal?
+ (run 1 (q)
+      (goal-from-expression
+       (cat-or-dog #true (expression-from-term q))))
  '(_.0))

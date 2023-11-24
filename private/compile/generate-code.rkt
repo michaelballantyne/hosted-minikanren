@@ -18,7 +18,7 @@
          syntax/stx
          "../syntax-classes.rkt")
 
-(provide generate-goal/entry generate-relation)
+(provide generate-goal/entry generate-relation generate-term)
 
 
 (define specialize-unify? (make-parameter #t))
@@ -77,9 +77,12 @@
        #`(mk:fresh (x ...) #,(generate-goal #'g)))]
     [(goal-from-expression e)
      #:with (var-in-scope ...) (syntax-property this-syntax TERM-VARS-IN-SCOPE)
-     #'(check-and-unseal-goal (syntax-parameterize ([surrounding-term-vars-in-scope (list #'var-in-scope ...)])
-                                e)
-                              #'e)]
+     #'(λ (st)
+         ((check-and-unseal-goal (syntax-parameterize ([surrounding-current-state-var #'st]
+                                                       [surrounding-term-vars-in-scope (list #'var-in-scope ...)])
+                                   e)
+                                 #'e)
+          st))]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
@@ -216,7 +219,7 @@ syntax for which we have not yet introduced any bindings
        [else
         (generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? rest-block)])]
     [(== (rkt-term e) (~and t2 (~not (#%lv-ref _))))
-     #`(let ([v (check-term e #'e)])
+     #`(let ([v (unseal-term e #'e)])
          #,(generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? rest-block))]    
     [(== t1 t2)
      (error 'generate-optimized-unify "invariant violation")]))
@@ -242,7 +245,7 @@ syntax for which we have not yet introduced any bindings
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(rkt-term e)
-     #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'(check-term e #'e) st no-occur?))]
+     #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'(unseal-vars-in-term e #'e) st no-occur?))]
     [(quote l)
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (cond
@@ -294,8 +297,8 @@ syntax for which we have not yet introduced any bindings
           #`(mku:unify2 #,v w #,st)]))]
     [(rkt-term e)
      (if no-occur?
-         #`(mku:unify2-no-occur-check #,v (check-term e #'e) #,st)
-         #`(mku:unify2 #,v (check-term e #'e) #,st))]
+         #`(mku:unify2-no-occur-check #,v (unseal-vars-in-term e #'e) #,st)
+         #`(mku:unify2 #,v (unseal-vars-in-term e #'e) #,st))]
     [(quote l)
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (let ([t (quote l)])
@@ -334,7 +337,7 @@ syntax for which we have not yet introduced any bindings
       [(== (~and t1 (#%lv-ref v:id)) t2)
        (generate-specialized-unify #'v #'t2 no-occur?)]
       [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
-       (generate-specialized-unify #'(check-term e #'e) #'t2 no-occur?)]
+       (generate-specialized-unify #'(unseal-vars-in-term e #'e) #'t2 no-occur?)]
       ;; This could arise if we unify two rkt-terms. No way to specialize.
       [_
        (generate-plain-== stx no-occur?)])
@@ -352,7 +355,7 @@ syntax for which we have not yet introduced any bindings
     #:literals (quote cons)
     [(#%lv-ref v:id) #'v]
     [(rkt-term e)
-     #'(check-term e #'e)]
+     #'(unseal-vars-in-term e #'e)]
     [(quote d)
      #'(quote d)]
     [(cons t1:term/c t2:term/c)

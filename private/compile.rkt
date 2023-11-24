@@ -27,6 +27,7 @@
 (provide compile-run
          compile-relation
          compile-expression-from-goal
+         compile-expression-from-term
          optimized-relation-code
          set-optimization-mode!)
 
@@ -63,6 +64,19 @@
 (define (compile-expression-from-goal g)
   (define vars-in-scope (syntax-parameter-value #'surrounding-term-vars-in-scope))
   #`(goal-value #,(compile-goal #f g vars-in-scope #f)))
+
+(define (compile-expression-from-term t)
+  (define/syntax-parse current-st-var
+    (syntax-parameter-value #'surrounding-current-state-var))
+  ;; By runtime, we have evaluated the call to generate term, so that
+  ;; produces a generated term syntax,
+  ;;
+  ;; Which is then evaluated to a term at rt.
+  ;;
+  ;; Which is then walk*ed, to a walk*ed rt value, which is at *that*
+  ;; point sealed.
+  ;;
+  #`(seal-vars-in-term (mk:walk* #,(generate-term t) current-st-var)))
 
 (define (compile-goal name g fvs fvs-free?)
   (define g^ (optimize-goal name g fvs fvs-free?))

@@ -35,7 +35,7 @@
          conj disj fresh
          #%rel-app #%lv-ref
          expression-from-goal goal-from-expression
-         apply-relation rkt-term
+         apply-relation term-from-expression
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?
@@ -69,6 +69,11 @@
  (host-interface/expression
   (expression-from-goal g:goal)
   (compile-expression-from-goal #'g))
+
+ (host-interface/expression
+  (expression-from-term t:term)
+  (compile-expression-from-term #'t))
+
 
  (host-interface/expression
   (relation (x:term-variable ...) g:goal)

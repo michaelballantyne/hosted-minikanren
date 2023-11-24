@@ -44,7 +44,7 @@
    #:allow-extension term-macro
 
    (#%lv-ref x:term-variable)
-   (rkt-term e:racket-expr)
+   (term-from-expression e:racket-expr)
    ((~literal quote) t:quoted)
    ((~literal cons) t1:term t2:term)
 

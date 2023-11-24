@@ -13,8 +13,8 @@
  #%lv-ref
 
  #%rel-app
- rkt-term
  apply-relation
+ term-from-expression
  goal-from-expression
 
  succeed
