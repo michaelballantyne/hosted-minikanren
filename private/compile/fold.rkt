@@ -213,6 +213,7 @@ you have multi-arg lambdas.
     [(== t1 t2) (unify #'t1 #'t2 subst ld)]
     [(c:binary-constraint t1 t2)
      (values #`(c . #,(map-maybe-inline* subst #'(t1 t2))) subst)]
+    [c:primitive-goal (values this-syntax subst)]
     [(conj g1 g2)
      (let*-values ([(g1^ s^) (fold/goal #'g1 subst ld)]
                    [(g2^ s^^) (fold/goal #'g2 s^ ld)])

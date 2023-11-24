@@ -35,7 +35,7 @@ So make the fresh in the IR always -no-delay and make the conde would expand to 
 
 ## (DONE) make minikanren-ee use binding spaces so that we can use e.g. quasiquote w/ both racket and miniKanren in the same file
 
-## (DONE) Add an iplementation of list as a term macro 
+## (DONE) Add an implementation of list as a term macro 
 
 ### (DONE) auto rkt-term ifization of terms in the bodies of project
 
@@ -50,3 +50,5 @@ B/c some of the ways they handle fresh names may not be the same.
 
 Make sure the underlying implementation uses the built in basic ones rather than == #t #f or something
 
+
+## Add succeed and fail to surface language

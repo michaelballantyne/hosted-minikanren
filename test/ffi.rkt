@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../main.rkt"
-         rackunit)
+         (except-in rackunit fail))
 
 (check-equal?
  (number? (expression-from-goal (== 'cat 'cat)))
@@ -36,4 +36,16 @@
                (goal-from-expression
                 (expression-from-goal
                  (== x q)))))))
+ '(_.0))
+
+
+(define (succeed-or-fail b)
+  (if b
+      (expression-from-goal (== 'a 'a))
+      (expression-from-goal (== 'a 'b))))
+
+(check-equal?
+ (run 1 (q)
+      (goal-from-expression
+       (succeed-or-fail #true)))
  '(_.0))

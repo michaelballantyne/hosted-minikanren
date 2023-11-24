@@ -11,6 +11,7 @@
 
 (provide run run* relation define-relation defrel
          quote cons
+         succeed fail
          absento symbolo stringo numbero =/= ==
          conj disj fresh
          #%rel-app #%lv-ref
