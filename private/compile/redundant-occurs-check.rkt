@@ -334,6 +334,7 @@
      (let-values ([(new-g s^) (mark-redundant-check/goal #'g (add-fresh-vars s (attribute x)))])
        (values #`(fresh (x ...) #,new-g) s^))]
     [(#%rel-app n t ...) (values this-syntax (mark-terms-external s (attribute t)))]
+    [(goal-from-expression e) (values this-syntax (mark-subst-top s))]
     [(apply-relation e t ...) (values this-syntax (mark-terms-external s (attribute t)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -343,9 +344,16 @@
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (only-in "prop-vars.rkt" SKIP-CHECK)
                        (submod "..")))
+
+  (begin-for-syntax
+    (define (mark-redundant-check/rel stx)
+      (syntax-parse stx
+        [(ir-rel (x ...) g)
+         #`(ir-rel (x ...) #,(mark-redundant-check/entry #'g (attribute x) #f))])))
 
   (progs-equal?
     (mark-redundant-check/rel
@@ -397,6 +405,21 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (~check (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK)))))
+
+  (progs-equal?
+    (mark-redundant-check/rel
+      (generate-prog
+        (ir-rel ((~binders q))
+          (fresh ((~binders x))
+          (conj
+            (goal-from-expression #t)
+            (== (#%lv-ref x) (#%lv-ref q)))))))
+    (generate-prog
+      (ir-rel ((~binders q))
+          (fresh ((~binders x))
+          (conj
+            (goal-from-expression #t)
+            (~missing (== (#%lv-ref x) (#%lv-ref q)) SKIP-CHECK))))))
 
   (progs-equal?
     (mark-redundant-check/rel
