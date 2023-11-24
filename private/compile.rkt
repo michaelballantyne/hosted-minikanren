@@ -25,6 +25,7 @@
 
 (provide compile-run
          compile-relation
+         compile-expression-from-goal
          optimized-relation-code
          set-optimization-mode!)
 
@@ -57,6 +58,9 @@
   (syntax-parse stx
     [(ir-rel (x ...) g)
      #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
+
+(define (compile-expression-from-goal g)
+  #`(goal-value #,(compile-goal #f g '() #f)))
 
 (define (compile-goal name g fvs fvs-free?)
   (define g^ (optimize-goal name g fvs fvs-free?))

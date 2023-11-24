@@ -84,6 +84,8 @@
    (fresh (x:term-variable ...) b:goal)
    #:binding {(bind x) b}
 
+   (goal-from-expression e:racket-expr)
+
    ;; TODO: final language should have project and goal-expression, not
    ;; apply-relation and relation.
    (apply-relation e:racket-expr t:term ...)

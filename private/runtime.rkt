@@ -8,6 +8,7 @@
 ; Runtime
 
 (struct relation-value [proc])
+(struct goal-value [proc])
 
 (define (check-natural val blame-stx)
   (if (natural? val)
@@ -20,6 +21,15 @@
       (raise-argument-error/stx
        'apply-relation
        "relation-value?"
+       val
+       blame-stx)))
+
+(define (check-goal val blame-stx)
+  (if (goal-value? val)
+      val
+      (raise-argument-error/stx
+       'goal-from-expression
+       "goal-value?"
        val
        blame-stx)))
 

@@ -29,6 +29,7 @@
      #`(fresh (x ...)
          #,(remove-noop/goal #'g))]
     [(#%rel-app n t ...) this-syntax]
+    [(goal-from-expression e) this-syntax]
     [(apply-relation e t ...) this-syntax]))
 
 (module+ test
@@ -36,8 +37,16 @@
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
+
+  (begin-for-syntax
+    (define (remove-noop/rel stx)
+      (syntax-parse stx
+        [(ir-rel (x ...) g)
+         #`(ir-rel (x ...) #,(remove-noop/entry #'g (attribute x) #f))])))
+
 
   (progs-equal?
     (remove-noop/rel

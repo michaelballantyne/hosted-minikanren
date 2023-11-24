@@ -33,6 +33,7 @@
          absento symbolo stringo numbero =/= ==
          conj disj fresh
          #%rel-app #%lv-ref
+         expression-from-goal
          apply-relation rkt-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
@@ -55,14 +56,18 @@
   (run n:racket-expr (x:term-variable ...) g:goal)
   #:binding {(bind x) g}
 
-  (compile-run #'(mk:run (check-natural n #'n) (x ...) g)))
+  (compile-run #'(run n (x ...) g)))
 
  ;; TODO: probably have just one core run, do run* as a macro?
  (host-interface/expression
   (run* (x:term-variable ...) g:goal)
   #:binding {(bind x) g}
 
-  (compile-run #'(mk:run* (x ...) g)))
+  (compile-run #'(run* (x ...) g)))
+
+ (host-interface/expression
+  (expression-from-goal g:goal)
+  (compile-expression-from-goal #'g))
 
  (host-interface/expression
   (relation (x:term-variable ...) g:goal)
