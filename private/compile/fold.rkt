@@ -261,8 +261,16 @@ you have multi-arg lambdas.
            "../forms.rkt"
            (except-in rackunit fail)
            (for-syntax racket/base
+                       syntax/parse
                        "./test/unit-test-progs.rkt"
                        (submod "..")))
+
+
+(begin-for-syntax
+  (define (fold/rel stx)
+    (syntax-parse stx #:literal-sets (mk-literals)
+      [(ir-rel (x ...) g)
+       #`(ir-rel (x ...) #,(fold/entry #'g (attribute x) #f))])))
 
   (progs-equal?
     (fold/rel

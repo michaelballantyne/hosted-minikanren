@@ -74,6 +74,7 @@
      (if (specialize-unify?)
        (compile-block #'(x ...) #'g)
        #`(mk:fresh (x ...) #,(generate-goal #'g)))]
+    [(goal-from-expression e) #'e]
     [(apply-relation e t ...)
      #`((relation-value-proc (check-relation e #'e))
         #,@(stx-map generate-term #'(t ...)))]))
@@ -169,6 +170,19 @@
               #:when (free-id-set-member? all-fresh-vars v))
      v)))
 
+#|
+
+This is used in a block of the the unifies where the LHS is a variable that we
+have just introduced. So these can be "let bound", b/c we do not need
+them in the subst yet; they can just be local racket vars.
+
+t2 could be an aribtrary term, and so could have mk variables in it,
+and some that we may need to freshen.
+
+remaining unify vars: the variables introduced by the fresh in the IR
+syntax for which we have not yet introduced any bindings
+
+|#
 (define/hygienic (generate-let-unify v t2 remaining-unify-vars st rest-block) #:expression
   (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
   (define remaining-unify-vars^ (free-id-set-remove
