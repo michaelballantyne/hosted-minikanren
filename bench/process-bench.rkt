@@ -2,8 +2,45 @@
 
 (require text-table text-table/utils)
 
+;; (ListOf Any), (ListOf Int), (ListOf Any), (ListOf Int) -> String
+;;
+;; Compute and render as string a table of speedup data, where each entry is a
+;; speedup relative to the baseline-data value for the row.
+(define (speedups-table benchmark-names baseline-data column-titles column-data)
+  (define speedups
+    (for/list ([data column-data])
+      (map speedup
+           baseline-data
+           data)))
+  (define headers (cons 'benchmark column-titles))
+  (table->string (cons headers (transpose (cons benchmark-names speedups)))
+                 #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v)))))
+
+;; Int, Int -> InexactReal or #f
+;;
+;; Compute a speedup factor for the `new` based on the baseline time of `base`.
+;;
+;; For example, given a new time of 100ms and a baseline time of 150ms,
+;; the speedup is 1.5.
+;;
+;; If either time is 0, the result is #f to indicate that the speedup is undefined.
+(define (speedup base new)
+  (and (not (or (= 0 base) (= 0 new)))
+       (exact->inexact (/ base new))))
+
+
+(define (to-lines s)
+  (for/list ([line (string-split s "\n")]
+             #:when (not (regexp-match? #rx"Benchmark Suite" line)))
+    (string-split line ": ")))
+
+(define (to-names s) (map first (to-lines s)))
+(define (to-numbers s) (map string->number (map second (to-lines s))))
+
+
+
 (define no-opt
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1423
 Benchmark Suite all-in-fd:
@@ -32,10 +69,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 2198
 1 real quine: 2133
 here
-)
+  )
 
 (define all-opt
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1062
 Benchmark Suite all-in-fd:
@@ -64,10 +101,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 377
 1 real quine: 2020
 here
-)
+  )
 
 (define prop-only
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1085
 Benchmark Suite all-in-fd:
@@ -96,10 +133,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 2741
 1 real quine: 2729
 here
-)
+  )
 
 (define dead-code
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1529
 Benchmark Suite all-in-fd:
@@ -128,10 +165,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 2451
 1 real quine: 2619
 here
-)
+  )
 
 (define occurs-check
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1288
 Benchmark Suite all-in-fd:
@@ -160,10 +197,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 380
 1 real quine: 2178
 here
-)
+  )
 
 (define faster-mk
-#<<here
+  #<<here
 Benchmark Suite numbers:
 logo-hard: 1209
 Benchmark Suite all-in-fd:
@@ -192,32 +229,10 @@ Benchmark Suite full interp:
 complex-countdown 2: 2849
 1 real quine: 2695
 here
-)
+  )
 
-(define (to-names s)
-  (for/list ([line (string-split s "\n")]
-             #:when (not (regexp-match? #rx"Benchmark Suite" line)))
-    (first (string-split line ": "))))
+(define column-titles (list 'faster-mk 'no-opt 'prop-only 'dead-code 'occurs-check 'all-opt))
+(define column-data (map to-numbers (list faster-mk no-opt prop-only dead-code occurs-check all-opt)))
 
-(define (to-numbers s)
-  (for/list ([line (string-split s "\n")]
-             #:when (not (regexp-match? #rx"Benchmark Suite" line)))
-    (string->number (second (string-split line ": ")))))
-
-(define (speedup base new)
-  (for/list ([b-n base] [n-n new])
-    (if (or (= 0 b-n) (= 0 n-n))
-        0
-        (exact->inexact (/ b-n n-n)))))
-
-(define headers (list 'benchmark 'faster-mk 'no-opt 'prop-only 'dead-code 'occurs-check 'all-opt))
-
-(define speedups
-  (for/list ([data (list faster-mk no-opt prop-only dead-code occurs-check all-opt)])
-    (speedup
-     (to-numbers faster-mk)
-     (to-numbers data))))
-
-(print-table (cons headers (transpose (cons (to-names faster-mk) speedups)))
-             #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v))))
-
+(displayln
+ (speedups-table (to-names faster-mk) (car column-data) column-titles column-data))
