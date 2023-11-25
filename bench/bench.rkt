@@ -12,14 +12,13 @@
                            (hash 'benchmark-minikanren lang-path))))
 
 (define configurations
-  (list 
-    (cons "minikanren-ee no optimizations" "langs/ee-no-opt.rkt")
-    (cons "minikanren-ee all optimizations" "langs/ee-all.rkt")
-        
-        (cons "minikanren-ee prop-only" "langs/ee-prop-only.rkt")
-        (cons "minikanren-ee dead-code" "langs/ee-dead-code.rkt")
-        (cons "minikanren-ee occurs-check" "langs/ee-occurs-check.rkt")
-        (cons "faster-minikanren" "langs/faster-mk.rkt")))
+  (list
+   (cons "faster-minikanren" "langs/faster-mk.rkt")
+   (cons "no optimizations" "langs/ee-no-opt.rkt")
+   (cons "prop-only" "langs/ee-prop-only.rkt")
+   (cons "dead-code" "langs/ee-dead-code.rkt")
+   (cons "occurs-check" "langs/ee-occurs-check.rkt")
+   (cons "all optimizations" "langs/ee-all.rkt")))
 
 
 (module+ main
