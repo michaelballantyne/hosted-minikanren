@@ -27,6 +27,8 @@
   (define insert-stmt (facts-table-insert ft))
   (apply query-exec c insert-stmt args))
 
+;; TODO: currently this uses a prebuilt query that doesn't leverage
+;; known information about the arguments to filter at all! That should be improved.
 (define (do-query ft args)
   (define c (facts-table-conn ft))
   (define query (facts-table-query ft))
