@@ -95,7 +95,8 @@
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))])
 
   (benchmark-suite "simple matche-interp"
-    ["unoptimized-matche-interp" (unoptimized-matche-interp)])
+    ["unoptimized-matche-interp" (unoptimized-matche-interp)]
+    ["optimized-matche-interp" (optimized-matche-interp)])
 
   (benchmark-suite "full interp"
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
