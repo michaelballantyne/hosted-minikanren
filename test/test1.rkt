@@ -82,7 +82,7 @@
   (apply-relation (make-naturals 0) n))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
    (run 1 (q) (eval-expo q '() q))

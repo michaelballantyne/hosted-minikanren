@@ -1,7 +1,7 @@
 #lang racket
 
 (require syntax/macro-testing
-         rackunit
+         (except-in rackunit fail)
          "unit-test-infra.rkt"
          (for-syntax syntax/parse/define syntax/parse "unit-test-infra.rkt"))
 
@@ -72,7 +72,7 @@
              (λ () (check-false (car res-info) (cdr res-info))))))]))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (progs-not-equal? (generate-prog (a a))
                     (generate-prog (c c)))

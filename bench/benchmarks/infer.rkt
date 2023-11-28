@@ -150,7 +150,7 @@
 
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (test-equal? "1"
   (run* (q) (⊢ '() '() 17 q))
   '(ℕ))

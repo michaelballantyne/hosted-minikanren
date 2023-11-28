@@ -40,7 +40,7 @@
       (run 1 (parse) (arithmetic p '() '(* (- (0 0 1) (/ (0 0 1) (0 0 1))) (0 0 1)) rel-n)))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (check-equal?
    (run 1 (parse) (modify '(0 0 1) '(0 0 1) '((0 0 1)) '() '(/ (0 0 1) (0 0 1)) '(1)))
    '(_.0))

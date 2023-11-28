@@ -30,7 +30,7 @@
   (run 1 (q) (fact1 q '(0 0 0 0 1 0 1 1 0 1))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (check-equal?
    (fast-fact-7-5040)
    `(,(build-num 7)))

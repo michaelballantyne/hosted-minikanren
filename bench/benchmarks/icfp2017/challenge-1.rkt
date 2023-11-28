@@ -13,7 +13,7 @@
     (run 9900 (q) (evalo q '(I love you))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (test-equal?
    "first-love"
    (first-love)

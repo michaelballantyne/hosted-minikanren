@@ -448,7 +448,7 @@
     (syntax-property sexp key val)))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (define (make-a)
     (generate-prog (~binder a)))

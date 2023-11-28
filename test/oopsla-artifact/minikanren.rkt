@@ -11,7 +11,7 @@
             (append rest l2 result)))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
     (run 3 (l1 l2) (append l1 l2 '(1 2)))

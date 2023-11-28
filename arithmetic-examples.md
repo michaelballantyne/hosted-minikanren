@@ -2,7 +2,7 @@
 
 Big number logo example from TRS 
 ```racket
-(require rackunit)
+(require (except-in rackunit fail))
 (test-equal? "9 logs + rem that equal 68"
  (run 9 (b q r)
    (logo '(0 0 1 0 0 0 1) b q r)

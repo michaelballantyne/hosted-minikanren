@@ -103,7 +103,7 @@
 
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (require (submod "test-fact.rkt" test)
            (submod "four-fours.rkt" test)

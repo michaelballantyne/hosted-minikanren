@@ -142,7 +142,7 @@
 
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (check-equal? (texas-colors) '(_.0))
   (check-equal? (green-texas) '())
   (check-equal? (green-colors-texas) '())

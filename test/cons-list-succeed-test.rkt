@@ -3,7 +3,7 @@
 
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (test-equal?
     "cons and only works with cons"
    (run 1 (res2) (== (cons 1 res2) (cons 1 (cons 2 '()))))

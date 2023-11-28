@@ -18,7 +18,7 @@
    ((== '(1) n) (== m p))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
     (run* (q) (conjo q))

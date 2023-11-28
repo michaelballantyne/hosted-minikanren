@@ -2,7 +2,7 @@
 (require "../main.rkt")
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
   (define-relation (j result1)
     (== '(1) (cons 1 result1)))
 

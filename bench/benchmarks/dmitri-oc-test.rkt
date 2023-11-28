@@ -95,7 +95,7 @@
 
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
    (run 1 (q) (leo '(S S S . 0) '(S S . 0)))

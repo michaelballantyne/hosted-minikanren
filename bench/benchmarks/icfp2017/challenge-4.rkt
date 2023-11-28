@@ -69,7 +69,7 @@
       '((a b c d e) (f g h i j)))))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
    (append-forward)

@@ -9,7 +9,7 @@
 (pretty-print (syntax->datum (relation-code append)))
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
   (check-equal?
     (run 1 (q) (append '() '() q))

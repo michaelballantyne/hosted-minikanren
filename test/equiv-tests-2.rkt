@@ -2,7 +2,7 @@
 (require "../main.rkt")
 
 (module+ test
-  (require rackunit)
+  (require (except-in rackunit fail))
 
 
   (test-equal? "1"
