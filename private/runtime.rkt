@@ -60,6 +60,9 @@
                      (unseal-vars-in-term (cdr v) blame-stx))]
     [else (raise-argument-error/stx 'term "mk-value?" v blame-stx)]))
 
+(define (expression-from-term-rt t st)
+  (seal-vars-in-term (mku:walk* t (mku:state-S st))))
+
 (define check-constraints 
   (lambda (S^ added st)
     (if S^

@@ -8,6 +8,7 @@
  racket/function
  racket/stxparam-exptime
  (for-template "runtime.rkt")
+ (for-template "spec.rkt" (only-in syntax-spec with-reference-compilers))
  (for-template racket/base)
  (for-template (prefix-in mku: "../mk/private-unstable.rkt"))
  (only-in syntax/parse [define/syntax-parse def/stx])
@@ -65,22 +66,20 @@
   (define vars-in-scope (syntax-parameter-value #'surrounding-term-vars-in-scope))
   #`(goal-value #,(compile-goal #f g vars-in-scope #f)))
 
-(define (compile-expression-from-term t)
-  (define/syntax-parse current-st-var
-    (syntax-parameter-value #'surrounding-current-state-var))
-  ;; By runtime, we have evaluated the call to generate term, so that
-  ;; produces a generated term syntax,
-  ;;
-  ;; Which is then evaluated to a term at rt.
-  ;;
-  ;; Which is then walk*ed, to a walk*ed rt value, which is at *that*
-  ;; point sealed.
-  ;;
-  #`(seal-vars-in-term (mku:walk* #,(generate-term t) (mku:state-S current-st-var))))
+(define (compile-expression-from-term term-exp)
+  #`(expression-from-term-rt #,(generate-term term-exp)
+                             #,(syntax-parameter-value #'surrounding-current-state-var)))
+
+(define (compile-term-variable-reference compiled-term-var-id)
+  #`(expression-from-term-rt #,compiled-term-var-id
+                             #,(syntax-parameter-value #'surrounding-current-state-var)))
 
 (define (compile-goal name g fvs fvs-free?)
   (define g^ (optimize-goal name g fvs fvs-free?))
-  (generate-goal/entry g^ (hash-ref optimization-mode 'unification-spec)))
+  ;; It is sufficient to do the with-reference-compilers only here because an expression-from-term
+  ;; outside of any goal (and thus any fresh) can have no free term variable references.
+  #`(with-reference-compilers ([term-variable compile-term-variable-reference])
+      #,(generate-goal/entry g^ (hash-ref optimization-mode 'unification-spec))))
 
 (define (optimize-goal name g fvs fvs-free?)
 
