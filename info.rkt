@@ -8,6 +8,8 @@
                ["ee-lib" #:version "1.0"]
                "syntax-spec"))
 
+(define build-deps '("db" "sql"))
+
 (define test-omit-paths '("mk" "bench/benchmarks" "bench/process-bench.rkt"))
 (define compile-omit-paths '("bench/benchmarks" "bench/process-bench.rkt"))
 
