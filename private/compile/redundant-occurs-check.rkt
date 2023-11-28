@@ -287,10 +287,17 @@
        (let*-values ([(s^ left-can) (unify #'a1 #'a2 s)]
                      [(s^^ right-can) (unify #'d1 #'d2 s^)])
          (values s^^ (and left-can right-can)))]
-      [(~or ((rkt-term _) _)
-            (_ (rkt-term _)))
+      ;; Any variable could be referred to via an expression-from-term within.
+      ;; So we mark all not-yet-grounded variables as top.
+      ;; 
+      ;; Aside: in some special cases such as when the other side is known to
+      ;; be a ground value I think we could do better, because this means that the unification
+      ;; cannot add new variable->variable entries to create a cycle. However,
+      ;; I think the more important solution is to be able to analyze within the
+      ;; term-from-expression to limit which variables we taint.
+      [(~or ((term-from-expression _) _)
+            (_ (term-from-expression _)))
        (values (mark-subst-top s) #f)]
-      ;; TODO what do in presence of `rkt-term`?
       [_ (raise-syntax-error #f "ALL TERM COMBINATIONS ALREADY HANDLED, NOT REACHABLE" this-syntax)])))
 
 (define (union s1 s2)
@@ -836,7 +843,7 @@
             (conj
               (conj
                 (== (#%lv-ref x) (quote 5))
-                (== (#%lv-ref y) (rkt-term 6)))
+                (== (#%lv-ref y) (term-from-expression 6)))
               (== (#%lv-ref z) (#%lv-ref a)))))))
     (generate-prog
       (ir-rel ((~binder q))
@@ -844,7 +851,7 @@
           (conj
             (conj
               (~check (== (#%lv-ref x) (quote 5)) SKIP-CHECK)
-              (~missing (== (#%lv-ref y) (rkt-term 6)) SKIP-CHECK))
+              (~missing (== (#%lv-ref y) (term-from-expression 6)) SKIP-CHECK))
             (~missing (== (#%lv-ref z) (#%lv-ref a)) SKIP-CHECK))))))
 
   )

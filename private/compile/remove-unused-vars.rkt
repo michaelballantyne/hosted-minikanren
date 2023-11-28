@@ -17,22 +17,24 @@
 ;; and a set of referenced free identifiers.
 ;; EFFECT annotates goal from expression form w/syntax property listing vars in scope at that expression
 ;; (goal? [Listof identifier] -> (values goal? immutable-free-id-set?))
-(define (remove-unused-vars g fvs)
+(define (remove-unused-vars g vars-in-scope)
   (syntax-parse g
     #:literal-sets (mk-literals)
     [c:primitive-goal (values this-syntax (immutable-free-id-set))]
-    [(c:unary-constraint t) (values this-syntax (term-refs #'t))]
-    [(c:binary-constraint t1 t2) (values this-syntax (free-id-set-union (term-refs #'t1) (term-refs #'t2)))]
+    [(c:unary-constraint t) (values this-syntax (term-refs #'t vars-in-scope))]
+    [(c:binary-constraint t1 t2)
+     (values this-syntax (free-id-set-union (term-refs #'t1 vars-in-scope)
+                                            (term-refs #'t2 vars-in-scope)))]
     [(disj g1 g2)
-     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 fvs)]
-                  [(g2^ g2-refs) (remove-unused-vars #'g2 fvs)])
+     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 vars-in-scope)]
+                  [(g2^ g2-refs) (remove-unused-vars #'g2 vars-in-scope)])
        (values #`(disj #,g1^ #,g2^) (free-id-set-union g1-refs g2-refs)))]
     [(conj g1 g2)
-     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 fvs)]
-                  [(g2^ g2-refs) (remove-unused-vars #'g2 fvs)])
+     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 vars-in-scope)]
+                  [(g2^ g2-refs) (remove-unused-vars #'g2 vars-in-scope)])
        (values #`(conj #,g1^ #,g2^) (free-id-set-union g1-refs g2-refs)))]
     [(fresh (x ...) g)
-     (let-values ([(g^ g-refs) (remove-unused-vars #'g (append (attribute x) fvs))])
+     (let-values ([(g^ g-refs) (remove-unused-vars #'g (append (attribute x) vars-in-scope))])
        (define vars-to-keep (filter (λ (lv) (free-id-set-member? g-refs lv)) (syntax->list #'(x ...))))
        (define free-refs (free-id-set-subtract g-refs (immutable-free-id-set vars-to-keep)))
        (values #`(fresh (#,@vars-to-keep) #,g^) free-refs))]
@@ -40,23 +42,23 @@
      (values this-syntax
              (for/fold ([var-refs (immutable-free-id-set)])
                        ([t (in-syntax #'(t ...))])
-               (free-id-set-union var-refs (term-refs t))))]
+               (free-id-set-union var-refs (term-refs t vars-in-scope))))]
     [(goal-from-expression e)
-     (values (syntax-property this-syntax TERM-VARS-IN-SCOPE fvs) (immutable-free-id-set fvs))]
+     (values (syntax-property this-syntax TERM-VARS-IN-SCOPE vars-in-scope) (immutable-free-id-set vars-in-scope))]
     [(apply-relation e t ...)
      (values this-syntax
              (for/fold ([var-refs (immutable-free-id-set)])
                        ([t (in-syntax #'(t ...))])
-               (free-id-set-union var-refs (term-refs t))))]))
+               (free-id-set-union var-refs (term-refs t vars-in-scope))))]))
 
-(define (term-refs t)
+(define (term-refs t vars-in-scope)
   (syntax-parse t #:literal-sets (mk-literals) #:literals (cons quote)
     [(#%lv-ref v)
      (immutable-free-id-set (list #'v))]
-    [(rkt-term _) (immutable-free-id-set)]
+    [(term-from-expression _) (immutable-free-id-set vars-in-scope)]
     [(quote _) (immutable-free-id-set)]
     [(cons t1 t2)
-     (free-id-set-union (term-refs #'t1) (term-refs #'t2))]))
+     (free-id-set-union (term-refs #'t1 vars-in-scope) (term-refs #'t2 vars-in-scope))]))
 
 (module* test racket/base
   (require "./test/unit-test-progs.rkt"

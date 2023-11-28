@@ -27,7 +27,7 @@
    (only-in syntax/parse [define/syntax-parse def/stx])
    "syntax-classes.rkt"))
 
-(provide run run* relation define-relation
+(provide run run*  define-relation
          (rename-out [define-relation defrel])
          quote cons
          succeed fail
@@ -35,7 +35,8 @@
          conj disj fresh
          #%rel-app #%lv-ref
          expression-from-goal goal-from-expression
-         apply-relation term-from-expression
+         relation apply-relation
+         term-from-expression expression-from-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?

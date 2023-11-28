@@ -56,9 +56,9 @@
    (~> x:id
          ;; TODO: this doesn't work to detect racket-vars. They don't have a syntax-local-value.
          ;; See ee-lib identifier-has-binding? comments for more discussion on difficulties.
-         ;; for now require explicity rkt-term.
+         ;; So for now assume anything that isn't a term variable is a term-from-expression.
          ;; #:when (lookup #'x (binding-class-predicate racket-var))
-         #'(rkt-term x))
+         #'(term-from-expression x))
    (~> (~or lit:number lit:string lit:boolean)
        #'(quote lit)))
 

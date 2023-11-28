@@ -37,7 +37,7 @@ So make the fresh in the IR always -no-delay and make the conde would expand to 
 
 ## (DONE) Add an implementation of list as a term macro 
 
-### (DONE) auto rkt-term ifization of terms in the bodies of project
+### (DONE) auto term-from-expression ifization of terms in the bodies of project
 
 We now follow the older model, WITS
 If a variable reference does not resolve to a miniKanren reference, assume it is a racket-term reference

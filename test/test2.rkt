@@ -19,7 +19,7 @@
     (run 2 (q) (appendo `(1 2 3) `(4 5) q))
     '((1 2 3 4 5)))
   (check-equal?
-    (run 1 (q) (== (rkt-term (make-list 5 "a")) q))
+    (run 1 (q) (== (term-from-expression (make-list 5 "a")) q))
     '(("a" "a" "a" "a" "a")))
 
   )

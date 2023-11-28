@@ -17,6 +17,7 @@
          #%rel-app #%lv-ref
          apply-relation
          goal-from-expression expression-from-goal
+         term-from-expression expression-from-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
          mk-value? relation-value?

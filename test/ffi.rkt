@@ -12,12 +12,16 @@
  (run 1 (q) (goal-from-expression (expression-from-goal (== 'cat 'cat))))
  '(_.0))
 
+
+
 (check-equal?
  (run 1 (q)
       (goal-from-expression
        (expression-from-goal
         (== 'cat q))))
  '(cat))
+
+
 
 (check-equal?
  (run 1 (q)
@@ -62,9 +66,14 @@
        (real-succeed-or-fail #true)))
  '(_.0))
 
+
+
 (check-equal?
  (run 1 (q) (== (term-from-expression (expression-from-term q)) 'cat))
  '(cat))
+
+
+
 
 (check-equal?
  (run 1 (q) (== (term-from-expression
@@ -73,6 +82,8 @@
                    (expression-from-term q))))
                 'cat))
  '(cat))
+
+
 
 (check-equal?
  (run 1 (q)
@@ -93,23 +104,6 @@
                   'fish))
                 'cat))
  '())
-
-(run 1 (q)
-     (peano x)
-     (project (x)
-              (if (even-length? x)
-                  (== q 1)
-                  (== q 0))))
-
-(number? (expression-from-term 5))
-
-(run 1 (q)
-     (fresh (x)
-       (peano x)
-       (goal-from-expression
-        (if (even-length? (expression-from-term x))
-            (expression-from-goal (== q 1))
-            (expression-from-goal (== q 0))))))
 
 (check-equal?
  (run 1 (q)
@@ -133,4 +127,4 @@
  (run 1 (q)
       (goal-from-expression
        (cat-or-dog #true (expression-from-term q))))
- '(_.0))
+ '(cat))

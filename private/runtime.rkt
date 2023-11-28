@@ -55,7 +55,7 @@
          (null? v)
          (boolean? v))
      v]
-    [(sealed-lvar v) (sealed-lvar-var v)]
+    [(sealed-lvar? v) (sealed-lvar-var v)]
     [(pair? v) (cons (unseal-vars-in-term (car v) blame-stx)
                      (unseal-vars-in-term (cdr v) blame-stx))]
     [else (raise-argument-error/stx 'term "mk-value?" v blame-stx)]))

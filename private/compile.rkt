@@ -9,7 +9,7 @@
  racket/stxparam-exptime
  (for-template "runtime.rkt")
  (for-template racket/base)
- (for-template (prefix-in mk: "../mk/mk.rkt"))
+ (for-template (prefix-in mku: "../mk/private-unstable.rkt"))
  (only-in syntax/parse [define/syntax-parse def/stx])
  (only-in threading ~>)
  "syntax-classes.rkt"
@@ -52,9 +52,9 @@
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
     [(run* (q ...) g)
-     #`(mk:run* (q ...) #,(compile-goal #f #'g (attribute q) #t))]
+     #`(mku:run* (q ...) #,(compile-goal #f #'g (attribute q) #t))]
     [(run n (q ...) g)
-     #`(mk:run (check-natural n #'n) (q ...) #,(compile-goal #f #'g (attribute q) #t))]))
+     #`(mku:run (check-natural n #'n) (q ...) #,(compile-goal #f #'g (attribute q) #t))]))
 
 (define/hygienic (compile-relation stx name) #:expression
   (syntax-parse stx
@@ -76,7 +76,7 @@
   ;; Which is then walk*ed, to a walk*ed rt value, which is at *that*
   ;; point sealed.
   ;;
-  #`(seal-vars-in-term (mk:walk* #,(generate-term t) current-st-var)))
+  #`(seal-vars-in-term (mku:walk* #,(generate-term t) (mku:state-S current-st-var))))
 
 (define (compile-goal name g fvs fvs-free?)
   (define g^ (optimize-goal name g fvs fvs-free?))

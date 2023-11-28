@@ -346,8 +346,6 @@ syntax for which we have not yet introduced any bindings
 (define/hygienic (generate-== stx) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))
 
-  ;(displayln `(specialize == ,(specialize-unify?)))
-
   (if (specialize-unify?)
     (syntax-parse stx
       #:literal-sets (mk-literals)
@@ -356,9 +354,7 @@ syntax for which we have not yet introduced any bindings
        (generate-specialized-unify #'v #'t2 no-occur?)]
       [(== (~and t1 (term-from-expression e)) (~and t2 (~not (#%lv-ref _))))
        (generate-specialized-unify #'(unseal-vars-in-term e #'e) #'t2 no-occur?)]
-      ;; This could arise if we unify two rkt-terms. No way to specialize.
-      [_
-       (generate-plain-== stx no-occur?)])
+      [_ (error 'generate-== "invariant violation")])
     (generate-plain-== stx no-occur?)))
 
 (define/hygienic (generate-plain-== stx no-occur?) #:expression

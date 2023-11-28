@@ -72,7 +72,7 @@
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(quote d) (values this-syntax id-refs)]
-    [(rkt-term e) (values this-syntax id-refs)]
+    [(term-from-expression e) (values this-syntax (immutable-free-id-set))]
     [(#%lv-ref v)
      (if (free-id-set-member? id-refs #'v)
        (values (syntax-property this-syntax FIRST-REF #t) (free-id-set-remove id-refs #'v))
