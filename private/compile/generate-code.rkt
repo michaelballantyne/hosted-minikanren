@@ -7,6 +7,7 @@
                        "../forms.rkt"
                        "../runtime.rkt")
          "prop-vars.rkt"
+         "utils.rkt"
          ee-lib
          "../forms.rkt"
          "test/unit-test-progs.rkt"
@@ -46,6 +47,18 @@
     [(disj g1 g2) (cons #'g1 (collect-disjs #'g2))]
     [_ (list this-syntax)]))
 
+;; IRGoal RTGoal -> RTGoal
+;; If any term in the goal contains a term-from-expression, then
+;; we need to eta-expand the goal to access the current state
+;; and set the surrounding state var syntax parameter
+(define (maybe-bind-surrounding-current-state-var g generated-goal)
+  (if (contains-term-from-expression? g)
+      #`(λ (st)
+          ((syntax-parameterize ([surrounding-current-state-var #'st])
+             #,generated-goal)
+           st))
+      generated-goal))
+
 (define/hygienic (generate-goal stx) #:expression
   (syntax-parse stx
     #:literal-sets (mk-literals)
@@ -54,14 +67,14 @@
     [fail #'mku:fail]
     [(c:unary-constraint t)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
-     #`(c^ #,(generate-term #'t))]
+     (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t)))]
     [(== t1 t2)
-     (generate-== stx)]
+     (maybe-bind-surrounding-current-state-var stx (generate-== stx))]
     [(c:binary-constraint t1 t2)
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
-     #`(c^ #,(generate-term #'t1) #,(generate-term #'t2))]
+     (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t1) #,(generate-term #'t2)))]
     [(#%rel-app n:id t ...)
-     #`(n #,@ (stx-map generate-term #'(t ...)))]
+     (maybe-bind-surrounding-current-state-var stx #`(n #,@ (stx-map generate-term #'(t ...))))]
     [(disj g1 g2)
      #`(mk:conde
          #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
@@ -84,15 +97,15 @@
                                  #'e)
           st))]
     [(apply-relation e t ...)
-     #`((relation-value-proc (check-relation e #'e))
-        #,@(stx-map generate-term #'(t ...)))]))
-
+     (maybe-bind-surrounding-current-state-var stx
+                                               #`((relation-value-proc (check-relation e #'e))
+                                                  #,@(stx-map generate-term #'(t ...))))]))
 
 (define (take-first-== g)
   (syntax-parse g
     #:context 'take-first-==
     #:literal-sets (mk-literals)
-    [(== . _)
+    [(== . _) #:when (not (contains-term-from-expression? g))
      (values this-syntax #f)]
     [(conj g1 g2)
      (define-values (the-== g1-rest) (take-first-== #'g1))
@@ -103,6 +116,13 @@
          (values #f this-syntax))]
     [_ (values #f this-syntax)]))
 
+;; IRGoal -> (values (listof IRGoal) (listof IRGoal))
+;;
+;; splits the block into the prefix that we can ==-optimize an the
+;; remainer that we cannot
+;;
+;; Note that when we have an == w/a term-from-expression in it, that
+;; == too terminates the optimization, so we split the block there
 (define (split-block g)
   (let loop ([g g] [==s '()])
     (define-values (the-== g-rest) (take-first-== g))
@@ -162,10 +182,11 @@
          st)]
     [(block (unify-g1 unify-gs ...) rest-g)
      (generate-optimized-unify
-      #'unify-g1
-      remaining-unify-vars
-      st
-      #'(block (unify-gs ...) rest-g))]))
+       #'unify-g1
+       remaining-unify-vars
+       st
+       #'(block (unify-gs ...) rest-g))]))
+
 
 (define (continue-block-conjunction block remaining-unify-vars st)
   #`(and #,st
@@ -218,9 +239,6 @@ syntax for which we have not yet introduced any bindings
         (generate-let-unify #'v #'t2 remaining-unify-vars st rest-block)]
        [else
         (generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? rest-block)])]
-    [(== (rkt-term e) (~and t2 (~not (#%lv-ref _))))
-     #`(let ([v (unseal-term e #'e)])
-         #,(generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? rest-block))]    
     [(== t1 t2)
      (error 'generate-optimized-unify "invariant violation")]))
 
@@ -244,8 +262,8 @@ syntax for which we have not yet introduced any bindings
      #`(#,join-point-name #,@join-point-vars (mku:ext-st-no-check w (mku:walk #,v (mku:state-S #,st)) #,st))]
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
-    [(rkt-term e)
-     #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'(unseal-vars-in-term e #'e) st no-occur?))]
+    [(term-from-expression e)
+     (error 'generate-matching-unify-body "invariant violation")]
     [(quote l)
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (cond
@@ -253,12 +271,12 @@ syntax for which we have not yet introduced any bindings
            [(equal? v^ 'l) (#,join-point-name #,@join-point-vars #,st)]
            [else #f]))]
     [(cons t2-a:term/c t2-b:term/c)
-     
+
      (define t2-vars (fresh-term-vars t2 fresh-unify-vars))
      (define t2-a-vars (fresh-term-vars #'t2-a fresh-unify-vars))
      (define/syntax-parse (t2-var ...) (free-id-set->list t2-vars))
      (define/syntax-parse (t2-a-var ...) (free-id-set->list t2-a-vars))
-     
+
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (cond
            [(mku:var? v^) (let ([t2-var (mku:var (mku:subst-scope (mku:state-S #,st)))] ...)
@@ -295,7 +313,7 @@ syntax for which we have not yet introduced any bindings
           #`(mku:unify2-no-occur-check #,v w #,st)]
          [else
           #`(mku:unify2 #,v w #,st)]))]
-    [(rkt-term e)
+    [(term-from-expression e)
      (if no-occur?
          #`(mku:unify2-no-occur-check #,v (unseal-vars-in-term e #'e) #,st)
          #`(mku:unify2 #,v (unseal-vars-in-term e #'e) #,st))]
@@ -336,7 +354,7 @@ syntax for which we have not yet introduced any bindings
       #:literals (quote cons)
       [(== (~and t1 (#%lv-ref v:id)) t2)
        (generate-specialized-unify #'v #'t2 no-occur?)]
-      [(== (~and t1 (rkt-term e)) (~and t2 (~not (#%lv-ref _))))
+      [(== (~and t1 (term-from-expression e)) (~and t2 (~not (#%lv-ref _))))
        (generate-specialized-unify #'(unseal-vars-in-term e #'e) #'t2 no-occur?)]
       ;; This could arise if we unify two rkt-terms. No way to specialize.
       [_
@@ -354,7 +372,7 @@ syntax for which we have not yet introduced any bindings
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref v:id) #'v]
-    [(rkt-term e)
+    [(term-from-expression e)
      #'(unseal-vars-in-term e #'e)]
     [(quote d)
      #'(quote d)]

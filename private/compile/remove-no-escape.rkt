@@ -244,7 +244,8 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(quote d) gid]
-    [(rkt-term e) gid]
+    [(term-from-expression e)
+     (mark-all-vars-used-in gid g)]
     [(#%lv-ref v)
      (add-term-id gid #'v g)]
     [(cons t1 t2)
@@ -319,6 +320,33 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
     (ir-rel ((~binders a d))
       (fresh ((~binder j))
         succeed))))
+
+  ;; Example of what pass should do, w/term-from-expression RHS
+  ;;
+  ;; We cannot remove the places where there is a term-from-exression
+  ;; b/c we cannot see what vars are used inside.
+  ;;
+  ;; However, subsequent blocks where variables haven't yet been
+  ;;introduced, we can remove those, b/c they still cannot have been
+  ;;referenced yet.
+  (progs-equal?
+   (remove-no-escape/rel
+    (generate-prog
+     (ir-rel ((~binders a d))
+       (fresh ((~binder j))
+         (conj
+           (== (#%lv-ref j) (term-from-expression 5))
+           (fresh ((~binder k))
+             (== (#%lv-ref k) (#%lv-ref a))))))))
+  (generate-prog
+    (ir-rel ((~binders a d))
+      (fresh ((~binder j))
+        (conj
+          (== (#%lv-ref j) (term-from-expression 5))
+          (fresh ((~binder k))
+            succeed))))))
+
+
 
   ;; TODO desired output would recognize disjs are independent branches
   ;; (generate-prog
