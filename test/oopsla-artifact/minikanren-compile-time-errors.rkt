@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../../main.rkt"
-         rackunit
+         (except-in rackunit fail)
          syntax/macro-testing)
 
 (check-exn

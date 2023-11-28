@@ -1,7 +1,7 @@
 #lang racket
 
 (require "../main.rkt"
-         rackunit)
+         (except-in rackunit fail))
 
 (define r
   (let ()

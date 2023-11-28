@@ -4,7 +4,7 @@
 (module a racket
   (require (rename-in minikanren-ee [#%rel-app core-#%rel-app])
            (for-syntax racket/base syntax/parse)
-           rackunit)
+           (except-in rackunit fail))
 
   (define-goal-macro #%rel-app
     (syntax-parser
@@ -28,7 +28,7 @@
 ;; syntax without the interposition point in scope expands okay
 (module b racket
   (require (except-in minikanren-ee #%lv-ref)
-           rackunit)
+           (except-in rackunit fail))
 
   (check-equal?
    (run 1 (q) (== q 5))
