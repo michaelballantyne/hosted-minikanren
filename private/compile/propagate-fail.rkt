@@ -237,12 +237,12 @@ in disjunction can impact the order of the search.
       (generate-prog
         (ir-rel ((~binder q))
           (conj
-            (== (#%lv-ref q) (rkt-term 5))
+            (== (#%lv-ref q) (term-from-expression 5))
             fail))))
     (generate-prog
       (ir-rel ((~binder q))
         (conj
-         (== (#%lv-ref q) (rkt-term 5))
+         (== (#%lv-ref q) (term-from-expression 5))
          fail))))
 
   (progs-equal?
@@ -250,12 +250,12 @@ in disjunction can impact the order of the search.
      (generate-prog
        (ir-rel ((~binder q))
          (conj
-          (conj (== (rkt-term 5) (#%lv-ref q))
+          (conj (== (term-from-expression 5) (#%lv-ref q))
                 fail)
           fail))))
    (generate-prog
      (ir-rel ((~binder q))
-       (conj (== (rkt-term 5) (#%lv-ref q))
+       (conj (== (term-from-expression 5) (#%lv-ref q))
              fail))))
 
   )
