@@ -81,6 +81,9 @@
 ;; A manually-written version that is what I imagine we should be able to optimize the
 ;; above to, keeping the same calling conventions and external constraints forced by
 ;; the structure of the interpreter it is staged from.
+;;
+;; TODO: this is probably actually faster right now because it only has one conde,
+;; unlike the other. So if we're preserving search order we can't optimize like this.
 (defrel (appendo-manual xs ys zs)
   (fresh ()
     ;; The absento and =/= struct constraints come from the way the example was generated
@@ -100,6 +103,7 @@
        (=/= xa 'struct)
        (== zs (cons xa zd))
        (appendo-manual-internal (list xd ys) zd)))))
+
 
 (define (100-appendo)
   (void (run 100 (l1 l2 l3) (appendo l1 l2 l3))))
