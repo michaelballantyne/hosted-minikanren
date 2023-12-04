@@ -18,6 +18,7 @@
 (require "icfp2017/challenge-3.rkt")
 (require "icfp2017/challenge-4.rkt")
 (require "icfp2017/challenge-7.rkt")
+(require "staging-result.rkt")
 
 
 (define complex-countdown3
@@ -100,7 +101,11 @@
 
   (benchmark-suite "full interp"
     ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
-    ["1 real quine" (run 4 (q) (full:evalo q q))]))
+    ["1 real quine" (run 4 (q) (full:evalo q q))])
+
+  (benchmark-suite "staging-result"
+    ["100 appendo" (100-appendo)]
+    ["100 appendo baseline" (100-appendo-manual)]))
 
 
 (module+ test
