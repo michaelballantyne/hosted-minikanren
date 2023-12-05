@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../main.rkt"
+         (for-syntax racket/base syntax/parse)
          racket/list
          racket/port
          (except-in rackunit fail))
@@ -20,6 +21,27 @@
        (goal-from-expression
         (print-out 'q (expression-from-term q))))))
  "q: 5\n")
+
+
+(run 1 (q)
+  (== 1 (term-from-expression
+         (begin
+           (printf "~a: ~a\n" 'q (expression-from-term q))
+           1)))
+  (== q 5))
+
+(define-goal-macro project
+  (syntax-parser
+    [(_ (x ...) e)
+     #'(goal-from-expression
+        (let ([x (expression-from-term x)] ...)
+          e))]))
+
+(run 1 (q)
+  (== q 5)
+  (project (q)
+    (print-out 'q q)))
+
 
 (check-equal?
  (with-output-to-string
