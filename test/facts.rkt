@@ -3,6 +3,7 @@
 (provide define-facts-table assert-fact query-facts)
 
 (require "../main.rkt" db sql
+         (except-in racket/match ==)
          (for-syntax racket/base syntax/parse))
 
 (struct facts-table [conn insert query])
@@ -12,46 +13,50 @@
   (query-exec conn create-statement)
   conn)
 
-(define-syntax-rule
-  (define-facts-table name [field ...])
+(define-syntax-rule (create-table/connect . args)
+  (connect-and-create (create-table . args)))
+
+(define-syntax-rule (make-facts-table conn name field ...)
+  (facts-table
+   conn
+   (insert #:into name #:set [field ?] ...)
+   (select field ... #:from name)))
+
+(define-syntax-rule (define-facts-table name [field ...])
   (define name
-    (let ([conn (connect-and-create
-                 (create-table #:temporary name #:columns [field text] ...))])
-      (facts-table
-       conn
-       (insert #:into name #:set [field ?] ...)
-       (select field ... #:from name)))))
+    (let ([conn (create-table/connect #:temporary name #:columns [field text] ...)])
+      (make-facts-table conn name field ...))))
 
 (define (assert-fact ft . args)
-  (define c (facts-table-conn ft))
-  (define insert-stmt (facts-table-insert ft))
-  (apply query-exec c insert-stmt args))
+  (match ft
+    [(facts-table conn insert _)
+     (apply query-exec (conn ft) (insert ft) args)]))
 
 ;; TODO: currently this uses a prebuilt query that doesn't leverage
 ;; known information about the arguments to filter at all! That should be improved.
 (define (do-query ft args)
   (define c (facts-table-conn ft))
   (define query (facts-table-query ft))
-  (query-rows c query))
+  (map vector->list (query-rows c query)))
 
 (define (unify-query-results query-res args)
-  (if (null? query-res)
-      (expression-from-goal fail)
+  (match query-res
+    ['() (expression-from-goal fail)]
+    [(cons a d)
       (expression-from-goal
-       (conde
-         [(== (term-from-expression (vector->list (car query-res))) (term-from-expression args))]
-         [(goal-from-expression (unify-query-results (cdr query-res) args))]))))
+        (conde
+          [(== (term-from-expression a) (term-from-expression args))]
+          [(goal-from-expression (unify-query-results d args))]))]))
 
 (define (query-facts-rt ft . args)
-  (define query-res (do-query ft args))
-  (unify-query-results query-res args))
+  (unify-query-results (do-query ft args) args))
 
 (define-syntax query-facts
   (goal-macro
-   (syntax-parser
-     [(_ ft args ...)
-      #'(goal-from-expression
-          (query-facts-rt ft (expression-from-term args) ...))])))
+    (syntax-parser
+      [(_ ft args ...)
+       #'(goal-from-expression
+           (query-facts-rt ft (expression-from-term args) ...))])))
 
 (module+ test
   (require rackunit)
