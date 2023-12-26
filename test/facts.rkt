@@ -29,15 +29,15 @@
 
 (define (assert-fact ft . args)
   (match ft
-    [(facts-table conn insert _)
-     (apply query-exec (conn ft) (insert ft) args)]))
+    [(facts-table c i _)
+     (apply query-exec c i args)]))
 
 ;; TODO: currently this uses a prebuilt query that doesn't leverage
 ;; known information about the arguments to filter at all! That should be improved.
 (define (do-query ft args)
-  (define c (facts-table-conn ft))
-  (define query (facts-table-query ft))
-  (map vector->list (query-rows c query)))
+  (match ft
+    [(facts-table c _ q)
+     (map vector->list (query-rows c q))]))
 
 (define (unify-query-results query-res args)
   (match query-res
