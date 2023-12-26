@@ -11,7 +11,14 @@
 
 (struct relation-value [proc])
 (struct goal-value [proc])
-(struct sealed-lvar [var])
+(struct mk-lvar [var]
+  #:methods gen:equal+hash
+  [(define (equal-proc this other rec)
+     (eq? (mk-lvar-var this) (mk-lvar-var other)))
+   (define (hash-proc this rec)
+     (rec (mk-lvar-var this)))
+   (define (hash2-proc this rec)
+     (rec (mk-lvar-var this)))])
 
 (define (check-natural val blame-stx)
   (if (natural? val)
@@ -36,13 +43,16 @@
        val
        blame-stx)))
 
+(define (mk-atom? t)
+  (or (string? t)
+      (symbol? t)
+      (number? t)
+      (boolean? t)))
+
 (define (mk-value? v)
-  (or (symbol? v)
-      (string? v)
-      (number? v)
-      (null? v)
-      (boolean? v)
-      (sealed-lvar? v)
+  (or (null? v)
+      (mk-atom? v)
+      (mk-lvar? v)
       (and (pair? v)
            (mk-value? (car v))
            (mk-value? (cdr v)))))
@@ -55,7 +65,7 @@
          (null? v)
          (boolean? v))
      v]
-    [(sealed-lvar? v) (sealed-lvar-var v)]
+    [(mk-lvar? v) (mk-lvar-var v)]
     [(pair? v) (cons (unseal-vars-in-term (car v) blame-stx)
                      (unseal-vars-in-term (cdr v) blame-stx))]
     [else (raise-argument-error/stx 'term "mk-value?" v blame-stx)]))
@@ -76,6 +86,6 @@
   (cond
     [(pair? t) (cons (seal-vars-in-term (car t))
                      (seal-vars-in-term (cdr t)))]
-    [(mku:var? t) (sealed-lvar t)]
+    [(mku:var? t) (mk-lvar t)]
     [else t])
   )

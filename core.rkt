@@ -7,6 +7,7 @@
 ;
 
 (require "private/interface-macros.rkt"
+         "private/runtime.rkt"
          (for-syntax (only-in "private/compile.rkt" set-optimization-mode!)))
 
 (provide run run* relation define-relation defrel
@@ -20,7 +21,7 @@
          term-from-expression expression-from-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
-         mk-value? relation-value?
+         mk-value? mk-atom? mk-lvar? relation-value?
          relation-code
          relation-code/optimized
          relation-code/compiled

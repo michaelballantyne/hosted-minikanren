@@ -39,7 +39,6 @@
          term-from-expression expression-from-term
          (for-syntax term-macro goal-macro)
          define-goal-macro define-term-macro
-         mk-value? relation-value?
          relation-code
          relation-code/optimized
          relation-code/compiled)

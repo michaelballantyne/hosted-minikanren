@@ -192,3 +192,17 @@
    (goal-from-expression
     (cat-or-dog #true (expression-from-term q))))
  '(cat))
+
+(check-equal?
+ (run 1 (q)
+      (fresh (x y z)
+             (== x y)
+             (== q (term-from-expression (list (equal? y y) (equal? x y) (equal? x z))))))
+ '((#t #t #f)))
+
+(check-equal?
+ (run 1 (q)
+      (fresh (x y z)
+             (== x (list 5 y))
+             (== q (term-from-expression (list (mk-lvar? x) (mk-lvar? (second x)))))))
+ '((#f #t)))
