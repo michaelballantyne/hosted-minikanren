@@ -104,8 +104,10 @@
     ["1 real quine" (run 4 (q) (full:evalo q q))])
 
   (benchmark-suite "staging-result"
-    ["100 appendo" (100-appendo)]
-    ["100 appendo baseline" (100-appendo-manual)]))
+    ["appendo-forwards" (appendo-forwards)]
+    ["appendo-forwards-manual" (appendo-forwards-manual)]
+    ["appendo-uninstantiated" (appendo-uninstantiated)]
+    ["appendo-uninstantiated-manual" (appendo-uninstantiated-manual)]))
 
 
 (module+ test

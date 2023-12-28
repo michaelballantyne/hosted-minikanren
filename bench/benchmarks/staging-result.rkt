@@ -1,8 +1,8 @@
 #lang racket/base
 
-(require benchmark-minikanren)
+(require benchmark-minikanren racket/list)
 
-(provide 100-appendo 100-appendo-manual)
+(provide appendo-forwards appendo-forwards-manual appendo-uninstantiated appendo-uninstantiated-manual)
 
 ;; A benchmark produced by staging the following in staged minikanren,
 ;; manually fixed up a bit to fit within the language of minikanren-ee.
@@ -105,8 +105,27 @@
        (appendo-manual-internal (list xd ys) zd)))))
 
 
-(define (100-appendo)
+
+
+(define (appendo-forwards)
+  (define l1 (make-list 10000 'x))
+  (define l2 (make-list 10000 'y))
+  (void (run* (l3) (appendo l1 l2 l3))))
+
+(define (appendo-forwards-manual)
+  (define l1 (make-list 10000 'x))
+  (define l2 (make-list 10000 'y))
+  (void (run* (l3) (appendo-manual l1 l2 l3))))
+
+(define (appendo-uninstantiated)
   (void (run 100 (l1 l2 l3) (appendo l1 l2 l3))))
 
-(define (100-appendo-manual)
+(define (appendo-uninstantiated-manual)
   (void (run 100 (l1 l2 l3) (appendo-manual l1 l2 l3))))
+
+
+(module+ main
+  (time (appendo-forwards))
+  (time (appendo-forwards-manual))
+  (time (appendo-uninstantiated))
+  (time (appendo-uninstantiated-manual)))
