@@ -5,7 +5,7 @@
 (require "../main.rkt" db sql
          (except-in racket/match ==)
          (for-syntax racket/base syntax/parse))
-
+;; Does this also need a private runtime kind of module?
 (struct facts-table [conn insert query])
 (struct wildcard ())
 
@@ -31,6 +31,7 @@
 (define (assert-fact ft . args)
   (match ft
     [(facts-table c i _)
+     ;; Shouldn't this also validate the db and args?
      (apply query-exec c i args)]))
 
 (define-syntax query-facts
@@ -66,7 +67,7 @@
     [(facts-table c _ q)
      (map vector->list (query-rows c q))]))
 
-;; [Listof Atom] [Listof TermVal] -> GoalVal
+;; [Listof [Listof Atom]] [Listof TermVal] -> GoalVal
 (define (unify-query-results query-res args)
   (match query-res
     ['() (expression-from-goal fail)]
