@@ -41,12 +41,19 @@
            (query-facts-rt ft (list args ...)))])))
 
 (define (query-facts-rt ft args)
-  (define matching-rows (do-query ft (map validate args)))
+  (define matching-rows (do-query (validate-table ft) (map validate-term args)))
   (unify-query-results matching-rows args))
+
+;; Table -> Table
+;; THROWS when Table is not a facts table
+(define (validate-table ft)
+  (cond
+    [(facts-table? ft) ft]
+    [else (error 'query-facts "Must query a facts table")]))
 
 ;; Term -> (Or Atom Wildcard)
 ;; THROWS when Term is instantiated to a non-atom
-(define (validate t)
+(define (validate-term t)
   (match t
     [(? mk-atom?) t]
     [(? mk-lvar?) (wildcard)]
