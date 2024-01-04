@@ -64,7 +64,7 @@
 
 (define (compile-expression-from-goal g)
   (define vars-in-scope (syntax-parameter-value #'surrounding-term-vars-in-scope))
-  #`(goal-value #,(compile-goal #f g vars-in-scope #f)))
+  #`(seal-goal #,(compile-goal #f g vars-in-scope #f)))
 
 (define (compile-expression-from-term term-exp)
   #`(expression-from-term-rt #,(generate-term term-exp)

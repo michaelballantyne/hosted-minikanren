@@ -28,33 +28,27 @@
     (let ([conn (create-table/connect #:temporary name #:columns [field text] ...)])
       (make-facts-table conn name field ...))))
 
+;; define/contract
 (define (assert-fact ft . args)
   (match ft
     [(facts-table c i _)
-     ;; Shouldn't this also validate the db and args?
      (apply query-exec c i args)]))
 
 (define-syntax query-facts
   (goal-macro
     (syntax-parser
-      [(_ ft args ...)
+      [(_ ft arg ...)
        #'(goal-from-expression
-           (query-facts-rt ft (list args ...)))])))
+           (query-facts-rt ft (list arg ...)))])))
 
-(define (query-facts-rt ft args)
-  (define matching-rows (do-query (validate-table ft) (map validate-term args)))
-  (unify-query-results matching-rows args))
+(define (query-facts-rt ft terms)
+  (define matching-rows (do-query ft (map wildcardify terms)))
+  (unify-query-results matching-rows terms))
 
-;; Table -> Table
-;; THROWS when Table is not a facts table
-(define (validate-table ft)
-  (cond
-    [(facts-table? ft) ft]
-    [else (error 'query-facts "Must query a facts table")]))
-
+;; define/contract
 ;; Term -> (Or Atom Wildcard)
 ;; THROWS when Term is instantiated to a non-atom
-(define (validate-term t)
+(define (wildcardify t)
   (match t
     [(? mk-atom?) t]
     [(? mk-lvar?) (wildcard)]

@@ -10,7 +10,7 @@
 ; Runtime
 
 (struct relation-value [proc])
-(struct goal-value [proc])
+(struct mk-goal [proc])
 (struct mk-lvar [var]
   #:methods gen:equal+hash
   [(define (equal-proc this other rec)
@@ -34,9 +34,12 @@
        val
        blame-stx)))
 
-(define (check-and-unseal-goal val blame-stx)
-  (if (goal-value? val)
-      (goal-value-proc val)
+(define (seal-goal g)
+  (mk-goal g))
+
+(define (unseal-and-apply-goal val blame-stx state)
+  (if (mk-goal? val)
+      ((mk-goal-proc val) state)
       (raise-argument-error/stx
        'goal-from-expression
        "goal-value?"
@@ -57,7 +60,7 @@
            (mk-value? (car v))
            (mk-value? (cdr v)))))
 
-(define (unseal-vars-in-term v blame-stx)
+(define (check-and-unseal-vars-in-term v blame-stx)
   (cond
     [(or (symbol? v)
          (string? v)
@@ -66,8 +69,8 @@
          (boolean? v))
      v]
     [(mk-lvar? v) (mk-lvar-var v)]
-    [(pair? v) (cons (unseal-vars-in-term (car v) blame-stx)
-                     (unseal-vars-in-term (cdr v) blame-stx))]
+    [(pair? v) (cons (check-and-unseal-vars-in-term (car v) blame-stx)
+                     (check-and-unseal-vars-in-term (cdr v) blame-stx))]
     [else (raise-argument-error/stx 'term "mk-value?" v blame-stx)]))
 
 (define (expression-from-term-rt t st)

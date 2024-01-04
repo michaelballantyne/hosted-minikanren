@@ -91,11 +91,11 @@
     [(goal-from-expression e)
      #:with (var-in-scope ...) (syntax-property this-syntax TERM-VARS-IN-SCOPE)
      #'(λ (st)
-         ((check-and-unseal-goal (syntax-parameterize ([surrounding-current-state-var #'st]
+         (unseal-and-apply-goal (syntax-parameterize ([surrounding-current-state-var #'st]
                                                        [surrounding-term-vars-in-scope (list #'var-in-scope ...)])
                                    e)
-                                 #'e)
-          st))]
+                                 #'e
+                                 st))]
     [(apply-relation e t ...)
      (maybe-bind-surrounding-current-state-var stx
                                                #`((relation-value-proc (check-relation e #'e))
@@ -315,8 +315,8 @@ syntax for which we have not yet introduced any bindings
           #`(mku:unify2 #,v w #,st)]))]
     [(term-from-expression e)
      (if no-occur?
-         #`(mku:unify2-no-occur-check #,v (unseal-vars-in-term e #'e) #,st)
-         #`(mku:unify2 #,v (unseal-vars-in-term e #'e) #,st))]
+         #`(mku:unify2-no-occur-check #,v (check-and-unseal-vars-in-term e #'e) #,st)
+         #`(mku:unify2 #,v (check-and-unseal-vars-in-term e #'e) #,st))]
     [(quote l)
      #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
          (let ([t (quote l)])
@@ -353,7 +353,7 @@ syntax for which we have not yet introduced any bindings
       [(== (~and t1 (#%lv-ref v:id)) t2)
        (generate-specialized-unify #'v #'t2 no-occur?)]
       [(== (~and t1 (term-from-expression e)) (~and t2 (~not (#%lv-ref _))))
-       (generate-specialized-unify #'(unseal-vars-in-term e #'e) #'t2 no-occur?)]
+       (generate-specialized-unify #'(check-and-unseal-vars-in-term e #'e) #'t2 no-occur?)]
       [_ (error 'generate-== "invariant violation")])
     (generate-plain-== stx no-occur?)))
 
@@ -369,7 +369,7 @@ syntax for which we have not yet introduced any bindings
     #:literals (quote cons)
     [(#%lv-ref v:id) #'v]
     [(term-from-expression e)
-     #'(unseal-vars-in-term e #'e)]
+     #'(check-and-unseal-vars-in-term e #'e)]
     [(quote d)
      #'(quote d)]
     [(cons t1:term/c t2:term/c)
