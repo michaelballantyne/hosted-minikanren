@@ -120,8 +120,9 @@
   (define code (symbol-table-ref optimized-relation-code #'name #f))
   (when (not code)
     (error 'relation-code/optimized "can only access code of relations defined in the current module"))
-  #`#'#,code)
- 
+  (define/syntax-parse ((step step-code) ...) code)
+  #'(list (list 'step #'step-code) ...))
+
  (host-interface/expression
   (relation-code/compiled name:relation-name)
   (define code (symbol-table-ref compiled-relation-code #'name #f))

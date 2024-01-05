@@ -225,7 +225,7 @@ syntax for which we have not yet introduced any bindings
 
 (define/hygienic (generate-optimized-unify stx remaining-unify-vars st rest-block) #:expression
   (define no-occur? (syntax-property stx SKIP-CHECK))
-  
+
   (syntax-parse stx
     #:context 'generate-optimized-unify
     #:literal-sets (mk-literals)

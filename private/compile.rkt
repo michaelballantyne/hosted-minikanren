@@ -45,11 +45,6 @@
 
 (define-local-symbol-table optimized-relation-code)
 
-(define ((save-optimized name) g fvs fvs-free?)
-  (when name
-    (symbol-table-set! optimized-relation-code name g))
-  g)
-
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
     [(run* (q ...) g)
@@ -74,39 +69,53 @@
   #`(expression-from-term-rt #,compiled-term-var-id
                              #,(syntax-parameter-value #'surrounding-current-state-var)))
 
-(define (compile-goal name g fvs fvs-free?)
-  (define g^ (optimize-goal name g fvs fvs-free?))
+(define (compile-goal name g fvs fvs-fresh?)
+  (define g^ (optimize-goal name g fvs fvs-fresh?))
   ;; It is sufficient to do the with-reference-compilers only here because an expression-from-term
   ;; outside of any goal (and thus any fresh) can have no free term variable references.
   #`(with-reference-compilers ([term-variable compile-term-variable-reference])
       #,(generate-goal/entry g^ (hash-ref optimization-mode 'unification-spec))))
 
-(define (optimize-goal name g fvs fvs-free?)
+
+(define (optimize-goal name g fvs fvs-fresh?)
 
   (define (specialize-pass-to-free-variables p)
-    (λ (g) (p g fvs fvs-free?)))
+    (λ (g) (p g fvs fvs-fresh?)))
+
+  (define optimized-code-hash (list))
+  (define ((save-optimized-step step) g fvs fvs-fresh?)
+    (set! optimized-code-hash (append optimized-code-hash (list (list step #`(ir-rel #,fvs #,g)))))
+    g)
 
   (define passes
     (append
      (if (hash-ref optimization-mode 'constant-prop)
-         (list fold/entry)
+         (list fold/entry
+               (save-optimized-step 'constant-prop))
          '())
      (if (hash-ref optimization-mode 'dead-code)
          (list propagate-fail/entry
                remove-no-escape/entry
                remove-noop/entry
-               remove-unused-vars/entry)
+               remove-unused-vars/entry
+               (save-optimized-step 'dead-code))
          '())
      (if (hash-ref optimization-mode 'occurs-check)
-         (list mark-redundant-check/entry)
+         (list mark-redundant-check/entry
+               (save-optimized-step 'occurs-check))
          '())
      (if (hash-ref optimization-mode 'unification-spec)
-         (list first-refs/entry)
-         '())
-     (list (save-optimized name))))
+         (list first-refs/entry
+               (save-optimized-step 'first-refs))
+         '())))
 
-  ((apply compose1r (map specialize-pass-to-free-variables passes)) g)
-  )
+  (define g-optimized
+    ((apply compose1r (map specialize-pass-to-free-variables passes)) g))
+
+  (when name
+    (symbol-table-set! optimized-relation-code name optimized-code-hash))
+
+  g-optimized)
 
 (define (compose1r . procs) (apply compose1 (reverse procs)))
 
