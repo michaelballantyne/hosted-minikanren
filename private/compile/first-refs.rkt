@@ -5,7 +5,7 @@
          (only-in racket/sequence in-syntax)
          (for-template racket/base
                        "../forms.rkt")
-         (only-in "prop-vars.rkt" FIRST-REF)
+         "prop-vars.rkt"
          "../syntax-classes.rkt")
 
 (provide first-refs/entry)
@@ -27,6 +27,13 @@
     [(c:unary-constraint t)
      (let-values ([(t^ refs^) (annotate-term #'t id-refs)])
        (values #`(c #,t^) refs^))]
+    [(== t1 t2)
+     (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
+                   [(t2^ refs^^) (annotate-term #'t2 refs^)]
+                   [(stx^) #`(== #,t1^ #,t2^)])
+       (if (syntax-property g SKIP-CHECK)
+           (values (syntax-property stx^ SKIP-CHECK #t) refs^^)
+           (values stx^ refs^^)))]
     [(c:binary-constraint t1 t2)
      (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
                    [(t2^ refs^^) (annotate-term #'t2 refs^)])
@@ -89,7 +96,7 @@
            (for-syntax racket/base
                        syntax/parse
                        "./test/unit-test-progs.rkt"
-                       (only-in "prop-vars.rkt" FIRST-REF)
+                       "prop-vars.rkt"
                        (submod "..")))
 
 (begin-for-syntax
@@ -230,5 +237,26 @@
                 (cons (~missing (#%lv-ref x) FIRST-REF)
                       (~missing (#%lv-ref y) FIRST-REF))))))))
 
+  ;; SKIP-CHECK is preserved and FIRST-REF is added
+  (progs-equal?
+    (first-refs/rel
+      (generate-prog
+        (ir-rel ((~binder q))
+          (fresh ((~binder x))
+            (~prop (== (#%lv-ref x) (quote 5)) SKIP-CHECK #t)))))
+    (generate-prog
+      (ir-rel ((~binder q))
+        (fresh ((~binder x))
+          (~check (== (#%lv-ref x) (quote 5)) SKIP-CHECK)))))
+  (progs-equal?
+    (first-refs/rel
+      (generate-prog
+        (ir-rel ((~binder q))
+          (fresh ((~binder x))
+            (~prop (== (#%lv-ref x) (quote 5)) SKIP-CHECK #t)))))
+    (generate-prog
+      (ir-rel ((~binder q))
+        (fresh ((~binder x))
+          (== (~check (#%lv-ref x) FIRST-REF) (quote 5))))))
 
   )

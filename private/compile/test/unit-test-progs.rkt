@@ -126,7 +126,9 @@
   (progs-equal?
     (generate-prog (~props 5 'foo #t 'bar #t))
     (generate-prog (~check 5 'bar)))
-      
+
+  (progs-equal? (generate-prog ((~binder x) (~prop  (x x) 'bar #t)))
+                (generate-prog ((~binder x) (~check (x x) 'bar))))
 
 
   ;; testing alpha-equivalence of core forms

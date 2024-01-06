@@ -225,10 +225,11 @@
 
 (define (alpha=?-helper stx1 stx2 table)
   (syntax-parse (list stx1 stx2) #:literal-sets ()
-    [_ #:when (syntax-property stx2 'check)
+    [_
+     #:when (syntax-property stx2 'check)
      (if (syntax-property stx1 (syntax-property stx2 'check))
-       (alpha=?-helper stx1 (syntax-property-remove stx2 'check) table)
-       (make-result #f stx1 stx2))]
+         (alpha=?-helper stx1 (syntax-property-remove stx2 'check) table)
+         (make-result #f stx1 stx2))]
     [_ #:when (syntax-property stx2 'missing)
      (if (syntax-property stx1 (syntax-property stx2 'missing))
        (make-result #f stx1 stx2)
