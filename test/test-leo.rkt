@@ -34,12 +34,13 @@
 ;;    (route-m layover b remaining-path)])
 
 (define (reify-syntax-properties stx)
-  (syntax-parse stx #:datum-literals (== #%lv-ref)
+  (syntax-parse stx
+    #:datum-literals (== #%lv-ref)
     [(== arg ...)
-     #:when (syntax-property this-syntax 'skip-occurs-check)
+     #:when (syntax-property stx 'skip-occurs-check)
      #`(==/no-check . #,(map reify-syntax-properties (attribute arg)))]
     [(#%lv-ref v)
-     #:when (syntax-property this-syntax 'first-ref)
+     #:when (syntax-property stx 'first-ref)
      #'(#%lv-ref/first v)]
     [(a . d) #`(#,(reify-syntax-properties #'a) . #,(reify-syntax-properties #'d))]
     [_ stx]))

@@ -8,7 +8,7 @@
          (for-template racket/base
                        "../forms.rkt")
          "../syntax-classes.rkt"
-         (only-in "prop-vars.rkt" SKIP-CHECK))
+         (only-in "prop-vars.rkt" SKIP-CHECK set-skip-check))
 
 (provide mark-redundant-check/entry)
 
@@ -325,7 +325,7 @@
      (let-values ([(s^ can-skip?) (unify #'t1 #'t2 s)])
        (values
          (if can-skip?
-           (syntax-property this-syntax SKIP-CHECK #t)
+           (set-skip-check this-syntax)
            this-syntax)
          s^))]
     [(c:binary-constraint t1 t2) (values this-syntax s)] ;; TODO do any other binary constraints make the pass unsound?

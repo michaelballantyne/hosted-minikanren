@@ -32,7 +32,7 @@
                    [(t2^ refs^^) (annotate-term #'t2 refs^)]
                    [(stx^) #`(== #,t1^ #,t2^)])
        (if (syntax-property g SKIP-CHECK)
-           (values (syntax-property stx^ SKIP-CHECK #t) refs^^)
+           (values (set-skip-check stx^) refs^^)
            (values stx^ refs^^)))]
     [(c:binary-constraint t1 t2)
      (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
@@ -82,7 +82,7 @@
     [(term-from-expression e) (values this-syntax (immutable-free-id-set))]
     [(#%lv-ref v)
      (if (free-id-set-member? id-refs #'v)
-       (values (syntax-property this-syntax FIRST-REF #t) (free-id-set-remove id-refs #'v))
+       (values (set-first-ref this-syntax) (free-id-set-remove id-refs #'v))
        (values this-syntax id-refs))]
     [(cons t1 t2)
      (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
