@@ -218,7 +218,7 @@ syntax for which we have not yet introduced any bindings
                                  (free-id-set-subtract remaining-unify-vars t2-fresh-vars)
                                  v))
   (define/syntax-parse (t2-fresh-var ...) (free-id-set->list t2-fresh-vars))
-  #`(let ([sc (mku:subst-scope (mku:state-S #,st))])
+  #`(let ([sc (mku:get-state-from-scope #,st)])
       (let ([t2-fresh-var (mku:var sc)] ...)
         (let ([#,v #,(generate-term t2)])
           #,(continue-block-conjunction rest-block remaining-unify-vars^ st)))))
@@ -259,15 +259,17 @@ syntax for which we have not yet introduced any bindings
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
      #:when (syntax-property this-syntax FIRST-REF)
-     #`(#,join-point-name #,@join-point-vars (mku:ext-st-no-check w (mku:walk #,v (mku:state-S #,st)) #,st))]
+     ;; TODO  ext-s-w/no-check w v st -> extract runtime helper
+     #`(#,join-point-name #,@join-point-vars (mku:ext-st-w/no-check w mku:walk #,v #,st))]
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(term-from-expression e)
      (error 'generate-matching-unify-body "invariant violation")]
     [(quote l)
-     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+     #`(let ([v^ (mku:walk-in-state #,v #,st)])
          (cond
            [(mku:var? v^) (#,join-point-name #,@join-point-vars (mku:ext-st-check-c v^ 'l #,st))]
+           ;; NB. We could specialize on the type of l here; if it's a symbol you could use eq, numbers eqv?, etc.
            [(equal? v^ 'l) (#,join-point-name #,@join-point-vars #,st)]
            [else #f]))]
     [(cons t2-a:term/c t2-b:term/c)
@@ -276,10 +278,9 @@ syntax for which we have not yet introduced any bindings
      (define t2-a-vars (fresh-term-vars #'t2-a fresh-unify-vars))
      (define/syntax-parse (t2-var ...) (free-id-set->list t2-vars))
      (define/syntax-parse (t2-a-var ...) (free-id-set->list t2-a-vars))
-
-     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+     #`(let ([v^ (mku:walk-in-state #,v #,st)])
          (cond
-           [(mku:var? v^) (let ([t2-var (mku:var (mku:subst-scope (mku:state-S #,st)))] ...)
+           [(mku:var? v^) (let ([t2-var (mku:fresh-var-w-state-scope #,st)] ...)
                             (#,join-point-name #,@join-point-vars
                                                #,(generate-ext #'v^ (generate-term t2) st no-occur?)))]
            [(pair? v^)
@@ -307,7 +308,7 @@ syntax for which we have not yet introduced any bindings
     [(#%lv-ref w:id)
      (let ([first-ref? (syntax-property t2 FIRST-REF)])
        (cond
-         [first-ref? #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+         [first-ref? #`(let ([v^ (mku:walk-in-state #,v #,st)])
                          (mku:ext-st-no-check w v^ #,st))]
          [no-occur?
           #`(mku:unify2-no-occur-check #,v w #,st)]
@@ -315,17 +316,17 @@ syntax for which we have not yet introduced any bindings
           #`(mku:unify2 #,v w #,st)]))]
     [(term-from-expression e)
      (if no-occur?
-         #`(mku:unify2-no-occur-check #,v (check-and-unseal-vars-in-term e #'e) #,st)
-         #`(mku:unify2 #,v (check-and-unseal-vars-in-term e #'e) #,st))]
+         #`(mku:unify2-no-occur-check #,v (check-and-unseal-vars-in-term e #'e) #,st) ;; extract-runtime-helper
+         #`(mku:unify2 #,v (check-and-unseal-vars-in-term e #'e) #,st))] ;; extract-runtime-helper
     [(quote l)
-     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+     #`(let ([v^ (mku:walk-in-state #,v #,st)])
          (let ([t (quote l)])
          (cond
              [(equal? v^ t) #,st]
              [(mku:var? v^) (mku:ext-st-check-c v^ t #,st)]
              [else #f])))]
     [(cons t2-a:term/c t2-b:term/c)
-     #`(let ([v^ (mku:walk #,v (mku:state-S #,st))])
+     #`(let ([v^ (mku:walk-in-state #,v #,st)])
          (cond
            [(mku:var? v^)
             (let ([t #,(generate-term t2)])
@@ -415,7 +416,7 @@ syntax for which we have not yet introduced any bindings
     (lambda (a)
       (mku:fresh ()
                  (lambda (st)
-                   (let ([sc (mku:subst-scope (mku:state-S st))])
+                   (let ([sc (mku:get-state-from-scope st)])
                      (let ()
                        (let ((v '5))
                          (and st st)))))))))

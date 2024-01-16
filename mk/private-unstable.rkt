@@ -11,7 +11,7 @@
   (provide (all-defined-out))
 
   (require racket/list)
-  
+
   (define (list-sort f l) (sort l f))
 
   (define (remp f l) (filter-not f l))
@@ -37,4 +37,15 @@
 (define (intmap-ref m k) (hash-ref m k (lambda () unbound)))
 (define (intmap-set m k v) (hash-set m k v))
 
+
 (include "mk.scm")
+
+;; Compiler runtime helpers
+(define get-state-from-scope (compose subst-scope state-S))
+
+(define fresh-var-w-state-scope (compose var get-state-from-scope))
+
+(define (walk-in-state v st) (walk v (state-S st)))
+
+(define (extend-s-w/no-check w v st)
+  (ext-st-no-check w (walk-in-state v st) st))
