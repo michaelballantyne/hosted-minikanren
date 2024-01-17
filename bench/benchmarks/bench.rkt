@@ -93,7 +93,7 @@
     ["color kazakhstan" (do-kazakhstan)])
 
   (benchmark-suite "simple interp"
-    ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))])
+    ["complex-countdown 2" (run 1 (q) (simple:evalo complex-countdown2 q))])
 
   (benchmark-suite "simple matche-interp"
     ["unoptimized-matche-interp" (unoptimized-matche-interp)]

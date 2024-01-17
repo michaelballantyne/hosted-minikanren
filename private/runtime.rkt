@@ -76,11 +76,11 @@
 (define (expression-from-term-rt t st)
   (seal-vars-in-term (mku:walk* t (mku:state-S st))))
 
-(define check-constraints 
-  (lambda (S^ added st)
-    (if S^
-        (mku:and-foldl mku:update-constraints (mku:state S^ (mku:state-C st)) added)
-        #f)))
+(define (unify2/no-occur-check/check-unseal-vars v e e-stx st)
+  (mku:unify2-no-occur-check v (check-and-unseal-vars-in-term e e-stx) st))
+
+(define (unify2/check-unseal-vars v e e-stx st)
+  (mku:unify2 v (check-and-unseal-vars-in-term e e-stx) st))
 
 (define-syntax-parameter surrounding-term-vars-in-scope '())
 (define-syntax-parameter surrounding-current-state-var #'mku:empty-state)
@@ -92,3 +92,21 @@
     [(mku:var? t) (mk-lvar t)]
     [else t])
   )
+
+;; Compiler runtime helpers
+(define (get-state-from-scope st)
+  (mku:subst-scope (mku:state-S st)))
+
+(define (fresh-var-w-state-scope st)
+  (mku:var (get-state-from-scope st)))
+
+(define (walk-in-state v st)
+  (mku:walk v (mku:state-S st)))
+
+(define (extend-s-w/no-check w v st)
+  (mku:ext-st-no-check w (walk-in-state v st) st))
+
+(define (check-constraints S^ added st)
+  (if S^
+      (mku:and-foldl mku:update-constraints (mku:state S^ (mku:state-C st)) added)
+      #f))
