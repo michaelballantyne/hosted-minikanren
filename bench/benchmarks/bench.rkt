@@ -18,6 +18,7 @@
 (require "icfp2017/challenge-3.rkt")
 (require "icfp2017/challenge-4.rkt")
 (require "icfp2017/challenge-7.rkt")
+(require "appendo.rkt")
 (require "staging-result.rkt")
 
 
@@ -61,49 +62,44 @@
 
 (module+ main
 
-  (benchmark-suite "numbers"
-    ["logo-hard" (logo-hard-program)])
+  (benchmark-suite "oc-dependent"
+    ["dmitri leo 8000" (dmitri:leo-801)]
+    ["standard-appendo-forwards" (standard-appendo-forwards)])
 
-  (benchmark-suite "all-in-fd"
-    ["all-in-fd" (all-in-fd)])
-
-  (benchmark-suite "four-fours"
-    ["256" (four-fours 256)])
-
-  (benchmark-suite "test fact"
+  (benchmark-suite "mk-arith"
+    ["logo-hard" (logo-hard-program)]
+    ["256" (four-fours 256)]
     ["slow fact 6 = 720" (slow-fact-6-720)])
 
-  (benchmark-suite "oxford artifact"
+  (benchmark-suite "relational-interp"
+    #| "oxford artifact" |#
     ["love in 9900 ways" (love-in-9900-ways)]
     ["four-thrines-small" (four-thrines)]
     #;["twine-in-standard" (twine-slow)]
     ["dynamic-then-lexical-3-expressions" (dynamic-then-lexical-3-expressions)]
     ["lexical-then-dynamic-3-expressions" (lexical-then-dynamic-3-expressions)]
     ["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)]
-    #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)])
+    #| "simple matche-interp" |#
+    ["unoptimized-matche-interp" (unoptimized-matche-interp)]
+    ["optimized-matche-interp" (optimized-matche-interp)]
+    #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)]
+    #| "simple interp"|#
+    ["complex-countdown 2" (run 1 (q) (simple:evalo complex-countdown2 q))]
+    #| "full interp" |#
+    #;["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
+    ["1 real quine" (run 4 (q) (full:evalo q q))])
 
-  (benchmark-suite "dmitri oc bench check"
-    ["dmitri leo 8000" (dmitri:leo-801)])
-
-  (benchmark-suite "relational graph coloring"
+  (benchmark-suite "graph coloring"
     #;["color middle earth" (color-middle-earth)]
     ["ways to color iberia" (ways-to-color-iberia)])
 
-  (benchmark-suite "orchid graph coloring"
+  (benchmark-suite "disj-dependent"
+    ["all-in-fd" (all-in-fd)])
+
+  #;(benchmark-suite "orchid graph coloring"
     ["color kazakhstan" (do-kazakhstan)])
 
-  (benchmark-suite "simple interp"
-    ["complex-countdown 2" (run 1 (q) (simple:evalo complex-countdown2 q))])
-
-  (benchmark-suite "simple matche-interp"
-    ["unoptimized-matche-interp" (unoptimized-matche-interp)]
-    ["optimized-matche-interp" (optimized-matche-interp)])
-
-  (benchmark-suite "full interp"
-    ["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
-    ["1 real quine" (run 4 (q) (full:evalo q q))])
-
-  (benchmark-suite "staging-result"
+  #;(benchmark-suite "staging-result"
     ["appendo-forwards" (appendo-forwards)]
     ["appendo-forwards-manual" (appendo-forwards-manual)]
     ["appendo-uninstantiated" (appendo-uninstantiated)]

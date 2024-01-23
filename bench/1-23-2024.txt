@@ -1,0 +1,144 @@
+
+faster-minikanren
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 208
+standard-appendo-forwards: 323
+Benchmark Suite mk-arith:
+logo-hard: 419
+256: 80
+slow fact 6 = 720: 119
+Benchmark Suite relational-interp:
+love in 9900 ways: 1348
+four-thrines-small: 756
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 414
+append-backward-and-small-synthesis: 243
+unoptimized-matche-interp: 162
+optimized-matche-interp: 156
+complex-countdown 2: 66
+1 real quine: 1037
+Benchmark Suite graph coloring:
+ways to color iberia: 22
+Benchmark Suite disj-dependent:
+all-in-fd: 157
+
+no optimizations
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 219
+standard-appendo-forwards: 338
+Benchmark Suite mk-arith:
+logo-hard: 477
+256: 84
+slow fact 6 = 720: 117
+Benchmark Suite relational-interp:
+love in 9900 ways: 1393
+four-thrines-small: 665
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 406
+append-backward-and-small-synthesis: 258
+unoptimized-matche-interp: 165
+optimized-matche-interp: 155
+complex-countdown 2: 65
+1 real quine: 1008
+Benchmark Suite graph coloring:
+ways to color iberia: 21
+Benchmark Suite disj-dependent:
+all-in-fd: 210
+
+prop-only
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 210
+standard-appendo-forwards: 330
+Benchmark Suite mk-arith:
+logo-hard: 438
+256: 77
+slow fact 6 = 720: 115
+Benchmark Suite relational-interp:
+love in 9900 ways: 1383
+four-thrines-small: 675
+dynamic-then-lexical-3-expressions: 17
+lexical-then-dynamic-3-expressions: 385
+append-backward-and-small-synthesis: 263
+unoptimized-matche-interp: 169
+optimized-matche-interp: 159
+complex-countdown 2: 68
+1 real quine: 967
+Benchmark Suite graph coloring:
+ways to color iberia: 21
+Benchmark Suite disj-dependent:
+all-in-fd: 193
+
+dead-code
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 209
+standard-appendo-forwards: 324
+Benchmark Suite mk-arith:
+logo-hard: 453
+256: 78
+slow fact 6 = 720: 122
+Benchmark Suite relational-interp:
+love in 9900 ways: 1440
+four-thrines-small: 704
+dynamic-then-lexical-3-expressions: 17
+lexical-then-dynamic-3-expressions: 398
+append-backward-and-small-synthesis: 245
+unoptimized-matche-interp: 152
+optimized-matche-interp: 150
+complex-countdown 2: 65
+1 real quine: 942
+Benchmark Suite graph coloring:
+ways to color iberia: 22
+Benchmark Suite disj-dependent:
+all-in-fd: 250
+
+occurs-check
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 3
+standard-appendo-forwards: 4
+Benchmark Suite mk-arith:
+logo-hard: 382
+256: 73
+slow fact 6 = 720: 96
+Benchmark Suite relational-interp:
+love in 9900 ways: 1323
+four-thrines-small: 674
+dynamic-then-lexical-3-expressions: 16
+lexical-then-dynamic-3-expressions: 317
+append-backward-and-small-synthesis: 186
+unoptimized-matche-interp: 150
+optimized-matche-interp: 149
+complex-countdown 2: 9
+1 real quine: 947
+Benchmark Suite graph coloring:
+ways to color iberia: 20
+Benchmark Suite disj-dependent:
+all-in-fd: 200
+
+all optimizations
+
+Benchmark Suite oc-dependent:
+dmitri leo 8000: 3
+standard-appendo-forwards: 6
+Benchmark Suite mk-arith:
+logo-hard: 290
+256: 58
+slow fact 6 = 720: 76
+Benchmark Suite relational-interp:
+love in 9900 ways: 1322
+four-thrines-small: 669
+dynamic-then-lexical-3-expressions: 12
+lexical-then-dynamic-3-expressions: 328
+append-backward-and-small-synthesis: 144
+unoptimized-matche-interp: 156
+optimized-matche-interp: 149
+complex-countdown 2: 9
+1 real quine: 888
+Benchmark Suite graph coloring:
+ways to color iberia: 16
+Benchmark Suite disj-dependent:
+all-in-fd: 217

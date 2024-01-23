@@ -1,0 +1,198 @@
+
+faster-minikanren
+
+Benchmark Suite numbers:
+logo-hard: 488
+Benchmark Suite all-in-fd:
+all-in-fd: 213
+Benchmark Suite four-fours:
+256: 83
+Benchmark Suite test fact:
+slow fact 6 = 720: 129
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1640
+four-thrines-small: 865
+dynamic-then-lexical-3-expressions: 21
+lexical-then-dynamic-3-expressions: 429
+append-backward-and-small-synthesis: 280
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 225
+Benchmark Suite relational graph coloring:
+ways to color iberia: 30
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 210
+Benchmark Suite simple interp:
+complex-countdown 2: 70
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 182
+optimized-matche-interp: 163
+Benchmark Suite full interp:
+complex-countdown 2: 1438
+1 real quine: 1254
+Benchmark Suite appendo:
+standard-appendo-forwards: 342
+
+no optimizations
+
+Benchmark Suite numbers:
+logo-hard: 493
+Benchmark Suite all-in-fd:
+all-in-fd: 305
+Benchmark Suite four-fours:
+256: 88
+Benchmark Suite test fact:
+slow fact 6 = 720: 133
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1637
+four-thrines-small: 865
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 416
+append-backward-and-small-synthesis: 272
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 213
+Benchmark Suite relational graph coloring:
+ways to color iberia: 24
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 160
+Benchmark Suite simple interp:
+complex-countdown 2: 66
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 172
+optimized-matche-interp: 174
+Benchmark Suite full interp:
+complex-countdown 2: 1379
+1 real quine: 1268
+Benchmark Suite appendo:
+standard-appendo-forwards: 334
+
+prop-only
+
+Benchmark Suite numbers:
+logo-hard: 510
+Benchmark Suite all-in-fd:
+all-in-fd: 320
+Benchmark Suite four-fours:
+256: 85
+Benchmark Suite test fact:
+slow fact 6 = 720: 130
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1725
+four-thrines-small: 826
+dynamic-then-lexical-3-expressions: 18
+lexical-then-dynamic-3-expressions: 430
+append-backward-and-small-synthesis: 290
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 212
+Benchmark Suite relational graph coloring:
+ways to color iberia: 23
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 183
+Benchmark Suite simple interp:
+complex-countdown 2: 69
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 179
+optimized-matche-interp: 163
+Benchmark Suite full interp:
+complex-countdown 2: 1383
+1 real quine: 1221
+Benchmark Suite appendo:
+standard-appendo-forwards: 330
+
+dead-code
+
+Benchmark Suite numbers:
+logo-hard: 499
+Benchmark Suite all-in-fd:
+all-in-fd: 316
+Benchmark Suite four-fours:
+256: 102
+Benchmark Suite test fact:
+slow fact 6 = 720: 143
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1865
+four-thrines-small: 857
+dynamic-then-lexical-3-expressions: 20
+lexical-then-dynamic-3-expressions: 422
+append-backward-and-small-synthesis: 283
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 217
+Benchmark Suite relational graph coloring:
+ways to color iberia: 26
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 188
+Benchmark Suite simple interp:
+complex-countdown 2: 67
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 165
+optimized-matche-interp: 162
+Benchmark Suite full interp:
+complex-countdown 2: 1373
+1 real quine: 1199
+Benchmark Suite appendo:
+standard-appendo-forwards: 341
+
+occurs-check
+
+Benchmark Suite numbers:
+logo-hard: 514
+Benchmark Suite all-in-fd:
+all-in-fd: 385
+Benchmark Suite four-fours:
+256: 91
+Benchmark Suite test fact:
+slow fact 6 = 720: 127
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1780
+four-thrines-small: 853
+dynamic-then-lexical-3-expressions: 57
+lexical-then-dynamic-3-expressions: 337
+append-backward-and-small-synthesis: 212
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 2
+Benchmark Suite relational graph coloring:
+ways to color iberia: 26
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 184
+Benchmark Suite simple interp:
+complex-countdown 2: 10
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 166
+optimized-matche-interp: 174
+Benchmark Suite full interp:
+complex-countdown 2: 227
+1 real quine: 1187
+Benchmark Suite appendo:
+standard-appendo-forwards: 5
+
+all optimizations
+
+Benchmark Suite numbers:
+logo-hard: 365
+Benchmark Suite all-in-fd:
+all-in-fd: 301
+Benchmark Suite four-fours:
+256: 65
+Benchmark Suite test fact:
+slow fact 6 = 720: 85
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1542
+four-thrines-small: 894
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 371
+append-backward-and-small-synthesis: 194
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 2
+Benchmark Suite relational graph coloring:
+ways to color iberia: 22
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 155
+Benchmark Suite simple interp:
+complex-countdown 2: 10
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 165
+optimized-matche-interp: 167
+Benchmark Suite full interp:
+complex-countdown 2: 220
+1 real quine: 1184
+Benchmark Suite appendo:
+standard-appendo-forwards: 4

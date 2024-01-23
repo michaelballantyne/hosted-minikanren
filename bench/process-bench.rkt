@@ -13,7 +13,7 @@
            baseline-data
            data)))
   (define headers (cons 'benchmark column-titles))
-  (table->string (cons headers (transpose (cons benchmark-names speedups)))
+  (simple-table->string (cons headers (transpose (cons benchmark-names speedups)))
                  #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v)))))
 
 ;; Int, Int -> InexactReal or #f

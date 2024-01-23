@@ -1,0 +1,228 @@
+
+faster-minikanren
+
+Benchmark Suite numbers:
+logo-hard: 481
+Benchmark Suite all-in-fd:
+all-in-fd: 212
+Benchmark Suite four-fours:
+256: 83
+Benchmark Suite test fact:
+slow fact 6 = 720: 128
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1663
+four-thrines-small: 837
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 413
+append-backward-and-small-synthesis: 273
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 210
+Benchmark Suite relational graph coloring:
+ways to color iberia: 24
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 187
+Benchmark Suite simple interp:
+complex-countdown 2: 66
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 173
+optimized-matche-interp: 160
+Benchmark Suite full interp:
+complex-countdown 2: 1383
+1 real quine: 1197
+Benchmark Suite appendo:
+standard-appendo-forwards: 330
+Benchmark Suite staging-result:
+appendo-forwards: 2731
+appendo-forwards-manual: 989
+appendo-uninstantiated: 150
+appendo-uninstantiated-manual: 107
+
+no optimizations
+
+Benchmark Suite numbers:
+logo-hard: 496
+Benchmark Suite all-in-fd:
+all-in-fd: 333
+Benchmark Suite four-fours:
+256: 86
+Benchmark Suite test fact:
+slow fact 6 = 720: 148
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1685
+four-thrines-small: 866
+dynamic-then-lexical-3-expressions: 20
+lexical-then-dynamic-3-expressions: 414
+append-backward-and-small-synthesis: 282
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 218
+Benchmark Suite relational graph coloring:
+ways to color iberia: 24
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 164
+Benchmark Suite simple interp:
+complex-countdown 2: 66
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 171
+optimized-matche-interp: 163
+Benchmark Suite full interp:
+complex-countdown 2: 1385
+1 real quine: 1197
+Benchmark Suite appendo:
+standard-appendo-forwards: 333
+Benchmark Suite staging-result:
+appendo-forwards: 2751
+appendo-forwards-manual: 987
+appendo-uninstantiated: 149
+appendo-uninstantiated-manual: 105
+
+prop-only
+
+Benchmark Suite numbers:
+logo-hard: 500
+Benchmark Suite all-in-fd:
+all-in-fd: 284
+Benchmark Suite four-fours:
+256: 90
+Benchmark Suite test fact:
+slow fact 6 = 720: 128
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1645
+four-thrines-small: 886
+dynamic-then-lexical-3-expressions: 20
+lexical-then-dynamic-3-expressions: 419
+append-backward-and-small-synthesis: 279
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 211
+Benchmark Suite relational graph coloring:
+ways to color iberia: 23
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 165
+Benchmark Suite simple interp:
+complex-countdown 2: 66
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 172
+optimized-matche-interp: 162
+Benchmark Suite full interp:
+complex-countdown 2: 1373
+1 real quine: 1233
+Benchmark Suite appendo:
+standard-appendo-forwards: 332
+Benchmark Suite staging-result:
+appendo-forwards: 2853
+appendo-forwards-manual: 1043
+appendo-uninstantiated: 150
+appendo-uninstantiated-manual: 107
+
+dead-code
+
+Benchmark Suite numbers:
+logo-hard: 498
+Benchmark Suite all-in-fd:
+all-in-fd: 359
+Benchmark Suite four-fours:
+256: 94
+Benchmark Suite test fact:
+slow fact 6 = 720: 131
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1701
+four-thrines-small: 974
+dynamic-then-lexical-3-expressions: 19
+lexical-then-dynamic-3-expressions: 438
+append-backward-and-small-synthesis: 291
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 216
+Benchmark Suite relational graph coloring:
+ways to color iberia: 25
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 186
+Benchmark Suite simple interp:
+complex-countdown 2: 68
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 168
+optimized-matche-interp: 167
+Benchmark Suite full interp:
+complex-countdown 2: 1358
+1 real quine: 1137
+Benchmark Suite appendo:
+standard-appendo-forwards: 330
+Benchmark Suite staging-result:
+appendo-forwards: 1707
+appendo-forwards-manual: 988
+appendo-uninstantiated: 147
+appendo-uninstantiated-manual: 105
+
+occurs-check
+
+Benchmark Suite numbers:
+logo-hard: 441
+Benchmark Suite all-in-fd:
+all-in-fd: 307
+Benchmark Suite four-fours:
+256: 86
+Benchmark Suite test fact:
+slow fact 6 = 720: 115
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1661
+four-thrines-small: 929
+dynamic-then-lexical-3-expressions: 15
+lexical-then-dynamic-3-expressions: 337
+append-backward-and-small-synthesis: 202
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 3
+Benchmark Suite relational graph coloring:
+ways to color iberia: 23
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 156
+Benchmark Suite simple interp:
+complex-countdown 2: 10
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 158
+optimized-matche-interp: 160
+Benchmark Suite full interp:
+complex-countdown 2: 219
+1 real quine: 1182
+Benchmark Suite appendo:
+standard-appendo-forwards: 4
+Benchmark Suite staging-result:
+appendo-forwards: 713
+appendo-forwards-manual: 9
+appendo-uninstantiated: 149
+appendo-uninstantiated-manual: 107
+
+all optimizations
+
+Benchmark Suite numbers:
+logo-hard: 326
+Benchmark Suite all-in-fd:
+all-in-fd: 257
+Benchmark Suite four-fours:
+256: 63
+Benchmark Suite test fact:
+slow fact 6 = 720: 82
+Benchmark Suite oxford artifact:
+love in 9900 ways: 1593
+four-thrines-small: 844
+dynamic-then-lexical-3-expressions: 16
+lexical-then-dynamic-3-expressions: 348
+append-backward-and-small-synthesis: 158
+Benchmark Suite dmitri oc bench check:
+dmitri leo 8000: 2
+Benchmark Suite relational graph coloring:
+ways to color iberia: 17
+Benchmark Suite orchid graph coloring:
+color kazakhstan: 122
+Benchmark Suite simple interp:
+complex-countdown 2: 9
+Benchmark Suite simple matche-interp:
+unoptimized-matche-interp: 167
+optimized-matche-interp: 182
+Benchmark Suite full interp:
+complex-countdown 2: 233
+1 real quine: 1239
+Benchmark Suite appendo:
+standard-appendo-forwards: 3
+Benchmark Suite staging-result:
+appendo-forwards: 738
+appendo-forwards-manual: 8
+appendo-uninstantiated: 195
+appendo-uninstantiated-manual: 103

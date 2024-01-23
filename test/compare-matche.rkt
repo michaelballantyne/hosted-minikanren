@@ -85,13 +85,13 @@
 (namespace-require "../main.rkt")
 (namespace-require 'racket/pretty)
 
-(define-syntax-rule (print-output-after-optimizations name opts relname rel)
+#;(define-syntax-rule (print-output-after-optimizations name opts relname rel)
   (begin
     (eval #'(begin-for-syntax (set-optimization-mode! opts)))
     (eval #'rel)
     (eval #'(pretty-print (syntax->datum (relation-code/optimized relname))))))
 
-(define-syntax-rule (print-all-optimized-variants relname rel)
+#;(define-syntax-rule (print-all-optimized-variants relname rel)
   (begin
 
     (print-output-after-optimizations constant-prop (hash
@@ -118,7 +118,7 @@
                                       relname
                                       rel)))
 
-(print-all-optimized-variants leo2 (defrel/match (leo2 x y)
+#;(print-all-optimized-variants leo2 (defrel/match (leo2 x y)
                                     [(0 ,y)]
                                     [((S . ,x1) (S . ,y1))
                                      (leo2 x1 y1)]))
