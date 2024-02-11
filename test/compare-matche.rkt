@@ -118,7 +118,7 @@
                                       relname
                                       rel)))
 
-#;(print-all-optimized-variants leo2 (defrel/match (leo2 x y)
+#;(print-all-optimized-variants leo2 (defrel/matche (leo2 x y)
                                     [(0 ,y)]
                                     [((S . ,x1) (S . ,y1))
                                      (leo2 x1 y1)]))
