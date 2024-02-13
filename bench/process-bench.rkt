@@ -12,9 +12,10 @@
       (map speedup
            baseline-data
            data)))
-  (define headers (cons 'benchmark column-titles))
-  (simple-table->string (cons headers (transpose (cons benchmark-names speedups)))
-                 #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v)))))
+  (define headers (cons 'Benchmark column-titles))
+  (table->string (cons headers (transpose (cons benchmark-names (cons baseline-data (cdr speedups)))))
+                 #:->string (lambda (v) (if (number? v) (~r #:precision 2 v) (~s v)))
+                 #:border-style 'latex))
 
 ;; Int, Int -> InexactReal or #f
 ;;

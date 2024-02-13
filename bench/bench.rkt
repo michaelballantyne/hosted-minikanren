@@ -13,12 +13,12 @@
 
 (define configurations
   (list
-   (cons "faster-minikanren" "langs/faster-mk.rkt")
-   (cons "no optimizations" "langs/ee-no-opt.rkt")
-   (cons "prop-only" "langs/ee-prop-only.rkt")
-   (cons "dead-code" "langs/ee-dead-code.rkt")
-   (cons "occurs-check" "langs/ee-occurs-check.rkt")
-   (cons "all optimizations" "langs/ee-all.rkt")))
+   (cons "faster-mK" "langs/faster-mk.rkt")
+   (cons "no opts" "langs/ee-no-opt.rkt")
+   (cons "prop only" "langs/ee-prop-only.rkt")
+   (cons "dead code" "langs/ee-dead-code.rkt")
+   (cons "occurs check" "langs/ee-occurs-check.rkt")
+   (cons "all opts" "langs/ee-all.rkt")))
 
 
 (module+ main
