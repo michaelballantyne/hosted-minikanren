@@ -3,6 +3,7 @@
 (provide define-facts-table assert-fact query-facts)
 
 (require "../main.rkt" db sql
+         syntax/macro-testing
          (except-in racket/match ==)
          (for-syntax racket/base syntax/parse))
 ;; Does this also need a private runtime kind of module?
@@ -36,10 +37,10 @@
 
 (define-syntax query-facts
   (goal-macro
-    (syntax-parser
-      [(_ ft arg ...)
-       #'(goal-from-expression
-           (query-facts-rt ft (list arg ...)))])))
+   (syntax-parser
+     [(_ ft arg ...)
+      #'(goal-from-expression
+         (query-facts-rt ft (list (expression-from-term arg) ...)))])))
 
 (define (query-facts-rt ft terms)
   (define matching-rows (do-query ft (map wildcardify terms)))
@@ -67,9 +68,9 @@
     ['() (expression-from-goal fail)]
     [(cons fst rst)
      (expression-from-goal
-       (conde
-         [(== fst args)]
-         [(goal-from-expression (unify-query-results rst args))]))]))
+      (conde
+        [(== fst args)]
+        [(goal-from-expression (unify-query-results rst args))]))]))
 
 (module+ test
   (require rackunit)
@@ -80,4 +81,15 @@
 
   (check-equal?
    (run* (q) (query-facts flights "bos" q))
-   '("slc" "sea")))
+   '("slc" "sea"))
+
+  (check-exn
+   #rx"Term must be an atom or variable"
+   (lambda ()
+     (run* (q) (query-facts flights (cons "bos" '()) q))))
+  
+  (check-exn
+   #rx"expected miniKanren term"
+   (lambda ()
+     (convert-compile-time-error
+      (run* (q) (query-facts flights ((lambda (x) x) "bos") q))))))
