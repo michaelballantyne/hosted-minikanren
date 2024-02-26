@@ -2,7 +2,7 @@
 
 (require "../../main.rkt" racket/pretty)
 
-(defrel/match (append l1 l2 l3)
+(defrel/matche (append l1 l2 l3)
   [(() ,rest ,rest)]
   [((,first . ,rest) ,?? (,first . ,result))  (append rest l2 result)])
 

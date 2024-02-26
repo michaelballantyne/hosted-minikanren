@@ -3,7 +3,7 @@
 (require "../main.rkt"
          syntax/parse)
 
-(defrel/match (leo x y)
+(defrel/matche (leo x y)
   [(0 ,y)]
   [((S . ,x1) (S . ,y1))
    (leo x1 y1)])
@@ -26,7 +26,7 @@
 ;;     ((== a 'losangeles) (== b 'new-york-city))))
 
 
-;; (defrel/match (route-m origin destination path)
+;; (defrel/matche (route-m origin destination path)
 ;;   [(,a ,a ())]
 ;;   [(,a ,b ((,a ,layover) . ,remaining-path))
 ;;    (absento a remaining-path)

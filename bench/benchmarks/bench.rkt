@@ -62,38 +62,38 @@
 
 (module+ main
 
-  (benchmark-suite "oc-dependent"
-    ["dmitri leo 8000" (dmitri:leo-801)]
-    ["standard-appendo-forwards" (standard-appendo-forwards)])
+  (benchmark-suite "Occurs check"
+    ["\\verb|leo| 8000" (dmitri:leo-801)]
+    ["\\verb|appendo| w/2 lists" (standard-appendo-forwards)])
 
-  (benchmark-suite "mk-arith"
-    ["logo-hard" (logo-hard-program)]
-    ["256" (four-fours 256)]
-    ["slow fact 6 = 720" (slow-fact-6-720)])
+  (benchmark-suite "Relational arithmetic"
+    ["\\verb|logo|" (logo-hard-program)]
+    ["\\verb|four fours| of 256" (four-fours 256)]
+    ["\\verb|fact| x = 720" (slow-fact-6-720)])
 
-  (benchmark-suite "relational-interp"
-    #| "oxford artifact" |#
-    ["love in 9900 ways" (love-in-9900-ways)]
-    ["four-thrines-small" (four-thrines)]
-    #;["twine-in-standard" (twine-slow)]
-    ["dynamic-then-lexical-3-expressions" (dynamic-then-lexical-3-expressions)]
-    ["lexical-then-dynamic-3-expressions" (lexical-then-dynamic-3-expressions)]
-    ["append-backward-and-small-synthesis" (append-backward-and-small-synthesis)]
-    #| "simple matche-interp" |#
-    ["unoptimized-matche-interp" (unoptimized-matche-interp)]
-    ["optimized-matche-interp" (optimized-matche-interp)]
-    #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)]
-    #| "simple interp"|#
-    ["complex-countdown 2" (run 1 (q) (simple:evalo complex-countdown2 q))]
+  (benchmark-suite "Relational interpreters"
     #| "full interp" |#
     #;["complex-countdown 2" (run 1 (q) (full:evalo complex-countdown2 q))]
-    ["1 real quine" (run 4 (q) (full:evalo q q))])
+    ["one quine" (run 4 (q) (full:evalo q q))]
+    #| "oxford artifact" |#
+    ["99k \\verb|(I love you)|s" (love-in-9900-ways)]
+    ["four thrines" (four-thrines)]
+    #;["twine-in-standard" (twine-slow)]
+    ["dynamic and lexical" (dynamic-then-lexical-3-expressions)]
+    #;["lexical then dynamic" (lexical-then-dynamic-3-expressions)]
+    ["\\verb|append| synthesis" (append-backward-and-small-synthesis)]
+    #| "simple matche-interp" |#
+    #;["unoptimized-matche-interp" (unoptimized-matche-interp)]
+    #;["optimized-matche-interp" (optimized-matche-interp)]
+    #;["scheme-in-scheme-quine-with-quasiquote" (scheme-in-scheme-quine-with-quasiquote)]
+    #| "simple interp"|#
+    ["countdown from 2 in $\\lambda$-calc" (run 1 (q) (simple:evalo complex-countdown2 q))])
 
-  (benchmark-suite "graph coloring"
+  #;(benchmark-suite "graph coloring"
     #;["color middle earth" (color-middle-earth)]
     ["ways to color iberia" (ways-to-color-iberia)])
 
-  (benchmark-suite "disj-dependent"
+  #;(benchmark-suite "disj-dependent"
     ["all-in-fd" (all-in-fd)])
 
   #;(benchmark-suite "orchid graph coloring"

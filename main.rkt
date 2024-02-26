@@ -32,7 +32,7 @@
  (except-out
   (all-from-out "core.rkt")
   conj2 disj2 fresh1 run-core run*-core quote-core)
- conj disj fresh conde run run* unquote matche defrel/match
+ conj disj fresh conde run run* unquote matche defrel/matche
  (for-space mk quote quasiquote list))
 
 (define-syntax run
@@ -218,7 +218,7 @@
       (_ v:id [pat g:goal/c ...] ...+))
      #'(matche (v) [(pat) g ...] ...)]))
 
-(define-syntax defrel/match
+(define-syntax defrel/matche
   (syntax-parser
     [(_ (name:id arg:id ...)
         clause ...)

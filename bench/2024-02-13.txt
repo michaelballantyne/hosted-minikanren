@@ -1,0 +1,102 @@
+
+faster-mK
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 209
+\verb|appendo| w/2 lists: 327
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 437
+\verb|four fours| of 256: 77
+\verb|fact| x = 720: 122
+Benchmark Suite Relational interpreters:
+one quine: 962
+99k \verb|(I love you)|s: 1378
+four thrines: 683
+dynamic and lexical: 18
+\verb|append| synthesis: 252
+countdown from 2 in $\lambda$-calc: 64
+
+no opts
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 210
+\verb|appendo| w/2 lists: 330
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 440
+\verb|four fours| of 256: 81
+\verb|fact| x = 720: 117
+Benchmark Suite Relational interpreters:
+one quine: 975
+99k \verb|(I love you)|s: 1436
+four thrines: 696
+dynamic and lexical: 18
+\verb|append| synthesis: 251
+countdown from 2 in $\lambda$-calc: 66
+
+prop only
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 209
+\verb|appendo| w/2 lists: 326
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 438
+\verb|four fours| of 256: 79
+\verb|fact| x = 720: 118
+Benchmark Suite Relational interpreters:
+one quine: 1000
+99k \verb|(I love you)|s: 1458
+four thrines: 686
+dynamic and lexical: 17
+\verb|append| synthesis: 252
+countdown from 2 in $\lambda$-calc: 64
+
+dead code
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 209
+\verb|appendo| w/2 lists: 324
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 445
+\verb|four fours| of 256: 82
+\verb|fact| x = 720: 121
+Benchmark Suite Relational interpreters:
+one quine: 989
+99k \verb|(I love you)|s: 1413
+four thrines: 684
+dynamic and lexical: 18
+\verb|append| synthesis: 258
+countdown from 2 in $\lambda$-calc: 64
+
+occurs check
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 4
+\verb|appendo| w/2 lists: 4
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 406
+\verb|four fours| of 256: 76
+\verb|fact| x = 720: 103
+Benchmark Suite Relational interpreters:
+one quine: 948
+99k \verb|(I love you)|s: 1362
+four thrines: 662
+dynamic and lexical: 15
+\verb|append| synthesis: 189
+countdown from 2 in $\lambda$-calc: 10
+
+all opts
+
+Benchmark Suite Occurs check:
+\verb|leo| 8000: 3
+\verb|appendo| w/2 lists: 3
+Benchmark Suite Relational arithmetic:
+\verb|logo|: 304
+\verb|four fours| of 256: 61
+\verb|fact| x = 720: 78
+Benchmark Suite Relational interpreters:
+one quine: 957
+99k \verb|(I love you)|s: 1324
+four thrines: 645
+dynamic and lexical: 12
+\verb|append| synthesis: 139
+countdown from 2 in $\lambda$-calc: 9
