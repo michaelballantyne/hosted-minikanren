@@ -38,8 +38,8 @@
       [(#%lv-ref _) #f]
       [(term-from-expression _) #t]
       [(cons t1 t2)
-       (or (contains-term-from-expression? #'t1)
-           (contains-term-from-expression? #'t2))]))
+       (or (term-contains? #'t1)
+           (term-contains? #'t2))]))
 
   (goal-contains? g))
 
