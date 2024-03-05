@@ -259,8 +259,12 @@ syntax for which we have not yet introduced any bindings
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
      #:when (syntax-property this-syntax FIRST-REF)
+     ;; If/when we can analyse term from expression to see its free vars, then we could use first refs prop on the term from expression,
+     ;; and then we really would be able to allocate them at that point and we wouldn't need the fresh-unify-vars part here in code gen
+     (error 'generate-matching-unify-body "see if this error happens")
      ;; TODO  ext-s-w/no-check w v st -> extract runtime helper
-     #`(#,join-point-name #,@join-point-vars (ext-st-w/no-check w mku:walk #,v #,st))]
+     ;; #`(#,join-point-name #,@join-point-vars (ext-st-w/no-check w mku:walk #,v #,st))
+     ]
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(term-from-expression e)
