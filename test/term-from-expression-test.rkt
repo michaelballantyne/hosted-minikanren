@@ -12,4 +12,4 @@
 (check-equal?
  (run 1 (q)
    (water-jug-sequence q))
- '(???))
+ '((5 . 6)))

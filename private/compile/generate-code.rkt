@@ -105,8 +105,8 @@
   (syntax-parse g
     #:context 'take-first-==
     #:literal-sets (mk-literals)
-    [(== . _) #:when (not (contains-term-from-expression? g))
-     (values this-syntax #f)]
+    [(== . _) #:when (contains-term-from-expression? g)
+     (values #f this-syntax)]
     [(conj g1 g2)
      (define-values (the-== g1-rest) (take-first-== #'g1))
      (if the-==
