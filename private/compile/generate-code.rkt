@@ -12,7 +12,7 @@
          "../forms.rkt"
          "test/unit-test-progs.rkt"
          syntax/id-table
-         syntax/id-set
+         "./macro-scopes-bound-id-set.rkt"
          syntax/parse
          (only-in syntax/parse
                   (define/syntax-parse def/stx))
@@ -132,11 +132,12 @@
 
 (define (split-vars vars unify-gs)
   (define refed-vars
-    (for/fold ([ids (immutable-free-id-set)]) ([unify-g unify-gs])
-      (free-id-set-union ids (immutable-free-id-set (==-vars unify-g)))))
-  
-  (values (free-id-set-intersect (immutable-free-id-set vars) refed-vars)
-          (free-id-set-subtract (immutable-free-id-set vars) refed-vars)))
+    (for/fold ([ids (immutable-bound-id-set)]) ([unify-g unify-gs])
+      (bound-id-set-union ids (==-vars unify-g))))
+  (pretty-print (cons "refed-vars" (bound-id-set->list refed-vars)))
+
+  (values (debug-bound-id-set-intersect (immutable-bound-id-set vars) refed-vars)
+          (bound-id-set-subtract (immutable-bound-id-set vars) refed-vars)))
 
 (define (term-vars t)
   (syntax-parse t
@@ -144,27 +145,29 @@
     #:literal-sets (mk-literals)
     #:literals (cons)
     [(#%lv-ref v)
-     (immutable-free-id-set (list #'v))]
+     (immutable-bound-id-set (list #'v))]
     [(cons t1 t2)
-     (free-id-set-union 
+     (bound-id-set-union
       (term-vars #'t1)
       (term-vars #'t2))]
-    [_ (immutable-free-id-set '())]))
+    [_ (immutable-bound-id-set '())]))
 
 (define (==-vars g)
   (syntax-parse g
     #:context '==-vars
     #:literal-sets (mk-literals)
     [(== t1 t2)
-     (free-id-set-union (term-vars #'t1) (term-vars #'t2))]))
+     (bound-id-set-union (term-vars #'t1) (term-vars #'t2))]))
 
 (require racket/pretty)
 
 (define/hygienic (compile-block fresh-vars g) #:expression
   (define-values (unify-gs rest-g) (split-block g))
+  (pretty-print unify-gs)
   (define-values (unify-vars other-vars) (split-vars (syntax->list fresh-vars) unify-gs))
-  
-  (define/syntax-parse (other-var ...) (free-id-set->list other-vars))
+  (pretty-print (cons "unify-vars:" (bound-id-set->list unify-vars)))
+  (pretty-print (cons "other-vars:" (bound-id-set->list other-vars)))
+  (define/syntax-parse (other-var ...) (bound-id-set->list other-vars))
 
   #`(mku:fresh (other-var ...)
                (lambda (st)
@@ -174,7 +177,7 @@
 (define/hygienic (compile-block-conjunction block remaining-unify-vars st) #:expression
   (syntax-parse block
     [(block () rest-g)
-     (unless (free-id-set-empty? remaining-unify-vars)
+     (unless (bound-id-set-empty? remaining-unify-vars)
        (error 'compile-block "should be no remaining-unify-vars here"))
      (if (syntax-e #'rest-g)
          #`(#,(generate-goal #'rest-g)
@@ -194,9 +197,9 @@
 
 (define (fresh-term-vars t all-fresh-vars)
   ;; we want the hygiene context of the vars in `t`.
-  (immutable-free-id-set
-   (for/list ([v (in-free-id-set (term-vars t))]
-              #:when (free-id-set-member? all-fresh-vars v))
+  (immutable-bound-id-set
+   (for/list ([v (in-bound-id-set (term-vars t))]
+              #:when (bound-id-set-member? all-fresh-vars v))
      v)))
 
 #|
@@ -214,10 +217,10 @@ syntax for which we have not yet introduced any bindings
 |#
 (define/hygienic (generate-let-unify v t2 remaining-unify-vars st rest-block) #:expression
   (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
-  (define remaining-unify-vars^ (free-id-set-remove
-                                 (free-id-set-subtract remaining-unify-vars t2-fresh-vars)
+  (define remaining-unify-vars^ (bound-id-set-remove
+                                 (bound-id-set-subtract remaining-unify-vars t2-fresh-vars)
                                  v))
-  (define/syntax-parse (t2-fresh-var ...) (free-id-set->list t2-fresh-vars))
+  (define/syntax-parse (t2-fresh-var ...) (bound-id-set->list t2-fresh-vars))
   #`(let ([sc (get-state-from-scope #,st)])
       (let ([t2-fresh-var (mku:var sc)] ...)
         (let ([#,v #,(generate-term t2)])
@@ -232,10 +235,10 @@ syntax for which we have not yet introduced any bindings
     #:literals (quote cons)
     [(== (#%lv-ref v:id) t2)
      (cond
-       [(free-id-set-member? (term-vars #'t2) #'v)
+       [(bound-id-set-member? (term-vars #'t2) #'v)
         #'#f
         #;(error 'generate-optimized-unify "invariant violation---occurs check violation should be caught in constant folding")]
-       [(free-id-set-member? remaining-unify-vars #'v)
+       [(bound-id-set-member? remaining-unify-vars #'v)
         (generate-let-unify #'v #'t2 remaining-unify-vars st rest-block)]
        [else
         (generate-matching-unify #'v #'t2 remaining-unify-vars st no-occur? rest-block)])]
@@ -244,18 +247,19 @@ syntax for which we have not yet introduced any bindings
 
 (define/hygienic (generate-matching-unify v t2 remaining-unify-vars st no-occur? rest-block) #:expression
   (define t2-fresh-vars (fresh-term-vars t2 remaining-unify-vars))
-  (define remaining-unify-vars^ (free-id-set-subtract remaining-unify-vars t2-fresh-vars))
-  (define/syntax-parse (body-var ...) (free-id-set->list t2-fresh-vars))
+  (define remaining-unify-vars^ (bound-id-set-subtract remaining-unify-vars t2-fresh-vars))
+  (define/syntax-parse (body-var ...) (bound-id-set->list t2-fresh-vars))
   #`(let ([body (lambda (body-var ... st)
                   #,(continue-block-conjunction rest-block remaining-unify-vars^ #'st))])
       #,(generate-matching-unify-body v t2 st remaining-unify-vars no-occur? #'body #'(body-var ...))))
 
 (define/hygienic (generate-matching-unify-body v t2 st fresh-unify-vars no-occur? join-point-name join-point-vars) #:expression
+  (pretty-print (bound-id-set->list fresh-unify-vars))
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
-     #:when (free-id-set-member? fresh-unify-vars #'w)
+     #:when (debug-bound-id-set-member? fresh-unify-vars #'w)
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
      #:when (syntax-property this-syntax FIRST-REF)
@@ -280,8 +284,8 @@ syntax for which we have not yet introduced any bindings
 
      (define t2-vars (fresh-term-vars t2 fresh-unify-vars))
      (define t2-a-vars (fresh-term-vars #'t2-a fresh-unify-vars))
-     (define/syntax-parse (t2-var ...) (free-id-set->list t2-vars))
-     (define/syntax-parse (t2-a-var ...) (free-id-set->list t2-a-vars))
+     (define/syntax-parse (t2-var ...) (bound-id-set->list t2-vars))
+     (define/syntax-parse (t2-a-var ...) (bound-id-set->list t2-a-vars))
      #`(let ([v^ (walk-in-state #,v #,st)])
          (cond
            [(mku:var? v^) (let ([t2-var (fresh-var-w-state-scope #,st)] ...)
