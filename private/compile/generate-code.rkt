@@ -78,13 +78,10 @@
     [(disj g1 g2)
      #`(mk:conde
          #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
-        ;; [#,(generate-goal #'g1)]
-        ;; [#,(generate-goal #'g2)])]
     [(conj g1 g2)
      #`(mku:conj #,(generate-goal #'g1)
                  #,(generate-goal #'g2))]
     [(fresh (x:id ...) g)
-     ;(displayln `(specialize block ,(specialize-unify?)))
      (if (specialize-unify?)
        (compile-block #'(x ...) #'g)
        #`(mk:fresh (x ...) #,(generate-goal #'g)))]
@@ -134,9 +131,8 @@
   (define refed-vars
     (for/fold ([ids (immutable-bound-id-set)]) ([unify-g unify-gs])
       (bound-id-set-union ids (==-vars unify-g))))
-  (pretty-print (cons "refed-vars" (bound-id-set->list refed-vars)))
 
-  (values (debug-bound-id-set-intersect (immutable-bound-id-set vars) refed-vars)
+  (values (bound-id-set-intersect (immutable-bound-id-set vars) refed-vars)
           (bound-id-set-subtract (immutable-bound-id-set vars) refed-vars)))
 
 (define (term-vars t)
@@ -163,10 +159,7 @@
 
 (define/hygienic (compile-block fresh-vars g) #:expression
   (define-values (unify-gs rest-g) (split-block g))
-  (pretty-print unify-gs)
   (define-values (unify-vars other-vars) (split-vars (syntax->list fresh-vars) unify-gs))
-  (pretty-print (cons "unify-vars:" (bound-id-set->list unify-vars)))
-  (pretty-print (cons "other-vars:" (bound-id-set->list other-vars)))
   (define/syntax-parse (other-var ...) (bound-id-set->list other-vars))
 
   #`(mku:fresh (other-var ...)
@@ -254,21 +247,17 @@ syntax for which we have not yet introduced any bindings
       #,(generate-matching-unify-body v t2 st remaining-unify-vars no-occur? #'body #'(body-var ...))))
 
 (define/hygienic (generate-matching-unify-body v t2 st fresh-unify-vars no-occur? join-point-name join-point-vars) #:expression
-  (pretty-print (bound-id-set->list fresh-unify-vars))
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(#%lv-ref w:id)
-     #:when (debug-bound-id-set-member? fresh-unify-vars #'w)
+     #:when (bound-id-set-member? fresh-unify-vars #'w)
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
      #:when (syntax-property this-syntax FIRST-REF)
      ;; If/when we can analyse term from expression to see its free vars, then we could use first refs prop on the term from expression,
      ;; and then we really would be able to allocate them at that point and we wouldn't need the fresh-unify-vars part here in code gen
-     (error 'generate-matching-unify-body "see if this error happens")
-     ;; TODO  ext-s-w/no-check w v st -> extract runtime helper
-     ;; #`(#,join-point-name #,@join-point-vars (ext-st-w/no-check w mku:walk #,v #,st))
-     ]
+     (error 'generate-matching-unify-body "FIRST-REF should also be a fresh-unify-var and be handled by that case.")]
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(term-from-expression e)
