@@ -82,7 +82,7 @@
    (conj g1:goal g2:goal)
   
    (fresh (x:term-variable ...) b:goal)
-   #:binding {(bind x) b}
+   #:binding (scope (bind x) b)
 
    (goal-from-expression e:racket-expr)
 

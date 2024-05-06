@@ -55,14 +55,14 @@
 (syntax-spec
  (host-interface/expression
   (run n:racket-expr (x:term-variable ...) g:goal)
-  #:binding {(bind x) g}
+  #:binding (scope (bind x) g)
 
   (compile-run #'(run n (x ...) g)))
 
  ;; TODO: probably have just one core run, do run* as a macro?
  (host-interface/expression
   (run* (x:term-variable ...) g:goal)
-  #:binding {(bind x) g}
+  #:binding (scope (bind x) g)
 
   (compile-run #'(run* (x ...) g)))
 
@@ -77,13 +77,13 @@
 
  (host-interface/expression
   (relation (x:term-variable ...) g:goal)
-  #:binding {(bind x) g}
+  #:binding (scope (bind x) g)
   ;; TODO: not 100% sure I need the ir-relation nonterminal in the spec
   #`(relation-value #,(compile-relation #'(ir-rel (x ...) g) #f)))
 
  (host-interface/definition
   (define-relation (name:relation-name x:term-variable ...) g:goal)
-  #:binding [(export name) {(bind x) g}]
+  #:binding [(export name) (scope (bind x) g)]
 
   #:lhs
   [#'name]
