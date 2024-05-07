@@ -50,3 +50,20 @@
 (check-equal?
  (run* (q) (r q))
  '())
+
+;; Check that the occurs check analysis doesn't conflate names and improperly skip an occurs check.
+;; Constant folding gives up on a branch, but the occurs check analysis doesn't, so we can use a branch
+;; to sneak an occurs violation pass constant folding.
+(define-syntax m2
+  (goal-macro
+    (syntax-rules ()
+      [(_ a b)
+       (fresh (x)
+         (conde
+           [(== a x)]
+           [fail])
+         (== b x))])))
+(check-equal?
+ (run 1 (x)
+   (m2 (list x) x))
+ '())

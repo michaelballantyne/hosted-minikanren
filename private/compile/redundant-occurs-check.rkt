@@ -49,7 +49,7 @@
 ;; check if two variables are equal
 ;; (-> var? var? bool?)
 (define (var-eq? x y)
-  (free-identifier=? x y))
+  (bound-identifier=? x y))
 
 ;; get associated value to variable
 ;; ASSUMPTION: this is called on a variable that is leaf-var?
