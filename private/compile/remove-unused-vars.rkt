@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require syntax/parse
+         ee-lib
          (only-in racket/sequence in-syntax)
          (for-template racket/base "../forms.rkt")
          (only-in "prop-vars.rkt" TERM-VARS-IN-SCOPE)
@@ -44,7 +45,7 @@
                        ([t (in-syntax #'(t ...))])
                (free-id-set-union var-refs (term-refs t vars-in-scope))))]
     [(goal-from-expression e)
-     (values (syntax-property this-syntax TERM-VARS-IN-SCOPE vars-in-scope) (immutable-free-id-set vars-in-scope))]
+     (values (syntax-property this-syntax TERM-VARS-IN-SCOPE (map flip-intro-scope vars-in-scope)) (immutable-free-id-set vars-in-scope))]
     [(apply-relation e t ...)
      (values this-syntax
              (for/fold ([var-refs (immutable-free-id-set)])

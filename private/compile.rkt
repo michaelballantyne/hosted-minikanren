@@ -58,7 +58,10 @@
      #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
 
 (define (compile-expression-from-goal g)
-  (define vars-in-scope (syntax-parameter-value #'surrounding-term-vars-in-scope))
+  (define vars-in-scope
+    (map syntax-local-get-shadower/including-module
+         (map flip-intro-scope
+              (syntax-parameter-value #'surrounding-term-vars-in-scope))))
   #`(seal-goal #,(compile-goal #f g vars-in-scope #f)))
 
 (define (compile-expression-from-term term-exp)

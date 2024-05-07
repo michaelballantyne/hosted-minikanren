@@ -32,14 +32,14 @@ propagate further into terms.
 (struct subst (binds ext))
 
 (define (subst-ref s v)
-  (free-id-table-ref (subst-binds s) v #f))
+  (bound-id-table-ref (subst-binds s) v #f))
 
 (define (subst-ext? s v)
-  (free-id-table-ref (subst-ext s) v #f))
+  (bound-id-table-ref (subst-ext s) v #f))
 
 (define empty-subst
-  (subst (make-immutable-free-id-table)
-         (make-immutable-free-id-table)))
+  (subst (make-immutable-bound-id-table)
+         (make-immutable-bound-id-table)))
 
 (define (init-subst ext-vars)
   (mark-vars-ext empty-subst ext-vars))
@@ -48,12 +48,12 @@ propagate further into terms.
   (define ext?^
     (for/fold ([ext? (subst-ext subext)])
               ([v (in-list new-ext-vars)])
-      (free-id-table-set ext? v #t)))
+      (bound-id-table-set ext? v #t)))
   (subst (subst-binds subext) ext?^))
 
 (define (ext-subst u v s)
   (subst
-   (free-id-table-set (subst-binds s) u v)
+   (bound-id-table-set (subst-binds s) u v)
    (subst-ext s)))
 
 )
@@ -77,8 +77,8 @@ you have multi-arg lambdas.
   (provide levels-init levels-add levels-var<=?)
   (struct level-dict (dict next-lev))
 
-  (define (add-var-debruijn-level u v s) (free-id-table-set s u v))
-  (define (var-debruijn-level-get s v) (free-id-table-ref s v #f))
+  (define (add-var-debruijn-level u v s) (bound-id-table-set s u v))
+  (define (var-debruijn-level-get s v) (bound-id-table-ref s v #f))
 
   (define (compute-levels-for dict next lov)
     (for/fold ([dict dict])
@@ -87,7 +87,7 @@ you have multi-arg lambdas.
       (add-var-debruijn-level v (cons next i) dict)))
 
   (define (levels-init lov)
-    (level-dict (compute-levels-for (make-immutable-free-id-table) 0 lov) (add1 0)))
+    (level-dict (compute-levels-for (make-immutable-bound-id-table) 0 lov) (add1 0)))
 
   (define (levels-add old-ld lov)
     (match-define (level-dict dict next-lev) old-ld)

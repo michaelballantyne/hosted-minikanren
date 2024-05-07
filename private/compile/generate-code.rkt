@@ -86,13 +86,13 @@
        (compile-block #'(x ...) #'g)
        #`(mk:fresh (x ...) #,(generate-goal #'g)))]
     [(goal-from-expression e)
-     #:with (var-in-scope ...) (syntax-property this-syntax TERM-VARS-IN-SCOPE)
+     #:with (var-in-scope ...) (map flip-intro-scope (syntax-property this-syntax TERM-VARS-IN-SCOPE))
      #'(λ (st)
          (unseal-and-apply-goal (syntax-parameterize ([surrounding-current-state-var #'st]
-                                                       [surrounding-term-vars-in-scope (list #'var-in-scope ...)])
-                                   e)
-                                 #'e
-                                 st))]
+                                                      [surrounding-term-vars-in-scope (list #'var-in-scope ...)])
+                                  e)
+                                #'e
+                                st))]
     [(apply-relation e t ...)
      (maybe-bind-surrounding-current-state-var stx
                                                #`((relation-value-proc (check-relation e #'e))
