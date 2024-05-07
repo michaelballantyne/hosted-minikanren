@@ -80,7 +80,7 @@
 ;; add a logic variable to the substitution assigned to a term
 ;; (-> subst? var? term? subst?)
 (define (add-var s lv v)
-  (free-id-table-set s lv v))
+  (bound-id-table-set s lv v))
 
 ;;; term/substitution helpers ;;;
 
@@ -88,7 +88,7 @@
 ;; ASSUMES that the key (variable) exists
 ;; (-> subst? var? term?)
 (define (subst-lookup s x)
-  (free-id-table-ref s x))
+  (bound-id-table-ref s x))
 
 ;; (-> (or term? var-val?) boolean?)
 (define (ground? t s)
@@ -122,7 +122,7 @@
 ;; update or add new binding for logic variable to term in substitution
 ;; (-> subst? var? term? subst?) 
 (define (modify-subst s x t)
-  (free-id-table-set s x t))
+  (bound-id-table-set s x t))
 
 ;; resolve all non-leaf variables in a term to their values, recursively
 ;; (-> term? subst? term?)
@@ -169,7 +169,7 @@
 ;; (-> term? subst? (hash-of var? number?))
 (define (get-var-counts t s)
   (define (inc counts v)
-    (free-id-table-update counts v add1 0))
+    (bound-id-table-update counts v add1 0))
   
   ;; (-> term? subst? (hash-of var? number?) (hash? var? number?))
   (define (counts/acc t s counts)
@@ -186,10 +186,10 @@
                    (counts/acc #'a s counts))]
       [_ counts]))
 
-  (counts/acc t s (make-immutable-free-id-table)))
+  (counts/acc t s (make-immutable-bound-id-table)))
 
-(define (free-id-table->list table)
-  (for/list ([(k v) (in-free-id-table table)])
+(define (bound-id-table->list table)
+  (for/list ([(k v) (in-bound-id-table table)])
     (cons k v)))
 
 ;; return if any of the following conditions are true:
@@ -203,7 +203,7 @@
   (ormap (λ (pair) (or (external-var? (car pair) s)
                        (top-var? (car pair) s)
                        (> (cdr pair) 1)))
-         (free-id-table->list vcs)))
+         (bound-id-table->list vcs)))
 
 ;;; Disjunction Helpers ;;;
 
@@ -221,7 +221,7 @@
     [_ (top)]))
 
 ;;; API ;;;
-(define (empty-subst) (make-immutable-free-id-table))
+(define (empty-subst) (make-immutable-bound-id-table))
 
 (define (add-fresh-vars s vars)
   (foldl (λ (lv s) (add-var s lv (fresh))) s vars))
@@ -233,9 +233,9 @@
   (mark-terms-external s (map (λ (v) #`(#%lv-ref #,v)) vars)))
 
 (define (mark-subst-top s)
-  (for/fold ([s^ (make-immutable-free-id-table)])
-            ([(k v) (in-free-id-table s)])
-    (free-id-table-set s^ k (if (var-val? v) (top) v))))
+  (for/fold ([s^ (make-immutable-bound-id-table)])
+            ([(k v) (in-bound-id-table s)])
+    (bound-id-table-set s^ k (if (var-val? v) (top) v))))
 
 (define (unify u v s)
   (let ([u (walk u s)]
@@ -302,11 +302,11 @@
 
 (define (union s1 s2)
   (for/fold ([s s1])
-            ([(k v) (in-free-id-table s2)])
-    (let ([curr-v (free-id-table-ref s k #f)])
+            ([(k v) (in-bound-id-table s2)])
+    (let ([curr-v (bound-id-table-ref s k #f)])
       (if curr-v
-        (free-id-table-set s k (join curr-v v s1 s2)) ;; FIXME should this be s or s1 as the first subst?
-        (free-id-table-set s k v)))))
+        (bound-id-table-set s k (join curr-v v s1 s2)) ;; FIXME should this be s or s1 as the first subst?
+        (bound-id-table-set s k v)))))
 
 ;;;;;;;;;;;;;;;;;;;;;; EXTERNAL API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (mark-redundant-check/entry g fvs fvs-fresh?)
