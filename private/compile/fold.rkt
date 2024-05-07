@@ -189,12 +189,12 @@ you have multi-arg lambdas.
       [_ #:when (equal-vals? u^ v^) (values #'succeed s)]
       [((#%lv-ref id1:id) (#%lv-ref id2:id))
        (if (id1-better-representative-element? s ld #'id1 #'id2)
-           (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))
-           (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s)))]
+           (ext-subst/check #'id2 u u^ s)
+           (ext-subst/check #'id1 v v^ s))]
       [((#%lv-ref id1:id) _)
-       (values #`(== (#%lv-ref id1) #,(maybe-inline v v^ s)) (ext-subst #'id1 v s))]
+       (ext-subst/check #'id1 v v^ s)]
       [(_ (#%lv-ref id2:id))
-       (values #`(== (#%lv-ref id2) #,(maybe-inline u u^ s)) (ext-subst #'id2 u s))]
+       (ext-subst/check #'id2 u u^ s)]
       [((cons a1 d1) (cons a2 d2))
        (let*-values ([(g1^ s^) (unify #'a1 #'a2 s ld)]
                      [(g2^ s^^) (unify #'d1 #'d2 s^ ld)])
@@ -202,6 +202,21 @@ you have multi-arg lambdas.
       [((term-from-expression _) _) (values #`(== #,u^ #,v^) s)]
       [(_ (term-from-expression _)) (values #`(== #,v^ #,u^) s)]
       [_ (values #'fail s)])))
+
+(define (occurs? u v s)
+  (syntax-parse (walk v s)
+    #:literal-sets (mk-literals)
+    #:literals (cons quote)
+    [(#%lv-ref v^) (free-identifier=? u #'v^)]
+    [(cons a d) (or (occurs? u #'a s)
+                    (occurs? u #'d s))]
+    [_ #f]))
+
+(define (ext-subst/check u v v^ s)
+  (if (occurs? u v s)
+      (values #'fail s)
+      (values #`(== (#%lv-ref #,u) #,(maybe-inline v v^ s))
+              (ext-subst u v s))))
 
 (define (map-maybe-inline* subst stx)
   (stx-map (curryr maybe-inline subst) stx (stx-map (curryr walk subst) stx)))
@@ -947,4 +962,29 @@ you have multi-arg lambdas.
          (== (#%lv-ref varsf) (term-from-expression (begin (printf "hey") 5)))
          (#%rel-app foo (term-from-expression (begin (printf "hi") 5)) (#%lv-ref varsf))))))))
 
+
+;; Regression test demonstrating the need for compile-time occur-check in compile-time unify
+;;
+;; We should recognize that the second conj clause cannot succeed, and so the pass should produce `fail`
+;; there rather than adding a spurious binding to the compile time substitution
+;; Said binding would cause mark-ext* to inf-loop at compile time, b/c of the cyclic term we inadvertently ;; introduce
+(let ([foo 5])
+  (progs-equal?
+    (fold/rel
+      (generate-prog
+       (ir-rel ((~binders b))
+         (fresh ((~binders x y))
+          (conj
+           (conj
+            (== (#%lv-ref x) (cons (#%lv-ref y) '()))
+            (== (#%lv-ref y) (#%lv-ref x)))
+           (#%rel-app foo (#%lv-ref x)))))))
+    (generate-prog
+     (ir-rel ((~binders b))
+       (fresh ((~binders x y))
+        (conj
+         (conj
+          (== (#%lv-ref x) (cons (#%lv-ref y) '()))
+          fail)
+         (#%rel-app foo (#%lv-ref x))))))))
 )
