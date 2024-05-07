@@ -30,6 +30,8 @@
  (run 1 (q) (r q))
  '())
 
+;; Previously constant folding conflated the two `x`s, replacing the first macro-generated
+;; unify with `succeed` and producing a result of 1 for this query.
 (define-syntax m
   (goal-macro
     (syntax-rules ()
@@ -37,5 +39,11 @@
        (fresh (x)
          (== a x)
          (== b x))])))
+(check-equal?
+ (run 1 (x) (m x 2) (== x 1))
+ '())
 
-(run 1 (x) (== x 1) (m x))
+;; Previously constant folding conflated the two `x`s, resulting in a spurious occurs-check failure.
+(check-equal?
+ (run 1 (x) (m (list x) (list x)))
+ '(_.0))

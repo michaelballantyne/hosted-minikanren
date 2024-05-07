@@ -174,7 +174,7 @@ you have multi-arg lambdas.
     #:literals (cons quote)
     [((quote v1) (quote v2)) (equal? (syntax->datum #'v1) (syntax->datum #'v2))]
     [((#%lv-ref v1:id) (#%lv-ref v2:id))
-     (free-identifier=? #'v1 #'v2)]
+     (bound-identifier=? #'v1 #'v2)]
     [((cons a1 d1) (cons a2 d2))
      (and (equal-vals? #'a1 #'a2)
           (equal-vals? #'d1 #'d2))]
@@ -207,7 +207,7 @@ you have multi-arg lambdas.
   (syntax-parse (walk v s)
     #:literal-sets (mk-literals)
     #:literals (cons quote)
-    [(#%lv-ref v^) (free-identifier=? u #'v^)]
+    [(#%lv-ref v^) (bound-identifier=? u #'v^)]
     [(cons a d) (or (occurs? u #'a s)
                     (occurs? u #'d s))]
     [_ #f]))
