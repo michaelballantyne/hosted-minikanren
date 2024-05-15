@@ -12,8 +12,8 @@
 
 (define (first-refs/entry g fvs fvs-fresh?)
   (let*-values ([(id-refs) (if fvs-fresh?
-                             (immutable-free-id-set fvs)
-                             (immutable-free-id-set))]
+                             (immutable-bound-id-set fvs)
+                             (immutable-bound-id-set))]
                 [(g^ _) (annotate-goal g id-refs)])
     g^))
 
@@ -45,9 +45,9 @@
     [(disj g1 g2)
      (let-values ([(g1^ fst-refs) (annotate-goal #'g1 id-refs)]
                   [(g2^ snd-refs) (annotate-goal #'g2 id-refs)])
-       (values #`(disj #,g1^ #,g2^) (free-id-set-intersect fst-refs snd-refs)))]
+       (values #`(disj #,g1^ #,g2^) (bound-id-set-intersect fst-refs snd-refs)))]
     [(fresh (x ...) g)
-     (let-values ([(g^ refs^) (annotate-goal #'g (free-id-set-union id-refs (immutable-free-id-set (attribute x))))])
+     (let-values ([(g^ refs^) (annotate-goal #'g (bound-id-set-union id-refs (immutable-bound-id-set (attribute x))))])
        (values #`(fresh (x ...) #,g^) refs^))]
     [(#%rel-app n t ...)
      (define-values (rev-ts refs^)
@@ -58,7 +58,7 @@
            (values (cons t^ done) refs^))))
      (values #`(#%rel-app n #,@(reverse rev-ts)) refs^)]
     [(goal-from-expression e)
-     (values this-syntax (immutable-free-id-set))]
+     (values this-syntax (immutable-bound-id-set))]
     [(apply-relation e t ...)
      (define-values (rev-ts refs^)
        (for/fold ([done '()]
@@ -79,10 +79,10 @@
     #:literal-sets (mk-literals)
     #:literals (quote cons)
     [(quote d) (values this-syntax id-refs)]
-    [(term-from-expression e) (values this-syntax (immutable-free-id-set))]
+    [(term-from-expression e) (values this-syntax (immutable-bound-id-set))]
     [(#%lv-ref v)
-     (if (free-id-set-member? id-refs #'v)
-       (values (set-first-ref this-syntax) (free-id-set-remove id-refs #'v))
+     (if (bound-id-set-member? id-refs #'v)
+       (values (set-first-ref this-syntax) (bound-id-set-remove id-refs #'v))
        (values this-syntax id-refs))]
     [(cons t1 t2)
      (let*-values ([(t1^ refs^) (annotate-term #'t1 id-refs)]
@@ -258,5 +258,27 @@
       (ir-rel ((~binder q))
         (fresh ((~binder x))
           (== (~check (#%lv-ref x) FIRST-REF) (quote 5))))))
+
+
+
+(progs-equal?
+ (first-refs/rel
+   (with-syntax ([a1 ((make-syntax-introducer) #'a)]
+                 [a2 ((make-syntax-introducer) #'a)]
+                 [b ((make-syntax-introducer) #'b)])
+     (with-syntax ([a1b (syntax-property #'a1 'binder #t)]
+                   [a2b (syntax-property #'a2 'binder #t)]
+                   [bb (syntax-property #'b 'binder #t)])
+       #'(ir-rel (bb)
+           (fresh (a1b a2b)
+             (conj
+               (== (#%lv-ref a1) (cons (#%lv-ref b) '()))
+               (== (#%lv-ref a2) (cons (#%lv-ref b) '()))))))))
+  (generate-prog
+    (ir-rel ((~binder b))
+      (fresh ((~binders a1 a2))
+        (conj
+          (== (~check (#%lv-ref a1) FIRST-REF) (cons (#%lv-ref b) '()))
+          (== (~check (#%lv-ref a2) FIRST-REF) (cons (#%lv-ref b) '())))))))
 
   )
