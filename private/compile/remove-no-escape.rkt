@@ -6,7 +6,6 @@
          racket/set
          racket/match
          racket/function
-         racket/list
          (for-template racket/base
                        "../forms.rkt")
          "../syntax-classes.rkt")
@@ -18,13 +17,11 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 
 |#
 
-
 ;; These are only provided out of this module for testing in the test submodule
 (provide build-goal-id-map/goal
          make-goal-id-map-excluding)
 
-;; I proceed under the assumption Michael already renamed-apart my
-;; variables.
+;; Proceeds under the assumption variables are already renamed-apart.
 ;;
 ;; CAN A VARIABLE BE IN e IN APPLY RELATION OR IN GOAL-FROM-EXPRESSION?
 ;;
@@ -687,6 +684,49 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
                 (== (#%lv-ref j2) (cons '6 (#%lv-ref j1))))
                (== (#%lv-ref j3) (cons '5 (#%lv-ref j2))))
                (#%rel-app foo15 (cons (#%lv-ref j1) (cons (#%lv-ref j2) (#%lv-ref j3))))))))))
+
+
+;; Demonstrates that you can in fact use syntax-introducer etc.
+;; to jimmy up relation tests where we need to manually introduce shadowing.
+(progs-equal?
+ (remove-no-escape/rel
+   (with-syntax ([a1 ((make-syntax-introducer) #'a)]
+                 [a2 ((make-syntax-introducer) #'a)])
+     (with-syntax ([a1b (syntax-property #'a1 'binder #t)]
+                   [a2b (syntax-property #'a2 'binder #t)])
+       #'(ir-rel (a1b)
+          (conj
+            (== (#%lv-ref a1) '5)
+            (fresh (a2b)
+              (== (#%lv-ref a2) '5)))))))
+  (generate-prog
+    (ir-rel ((~binder a))
+      (conj
+        (== (#%lv-ref a) '5)
+        (fresh ((~binder b))
+          (== (#%lv-ref b) '5))))))
+
+;; Uses with-syntax and make-syntax-introducer b/c generate-prog
+;; does not allow shadowing in test inputs. This regression test is
+;; precisely to demonstrate the now-absence of a bug in the case of shadowed
+;; identifiers
+(progs-equal?
+ (remove-no-escape/rel
+   (with-syntax ([a1 ((make-syntax-introducer) #'a)]
+                 [a2 ((make-syntax-introducer) #'a)])
+     (with-syntax ([a1b (syntax-property #'a1 'binder #t)]
+                   [a2b (syntax-property #'a2 'binder #t)])
+       #'(ir-rel (a1b)
+          (conj
+            (== (#%lv-ref a1) '5)
+            (fresh (a2b)
+              (== (#%lv-ref a2) '5)))))))
+  (generate-prog
+    (ir-rel ((~binder a))
+      (conj
+        (== (#%lv-ref a) '5)
+        (fresh ((~binder b))
+          succeed)))))
 
 ;; (fresh (j1)
 ;;        (conj
