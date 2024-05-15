@@ -49,11 +49,11 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
   ;; Decide if this id has one LHS, and no RHS uses
   (define (only-one-use id s)
     (and (eqv? 1 (set-count s))
-         (let ([goals-using (free-id-table-ref term-id->goals id)])
+         (let ([goals-using (bound-id-table-ref term-id->goals id)])
            (set-empty? goals-using))))
 
   (define gidt^+removable
-    (for/first ([(id s) (in-free-id-table lhs->goals)]
+    (for/first ([(id s) (in-bound-id-table lhs->goals)]
                 #:when (only-one-use id s))
 
       (define g (set-first s))
@@ -61,17 +61,17 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 
       (define new-term-id->goals
         (for/fold ([term-id->goals term-id->goals])
-                  ([tid (in-free-id-set g-dependencies)])
+                  ([tid (in-bound-id-set g-dependencies)])
           ;; Since we’ve removed goal g, g is no longer one of the
           ;; uses of any of the vars on the RHS of g
-          (free-id-table-update term-id->goals tid (curryr set-remove g))))
+          (bound-id-table-update term-id->goals tid (curryr set-remove g))))
 
       (gidt+removable
        (goal-id-map
         params
         (hash-remove g->term-ids g)
-        (free-id-table-remove new-term-id->goals id)
-        (free-id-table-remove lhs->goals id))
+        (bound-id-table-remove new-term-id->goals id)
+        (bound-id-table-remove lhs->goals id))
        g)))
 
   (cond
@@ -85,7 +85,7 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 (define (add-entries t ls v)
   (for/fold ([t t])
             ([id (in-list ls)])
-    (free-id-table-set t id v)))
+    (bound-id-table-set t id v)))
 
 ;; For every term ID, this structure is a bidirectional map to every
 ;; RHS occurrence in goal and a single directional map to its LHS
@@ -107,10 +107,10 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 ;; listof id -> goalidtable
 ;; build an otherwise-empty goalidtable with the listed parameters
 (define (make-goal-id-map-excluding params)
-  (goal-id-map (immutable-free-id-set params)
+  (goal-id-map (immutable-bound-id-set params)
                (make-immutable-hasheq)
-               (make-immutable-free-id-table)
-               (make-immutable-free-id-table)))
+               (make-immutable-bound-id-table)
+               (make-immutable-bound-id-table)))
 
 ;; goalidtable listof id -> bool
 ;; add entries for each of these newly freshened variables in the given goalidtable
@@ -128,36 +128,36 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 ;; A super-duper conservative approximation
 (define (mark-all-vars-used-in gid g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
-  (define ids (free-id-table-keys term-id->goals))
+  (define ids (bound-id-table-keys term-id->goals))
   (for/fold ([gid gid])
             ([id (in-list ids)])
     (add-term-id gid id g)))
 
 (define (update-free-table/set-val t x g)
-  (free-id-table-update t x (curryr set-add g)))
+  (bound-id-table-update t x (curryr set-add g)))
 
-;; [goal#free-id-set] goal -> [goal#free-id-set]
+;; [goal#bound-id-set] goal -> [goal#bound-id-set]
 ;; In h, add id to the set of variables found in g, constructing the set if needed
 (define (update-goal-table/set-val h g id)
   (hash-update
    h g
-   (λ (idt) (free-id-set-add idt id))
-   (λ () (immutable-free-id-set (list id)))))
+   (λ (idt) (bound-id-set-add idt id))
+   (λ () (immutable-bound-id-set (list id)))))
 
-;; [goal#free-id-set] goal -> [goal#free-id-set]
+;; [goal#bound-id-set] goal -> [goal#bound-id-set]
 ;; Make sure there’s an entry for this goal in the goal -> ids hash
 (define (update-goal-table/empty-set h g)
   (hash-update
    h g
    identity
-   (λ () (immutable-free-id-set))))
+   (λ () (immutable-bound-id-set))))
 
 ;; goalidmap id goal -> goal
 ;; if x is not a parameter to the relation/run, add goal g to the set of goals that reference x as the LHS of an ==
 (define (add-lhs gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
-    [(free-id-set-member? params x) gid]
+    [(bound-id-set-member? params x) gid]
     [else
      (goal-id-map
       params
@@ -170,7 +170,7 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
 (define (add-term-id gid x g)
   (match-define (goal-id-map params g->term-ids term-id->goals lhs->goals) gid)
   (cond
-    [(free-id-set-member? params x) gid]
+    [(bound-id-set-member? params x) gid]
     [else
      (goal-id-map
       params
