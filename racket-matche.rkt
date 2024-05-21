@@ -12,51 +12,38 @@
               minikanren-ee/private/syntax-classes))
 
 (begin-for-syntax
-  ; p is a pattern expression
-  
-  ; p^ is an expression to be unified with a portion of a corresponding argument
-  ; c  is a predicate application to be added to the compiled goal
-  ; x  is a fresh logic variable to lift
+  ;; p is a pattern expression
 
-  ; apply compile-pattern to each pattern a group, and accumulate p^s, cs, and xs
-  (define (compile-patterns ps)
+  ;; p^ is a term expression to be unified with a portion of a corresponding argument
+  ;; x  is a fresh logic variable to lift
+
+  ;; apply compile-pattern to each pattern of a group, and accumulate p^s into a single term expression, and xs
+  ;; (Listof Pattern) -> (Pair Term (Listof TermVar))
+  (define (compile-pats ps)
     (syntax-parse ps
-      [() #'[() () ()]]
-      [(p p* ...)
-       (define/syntax-parse [p^ (c ...) (x ...)] (compile-pattern #'p))
-       (define/syntax-parse [(p^* ...) (c* ...) (x* ...)] (compile-patterns #'(p* ...)))
-       #'[(p^ p^* ...) (c ... c* ...) (x ... x* ...)]]))
+      [(p ...)
+       (define/syntax-parse ((p^ (x ...)) ...) (map compile-pattern (attribute p)))
+       (define/syntax-parse (x^ ...) (remove-duplicates (syntax->list #'(x ... ...)) bound-identifier=?))
+       #'[(list p^ ...) (x^ ...)]]))
 
-  ; compile pattern expression to p^, cs, and xs
+  ;; compile pattern expression to p^, and xs
   (define (compile-pattern p)
-    (define (loop p)
-      (syntax-parse p
-        #:datum-literals (? cons quote list)
-        [(~datum _)
-         (with-syntax ([_new ((make-syntax-introducer) #'?_)]) ; fresh but has scopes for #%lv-ref
-           #'[(unquote _new) () (_new)])]
-        [x:id
-         #'[(unquote x) () (x)]]
-        [(? c:id x:id)
-         #'[(unquote x) ((c x)) (x)]]
-        [(cons p1 p2)
-         (define/syntax-parse (p1^ (c1 ...) (x1 ...)) (loop #'p1))
-         (define/syntax-parse (p2^ (c2 ...) (x2 ...)) (loop #'p2))
-         #'[(p1^ . p2^) (c1 ... c2 ...) (x1 ... x2 ...)]]
-        [(list p ...)
-         (define/syntax-parse ((p^ (c ...) (x ...)) ...) (map loop (attribute p)))
-         #'[(p^ ...) (c ... ...) (x ... ...)]]
-        [(quote lit) #'[lit () ()]]))
-    (loop p))
+    (syntax-parse p
+      #:datum-literals (? cons quote list)
+      [(~datum _)
+       (define/syntax-parse (_new) (generate-temporaries #'(_)))
+       #'[_new (_new)]]
+      [x:id
+       #'[x (x)]]
+      [(cons p1 p2)
+       (define/syntax-parse (p1^ (x1 ...)) (compile-pattern #'p1))
+       (define/syntax-parse (p2^ (x2 ...)) (compile-pattern #'p2))
+       #'[(cons p1^ p2^) (x1 ... x2 ...)]]
+      [(list p ...)
+       (define/syntax-parse ((p^ (x ...)) ...) (map compile-pattern (attribute p)))
+       #'[(p^ ...) (x ... ...)]]
+      [(quote lit) #'[(quote lit) ()]]))
 
-  ; compile matche clause to conde clause. genrates unifications to `ls`
-  (define ((compile-clause ls) clause)
-    (define/syntax-parse [(p ...) g ...] clause)
-    (define/syntax-parse [(p^ ...) (c ...) (x ...)]
-      (compile-patterns #'[p ...]))
-    (define/syntax-parse (x^ ...) (remove-duplicates (syntax->list #'[x ...]) free-identifier=?))
-    #`[(fresh (x^ ...) c ... (== `[p^ ...] #,ls) g ...)])
-  
   (define-syntax-class (pattern-group vars)
     #:description "pattern group"
     (pattern (p ...)
@@ -68,16 +55,12 @@
 (define-goal-macro matche
   (syntax-parser
     [(~describe
-      "(matche (<id> ...n) [(<pat> ...n) <goal> ...] ...+)"
-      (_ (arg:id ...+) [(~var pats (pattern-group #'(arg ...))) g:goal/c ...] ...+))
-     #`(fresh (ls)
-         (== ls `(,arg ...))
-         (conde
-           #,@(stx-map (compile-clause #'ls)  #'((pats g ...) ...))))]
-    [(~describe
-      "(matche <id> [<pat> <goal> ...] ...+)"
-      (_ v:id [pat g:goal/c ...] ...+))
-     #'(matche (v) [(pat) g ...] ...)]))
+      "(matche (<term> ...n) [(<pat> ...n) <goal> ...] ...+)"
+      (_ (arg:term/c ...+) [(~var pats (pattern-group #'(arg ...))) g:goal/c ...] ...+))
+     #:with ([pats^ xs] ...) (map compile-pats (attribute pats))
+     #'(fresh (ls)
+         (== ls (list arg ...))
+         (conde [(fresh xs (== pats^ ls) g ...)] ...))]))
 
 (define-syntax defrel/match
   (syntax-parser
@@ -89,7 +72,8 @@
 
 
 (module+ test
-  (require (except-in rackunit fail))
+  (require (except-in rackunit fail)
+           syntax/macro-testing)
 
   (defrel (appendo l1 l2 l3)
     (matche (l1 l3)
@@ -100,5 +84,19 @@
    (run 2 (q) (appendo '(a b) '(c) q))
    '((a b c)))
 
+  (check-exn
+   #rx"matche: wrong number of patterns; expected 2 and got 1"
+   (λ ()
+     (convert-compile-time-error
+      (run 2 (q) (matche (q q)
+                   [(a) (== q 1)])))))
+
+
+  (check-exn
+   #rx"matche: expected .matche"
+   (λ ()
+     (convert-compile-time-error
+      (run 2 (q) (matche q
+                   [(a) (== q 1)])))))
 
 )
