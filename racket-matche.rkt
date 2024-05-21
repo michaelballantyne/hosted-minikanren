@@ -86,3 +86,19 @@
      #'(defrel (name arg ...)
          (matche (arg ...)
                  clause ...))]))
+
+
+(module+ test
+  (require (except-in rackunit fail))
+
+  (defrel (appendo l1 l2 l3)
+    (matche (l1 l3)
+      [('() _) (== l3 l2)]
+      [((cons head rest) (cons head result)) (appendo rest l2 result)]))
+
+  (check-equal?
+   (run 2 (q) (appendo '(a b) '(c) q))
+   '((a b c)))
+
+
+)
