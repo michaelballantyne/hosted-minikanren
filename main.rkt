@@ -13,9 +13,10 @@
    [run* run*-core]
    [quote quote-core])
 
-  (rename-in racket/base [quasiquote rkt:quasiquote]
-                         [quote rkt:quote]
-                         [list rkt:list])
+  (rename-in racket/base
+             [quasiquote rkt:quasiquote]
+             [quote rkt:quote]
+             [list rkt:list])
   
   (for-syntax
    (except-in racket/base compile)
@@ -32,8 +33,8 @@
  (except-out
   (all-from-out "core.rkt")
   conj2 disj2 fresh1 run-core run*-core quote-core)
- conj disj fresh conde run run* unquote matche defrel/matche
- (for-space mk quote quasiquote list))
+ (for-space mk conj disj fresh conde matche quote quasiquote list)
+ run run* defrel/matche unquote)
 
 (define-syntax run
   (syntax-parser
@@ -76,7 +77,7 @@
       (_ b:bindings/c g*:goal/c ...+))
      (syntax-parse #'b
        [(x ...) #'(fresh1 (x ...)
-                          (conj g* ...))])]))
+                    (conj g* ...))])]))
 
 (begin-for-syntax
   (define-syntax-class conde-clause/c
@@ -95,55 +96,47 @@
            (conj c1.g+ ...)
            (conde c* ...))])]))
 
-(define-syntax define-syntax/space
+(define-term-macro quote
   (syntax-parser
-    [(_ name space rhs)
-     #`(define-syntax #,((make-interned-syntax-introducer (syntax-e #'space)) #'name) rhs)]))
+    [(~describe
+      "'<datum>"
+      (_ q))
+     (let recur ([stx #'q])
+       (syntax-parse stx #:datum-literals ()
+         [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
+         [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
+         [() #'(quote-core ())]))]))
 
-(define-syntax/space quote mk
-  (term-macro
-   (syntax-parser
-     [(~describe
-       "'<datum>"
-       (_ q))
-      (let recur ([stx #'q])
-        (syntax-parse stx #:datum-literals ()
-          [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
-          [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-          [() #'(quote-core ())]))])))
+(define-term-macro quasiquote
+  (syntax-parser 
+    [(~describe
+      "`<datum>"
+      (_ q))
+     (let recur ([stx #'q] [level 0])
+       (syntax-parse stx #:datum-literals (unquote quasiquote)
+         [(unquote e)
+          (if (= level 0)
+              #'e
+              #`(cons (quote-core unquote) #,(recur #'(e) (- level 1))))]
+         [(unquote . rest)
+          (raise-syntax-error 'unquote "bad unquote syntax" stx)]
+         [(quasiquote e)
+          #`(cons (quote-core quasiquote) #,(recur #'(e) (+ level 1)))]
+         [(a . d)
+          #`(cons #,(recur #'a level) #,(recur #'d level))]
+         [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
+         [() #'(quote-core ())]))]))
 
-(define-syntax/space quasiquote mk
-  (term-macro
-   (syntax-parser 
-     [(~describe
-       "`<datum>"
-       (_ q))
-      (let recur ([stx #'q] [level 0])
-        (syntax-parse stx #:datum-literals (unquote quasiquote)
-          [(unquote e)
-           (if (= level 0)
-               #'e
-               #`(cons (quote-core unquote) #,(recur #'(e) (- level 1))))]
-          [(unquote . rest)
-           (raise-syntax-error 'unquote "bad unquote syntax" stx)]
-          [(quasiquote e)
-           #`(cons (quote-core quasiquote) #,(recur #'(e) (+ level 1)))]
-          [(a . d)
-           #`(cons #,(recur #'a level) #,(recur #'d level))]
-          [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-          [() #'(quote-core ())]))])))
-
-(define-syntax/space list mk
-  (term-macro
-   (syntax-parser
-     [(~describe
-       "(list <term> ...)"
-       (_))
-      #'(quote-core ())]
-     [(~describe
-       "(list <term> ...)"
-       (_ t t-rest ...))
-      #'(cons t (list t-rest ...))])))
+(define-term-macro list
+  (syntax-parser
+    [(~describe
+      "(list <term> ...)"
+      (_))
+     #'(quote-core ())]
+    [(~describe
+      "(list <term> ...)"
+      (_ t t-rest ...))
+     #'(cons t (list t-rest ...))]))
 
 (begin-for-syntax
   ; p is a pattern expression
@@ -199,10 +192,10 @@
   (define-syntax-class (pattern-group vars)
     #:description "pattern group"
     (pattern (p ...)
-             #:do [(define expected (length (syntax->list vars)))
-                   (define actual (length (syntax->list #'(p ...))))]
-             #:fail-unless (= expected actual)
-             (format "wrong number of patterns; expected ~a and got ~a" expected actual))))
+      #:do [(define expected (length (syntax->list vars)))
+            (define actual (length (syntax->list #'(p ...))))]
+      #:fail-unless (= expected actual)
+      (format "wrong number of patterns; expected ~a and got ~a" expected actual))))
 
 (define-goal-macro matche
   (syntax-parser
@@ -210,9 +203,9 @@
       "(matche (<id> ...n) [(<pat> ...n) <goal> ...] ...+)"
       (_ (arg:id ...+) [(~var pats (pattern-group #'(arg ...))) g:goal/c ...] ...+))
      #`(fresh (ls)
-              (== ls `(,arg ...))
-              (conde
-               #,@(stx-map (compile-clause #'ls)  #'((pats g ...) ...))))]
+         (== ls `(,arg ...))
+         (conde
+           #,@(stx-map (compile-clause #'ls)  #'((pats g ...) ...))))]
     [(~describe
       "(matche <id> [<pat> <goal> ...] ...+)"
       (_ v:id [pat g:goal/c ...] ...+))
@@ -224,5 +217,5 @@
         clause ...)
      #'(defrel (name arg ...)
          (matche (arg ...)
-           clause ...))]))
+                 clause ...))]))
 

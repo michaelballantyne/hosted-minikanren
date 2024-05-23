@@ -6,7 +6,7 @@
 (require syntax-spec
          (for-syntax racket/base
                      syntax/parse
-                     (only-in ee-lib lookup)))
+                     (only-in ee-lib lookup in-space)))
 
 ;; TODO: should build in support to syntax-spec
 (begin-for-syntax
@@ -16,7 +16,7 @@
     (pattern s:string))
 
   (define (maybe-interposition form-id ctx-stx)
-    (let ([interposition-id (datum->syntax ctx-stx (syntax-e form-id))])
+    (let ([interposition-id ((in-space 'mk) (datum->syntax ctx-stx (syntax-e form-id)))])
       (if (lookup interposition-id (lambda (v) #t))
           interposition-id
           form-id))))

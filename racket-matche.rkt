@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide matche defrel/matche)
+(provide (for-space mk matche) defrel/matche)
 
 (require
   minikanren-ee
