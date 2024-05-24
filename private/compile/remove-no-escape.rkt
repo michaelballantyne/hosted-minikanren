@@ -704,7 +704,7 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
       (conj
         (== (#%lv-ref a) '5)
         (fresh ((~binder b))
-          (== (#%lv-ref b) '5))))))
+          succeed)))))
 
 ;; Uses with-syntax and make-syntax-introducer b/c generate-prog
 ;; does not allow shadowing in test inputs. This regression test is

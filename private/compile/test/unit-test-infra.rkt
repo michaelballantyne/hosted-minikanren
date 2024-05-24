@@ -61,7 +61,7 @@
 
 ;; alpha-equivalence for IR tests
 (define (alpha=? stx1 stx2)
-  (alpha=?-helper stx1 stx2 (make-free-id-table)))
+  (alpha=?-helper stx1 stx2 (make-bound-id-table)))
 
 (define (core/alpha=? stx1 stx2 new-ids)
   (core/alpha=?-helper (local-expand stx1 'expression new-ids)
@@ -242,14 +242,14 @@
     [(i1:id i2:id)
      #:when (and (syntax-property #'i1 'binder)
                  (syntax-property #'i2 'binder))
-     (free-id-table-set! table stx1 stx2)
+     (bound-id-table-set! table stx1 stx2)
      (make-result #t stx1 stx2)]
     [(i1:id i2:id)
      #:when (not (or (syntax-property #'i1 'binder)
                      (syntax-property #'i2 'binder)))
-     (let ([lookup (free-id-table-ref table #'i1 #f)])
+     (let ([lookup (bound-id-table-ref table #'i1 #f)])
        (if lookup
-         (make-result (free-identifier=? lookup #'i2) #'i1 #'i2)
+         (make-result (bound-identifier=? lookup #'i2) #'i1 #'i2)
          (make-result (and (bound? #'i1) (bound? #'i2) (free-identifier=? #'i1 #'i2))
                       #'i1
                       #'i2)))]
