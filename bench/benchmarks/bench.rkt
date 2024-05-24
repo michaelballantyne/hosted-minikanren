@@ -111,6 +111,7 @@
 
   (require (submod "test-fact.rkt" test)
            (submod "four-fours.rkt" test)
+           (submod "all-in-fd.rkt" test)
            (submod "dmitri-oc-test.rkt" test)
            (submod "relational-graph-color.rkt" test)
            (submod "infer.rkt" test)

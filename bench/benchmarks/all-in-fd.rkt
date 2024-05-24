@@ -84,3 +84,21 @@
   (run 1 (x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15)
     (all-in0-29 (list x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15))))
 
+(module+ test
+  (require (except-in rackunit fail))
+
+  ;; Regression test to verify that the search order is the same as in faster-mk.
+  (check-equal?
+   (run 10 (x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15)
+     (all-in0-29 (list x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15)))
+   '((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+     (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+     (0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0)
+     (0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0)
+     (0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0)
+     (0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0)
+     (0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0)
+     (0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0)
+     (0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0)
+     (0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0))))
+
