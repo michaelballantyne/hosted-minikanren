@@ -26,10 +26,12 @@
     [(c:binary-constraint t1 t2)
      (values this-syntax (bound-id-set-union (term-refs #'t1 vars-in-scope)
                                             (term-refs #'t2 vars-in-scope)))]
-    [(disj g1 g2)
-     (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 vars-in-scope)]
-                  [(g2^ g2-refs) (remove-unused-vars #'g2 vars-in-scope)])
-       (values #`(disj #,g1^ #,g2^) (bound-id-set-union g1-refs g2-refs)))]
+    [(disj g ...)
+     (define-values (g^ g-refs)
+       (for/lists (g^ g-refs)
+                  ([g (attribute g)])
+         (remove-unused-vars g vars-in-scope)))
+     (values #`(disj . #,g^) (apply bound-id-set-union g-refs))]
     [(conj g1 g2)
      (let-values ([(g1^ g1-refs) (remove-unused-vars #'g1 vars-in-scope)]
                   [(g2^ g2-refs) (remove-unused-vars #'g2 vars-in-scope)])

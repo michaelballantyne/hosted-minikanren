@@ -78,7 +78,7 @@
    (=/= t1:term t2:term)
    (absento t1:term t2:term)
 
-   (disj g1:goal g2:goal)
+   (disj g:goal ...+)
    (conj g1:goal g2:goal)
   
    (fresh (x:term-variable ...) b:goal)

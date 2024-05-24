@@ -7,7 +7,6 @@
   (rename-in
    "core.rkt"
    [conj conj2]
-   [disj disj2]
    [fresh fresh1]
    [run run-core]
    [run* run*-core]
@@ -32,8 +31,8 @@
 (provide
  (except-out
   (all-from-out "core.rkt")
-  conj2 disj2 fresh1 run-core run*-core quote-core)
- (for-space mk conj disj fresh conde matche quote quasiquote list)
+  conj2 fresh1 run-core run*-core quote-core)
+ (for-space mk conj fresh conde matche quote quasiquote list)
  run run* defrel/matche unquote)
 
 (define-syntax run
@@ -60,16 +59,6 @@
        [(g1 g2 g* ...)
         #'(conj (conj2 g1 g2) g* ...)])]))
 
-(define-goal-macro disj
-  (syntax-parser
-    [(~describe
-      "(disj <goal> ...+)"
-      (_ g:goal/c ...+))
-     (syntax-parse #'(g ...)
-       [(g) #'g]
-       [(g1 g2 g* ...)
-        #'(disj2 g1 (disj g2 g* ...))])]))
-
 (define-goal-macro fresh
   (syntax-parser
     [(~describe
@@ -87,14 +76,10 @@
   (syntax-parser
     [(~describe
       "(conde [<goal> ...+] ...+)"
-      (_ c1:conde-clause/c c*:conde-clause/c ...))
-     (syntax-parse #'(c* ...)
-       [()
-        #'(conj c1.g+ ...)]
-       [_
-        #'(disj2
-           (conj c1.g+ ...)
-           (conde c* ...))])]))
+      (_ c:conde-clause/c ...+))
+     #'(disj
+        (conj c.g+ ...)
+        ...)]))
 
 (define-term-macro quote
   (syntax-parser

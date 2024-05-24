@@ -42,10 +42,12 @@
      (let*-values ([(g1^ refs^) (annotate-goal #'g1 id-refs)]
                    [(g2^ refs^^) (annotate-goal #'g2 refs^)])
        (values #`(conj #,g1^ #,g2^) refs^^))]
-    [(disj g1 g2)
-     (let-values ([(g1^ fst-refs) (annotate-goal #'g1 id-refs)]
-                  [(g2^ snd-refs) (annotate-goal #'g2 id-refs)])
-       (values #`(disj #,g1^ #,g2^) (bound-id-set-intersect fst-refs snd-refs)))]
+    [(disj g ...)
+     (define-values (g^ id-refs^)
+       (for/lists (g^ id-refs^)
+                  ([g (attribute g)])
+         (annotate-goal g id-refs)))
+     (values #`(disj . #,g^) (apply bound-id-set-intersect id-refs^))]
     [(fresh (x ...) g)
      (let-values ([(g^ refs^) (annotate-goal #'g (bound-id-set-union id-refs (immutable-bound-id-set (attribute x))))])
        (values #`(fresh (x ...) #,g^) refs^))]

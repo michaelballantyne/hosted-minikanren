@@ -22,9 +22,9 @@
          [(succeed g2) #'g2]
          [(g1 succeed) #'g1]
          [(g1 g2) #'(conj g1 g2)]))]
-    [(disj g1 g2)
-     #`(disj #,(remove-noop/goal #'g1)
-             #,(remove-noop/goal #'g2))]
+    [(disj g ...)
+     (define/syntax-parse (g^ ...) (map remove-noop/goal (attribute g)))
+     #'(disj g^ ...)]
     [(fresh (x ...) g)
      #`(fresh (x ...)
          #,(remove-noop/goal #'g))]

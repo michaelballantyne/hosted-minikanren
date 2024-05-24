@@ -300,7 +300,12 @@
        (values (mark-subst-top s) #f)]
       [_ (raise-syntax-error #f "ALL TERM COMBINATIONS ALREADY HANDLED, NOT REACHABLE" this-syntax)])))
 
-(define (union s1 s2)
+(define (union s . s*)
+  (if (null? s*)
+      s
+      (union2 s (apply union s*))))
+  
+(define (union2 s1 s2)
   (for/fold ([s s1])
             ([(k v) (in-bound-id-table s2)])
     (let ([curr-v (bound-id-table-ref s k #f)])
@@ -333,10 +338,12 @@
      (let*-values ([(g1^ s^) (mark-redundant-check/goal #'g1 s)]
                    [(g2^ s^^) (mark-redundant-check/goal #'g2 s^)])
        (values #`(conj #,g1^ #,g2^) s^^))] 
-    [(disj g1 g2)
-     (let-values ([(g1^ s1) (mark-redundant-check/goal #'g1 s)]
-                  [(g2^ s2) (mark-redundant-check/goal #'g2 s)])
-       (values #`(disj #,g1^ #,g2^) (union s1 s2)))]
+    [(disj g ...)
+     (define-values (g^ s^)
+       (for/lists (g^ s^)
+                  ([g (attribute g)])
+         (mark-redundant-check/goal g s)))
+     (values #`(disj . #,g^) (apply union s^))]
     [(fresh (x ...) g)
      (let-values ([(new-g s^) (mark-redundant-check/goal #'g (add-fresh-vars s (attribute x)))])
        (values #`(fresh (x ...) #,new-g) s^))]

@@ -241,10 +241,12 @@ you have multi-arg lambdas.
                    [(g2^ s^^) (fold/goal #'g2 s^ ld)])
        (values #`(conj #,g1^ #,g2^) s^^))]
     ;; IDEA: basically assume we don't gain any subst information from disjunction because it could be self-contradictory
-    [(disj g1 g2)
-     (let-values ([(g1^ _s1) (fold/goal #'g1 subst ld)]
-                  [(g2^ _s2) (fold/goal #'g2 subst ld)])
-       (values #`(disj #,g1^ #,g2^) subst))]
+    [(disj g ...)
+     (define/syntax-parse (g^ ...)
+       (for/list ([g (attribute g)])
+         (define-values (g^ _) (fold/goal g subst ld))
+         g^))
+     (values #'(disj g^ ...) subst)]
     ;; Assume we don't gain any subst information within a fresh because we can't inline terms that may
     ;; refer to a variable in the fresh into contexts outside of the fresh. This is an unfortunate
     ;; limitation and should be alleviated by a better design.

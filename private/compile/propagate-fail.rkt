@@ -83,9 +83,9 @@ in disjunction can impact the order of the search.
     [(c:unary-constraint t) this-syntax]
     [(c:binary-constraint t1 t2) this-syntax]
     [(conj g1 g2) (propagate-fail/conj #'g1 #'g2)]
-    [(disj g1 g2)
-     #`(disj #,(propagate-fail/goal #'g1)
-             #,(propagate-fail/goal #'g2))]
+    [(disj g ...)
+     (define/syntax-parse (g^ ...) (map propagate-fail/goal (attribute g)))
+     #`(disj g^ ...)]
     [(fresh (x ...) g)
      #`(fresh (x ...)
          #,(propagate-fail/goal #'g))]

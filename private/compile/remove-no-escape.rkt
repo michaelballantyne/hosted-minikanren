@@ -201,10 +201,11 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
     [(conj g1 g2)
      (build-goal-id-map/goal #'g2
        (build-goal-id-map/goal #'g1 gidmap))]
-    [(disj g1 g2)
+    [(disj g ...)
      ;; DEFICIENCY: treating the disj like a conj.
-     (build-goal-id-map/goal #'g2
-       (build-goal-id-map/goal #'g1 gidmap))]
+     (for/fold ([gidmap gidmap])
+               ([g (attribute g)])
+       (build-goal-id-map/goal g gidmap))]
     [(fresh (x ...) g)
      (build-goal-id-map/goal
       #'g
@@ -263,9 +264,11 @@ PURPOSE: Remove unifications that bind names that are not used and do not escape
     [(conj g1 g2)
      #`(conj #,(produce-remove-no-escape/goal #'g1 goals)
              #,(produce-remove-no-escape/goal #'g2 goals))]
-    [(disj g1 g2)
-     #`(disj #,(produce-remove-no-escape/goal #'g1 goals)
-             #,(produce-remove-no-escape/goal #'g2 goals))]
+    [(disj g ...)
+     (define/syntax-parse (g^ ...)
+       (for/list ([g (attribute g)])
+         (produce-remove-no-escape/goal g goals)))
+     #'(disj g^ ...)]
     [(fresh (x ...) g)
      #`(fresh (x ...) #,(produce-remove-no-escape/goal #'g goals))]
     [(#%rel-app n t ...) g]

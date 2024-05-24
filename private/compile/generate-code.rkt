@@ -42,11 +42,6 @@
          #'=/= #'mk:=/=
          #'absento #'mk:absento)))
 
-(define (collect-disjs stx)
-  (syntax-parse stx #:literal-sets (mk-literals)
-    [(disj g1 g2) (cons #'g1 (collect-disjs #'g2))]
-    [_ (list this-syntax)]))
-
 ;; IRGoal RTGoal -> RTGoal
 ;; If any term in the goal contains a term-from-expression, then
 ;; we need to eta-expand the goal to access the current state
@@ -75,9 +70,9 @@
      (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t1) #,(generate-term #'t2)))]
     [(#%rel-app n:id t ...)
      (maybe-bind-surrounding-current-state-var stx #`(n #,@ (stx-map generate-term #'(t ...))))]
-    [(disj g1 g2)
+    [(disj g ...)
      #`(mk:conde
-         #,@(stx-map (compose list generate-goal) (collect-disjs this-syntax)))]
+         #,@(map (compose list generate-goal) (attribute g)))]
     [(conj g1 g2)
      #`(mku:conj #,(generate-goal #'g1)
                  #,(generate-goal #'g2))]
