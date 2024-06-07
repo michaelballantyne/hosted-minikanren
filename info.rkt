@@ -5,7 +5,7 @@
 (define deps '("base"
                "rackunit-lib"
                "threading"
-               "syntax-spec"))
+               "git://github.com/michaelballantyne/syntax-spec.git#main"))
 
 (define build-deps '("db" "sql"))
 
