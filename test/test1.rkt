@@ -10,6 +10,11 @@
       (== `(,head . ,result) l3)
       (appendo rest l2 result))]))
 
+(let ()
+  (let ()
+    (let ()
+      (run 1 (q) (fresh () (fresh () (fresh (x) (appendo '(1) '(2) q))))))))
+
 (define-relation (appendo2 l1 l2 l3)
   (matche [l1 l3]
     [[() ,??] (== l3 l2)]

@@ -5,7 +5,6 @@
 (define deps '("base"
                "rackunit-lib"
                "threading"
-               ["ee-lib" #:version "1.0"]
                "syntax-spec"))
 
 (define build-deps '("db" "sql"))

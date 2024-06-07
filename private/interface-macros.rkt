@@ -7,7 +7,7 @@
 ;
 
 (require
-  ee-lib/define
+  syntax-spec/private/ee-lib/define
   syntax/parse/define
   racket/math
   (prefix-in mk: "../mk/mk.rkt")
@@ -19,7 +19,7 @@
    syntax/stx
    racket/syntax
    syntax/id-table
-   (only-in ee-lib lookup)
+   (only-in syntax-spec/private/ee-lib/main lookup)
    racket/base
    syntax/parse
    racket/generic

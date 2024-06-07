@@ -6,7 +6,7 @@
 (require syntax-spec
          (for-syntax racket/base
                      syntax/parse
-                     (only-in ee-lib lookup in-space)))
+                     (only-in syntax-spec/private/ee-lib/main lookup in-space)))
 
 ;; TODO: should build in support to syntax-spec
 (begin-for-syntax
@@ -55,7 +55,7 @@
        #'(#%lv-ref x))
    (~> x:id
          ;; TODO: this doesn't work to detect racket-vars. They don't have a syntax-local-value.
-         ;; See ee-lib identifier-has-binding? comments for more discussion on difficulties.
+         ;; See syntax-spec/private/ee-lib/main identifier-has-binding? comments for more discussion on difficulties.
          ;; So for now assume anything that isn't a term variable is a term-from-expression.
          ;; #:when (lookup #'x (binding-class-predicate racket-var))
          #'(term-from-expression x))

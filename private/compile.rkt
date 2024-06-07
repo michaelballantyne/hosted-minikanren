@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require
- ee-lib
+ syntax-spec/private/ee-lib/main
  syntax/stx
  syntax/parse
  syntax/id-table

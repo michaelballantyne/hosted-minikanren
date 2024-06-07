@@ -25,7 +25,7 @@
  (for-syntax mk-literals))
 
 (require
-  ee-lib/define
+  syntax-spec/private/ee-lib/define
   "spec.rkt"
   (for-syntax
    racket/base

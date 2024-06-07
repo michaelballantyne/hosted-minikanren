@@ -1,5 +1,5 @@
 #lang racket/base
-(require ee-lib/errors
+(require syntax-spec/private/ee-lib/errors
          racket/math
          (for-syntax racket/base)
          racket/stxparam
