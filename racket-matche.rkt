@@ -1,15 +1,14 @@
 #lang racket/base
 
-(provide (for-space mk matche) defrel/matche)
+(provide (for-space mk matche) defrel/match (rename-out [defrel/match defrel/matche]))
 
 (require
-  minikanren-ee
-  
+  "main.rkt"
   (for-syntax racket/base
               racket/list
               syntax/stx
               syntax/parse
-              minikanren-ee/private/syntax-classes))
+              "private/syntax-classes.rkt"))
 
 (begin-for-syntax
   ;; p is a pattern expression

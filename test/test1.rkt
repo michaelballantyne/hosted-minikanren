@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../main.rkt")
+(require "../main.rkt"
+         "../matche.rkt")
 
 (define-relation (appendo l1 l2 l3)
   (conde

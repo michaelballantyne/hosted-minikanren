@@ -1,7 +1,8 @@
 #lang racket
 
 (require "../main.rkt"
-         syntax/parse)
+         syntax/parse
+         "../matche.rkt")
 
 (defrel/matche (leo x y)
   [(0 ,y)]

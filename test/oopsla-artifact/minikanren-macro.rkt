@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../../main.rkt" racket/pretty)
+(require "../../main.rkt"
+         "../../matche.rkt"
+         racket/pretty)
 
 (defrel/matche (append l1 l2 l3)
   [(() ,rest ,rest)]
