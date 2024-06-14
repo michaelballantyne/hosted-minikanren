@@ -3,7 +3,7 @@
 
 (module+ test
   (require (except-in rackunit fail))
-  (define-relation (j result1)
+  (defrel (j result1)
     (== '(1) (cons 1 result1)))
 
   (pretty-print (syntax->datum (relation-code j)))
@@ -25,15 +25,15 @@
 
 
   ;; Quasiquotes a non-atom
-  (define-relation (f m)
+  (defrel (f m)
     (== `(1) m))
 
   ;; Quasiquotes a non-atom, must destruct to match
-  (define-relation (g result1)
+  (defrel (g result1)
     (== `(1) (cons 1 result1)))
 
   ;; Quotes a non-atom
-  (define-relation (h m)
+  (defrel (h m)
     (== '(1) m))
 
   (test-equal?

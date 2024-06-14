@@ -473,7 +473,7 @@
 
 #|
 (generate-prog
-  (define-relation (appendo (~binders l1 l2 l3))
+  (defrel (appendo (~binders l1 l2 l3))
     (conde
       ((== l1 '()) (== l2 l3))
       ((fresh ((~binder a) (~binder d1) (~binder d2))
@@ -483,23 +483,23 @@
 
 ;; ----
 (with-syntax ...
-  #`(define-relation (appendo #,(syntax-property #'l1 'binder #t) ...)
+  #`(defrel (appendo #,(syntax-property #'l1 'binder #t) ...)
       (conde
         ((== l1 ...))
         ((fresh (#,(syntax-property #'a 'binder #t) ...))))) ...)))
 
 (generate-prog
-  (define-relation (foo (~binder a))
+  (defrel (foo (~binder a))
     (== (~ref a) 5)))
 ;; -->
 (with-syntax ([(a) (generate-temporaries #'(a))])
-  #'(define-relation (foo a)
+  #'(defrel (foo a)
       (== a 5)))
 (generate-prog
-  (define-relation (foo (generate-temporarie
+  (defrel (foo (generate-temporarie
 
 
-#'(define-relation (foo #<syntax a1>)
+#'(defrel (foo #<syntax a1>)
   (== #<syntax a1> 5))
 
 (define (a-er)
@@ -508,7 +508,7 @@
 (bound-identifier=? (a-er) (a-er))
 
 (generate-prog
-  (define-relation (appendo (~binder l1 l2 l3))
+  (defrel (appendo (~binder l1 l2 l3))
     (conde
       ((== (~ref l1) '()) (== (~ref l2) (~ref l3)))
       ((fresh ((~binder a d1 d2))
@@ -517,7 +517,7 @@
          (appendo (~ref d1) (~ref l2) (~ref d2)))))))
 
 (generate-prog
-  (define-relation (appendo (~binders l1 l2 l3))
+  (defrel (appendo (~binders l1 l2 l3))
     (conde
       ((== l1 '()) (== l2 l3))
       ((fresh ((~binder a) (~binder d1) (~binder d2))
@@ -528,7 +528,7 @@
 
 
 (generate-prog
-  (define-relation (appendo l1#! l2#! l3#!)
+  (defrel (appendo l1#! l2#! l3#!)
     (conde
       ((== l1# '()) (== l2# l3#))
       ((fresh (a#! d1#! d2#!)
@@ -537,7 +537,7 @@
          (appendo d1# l2# d2#)))))
 
 (generate-prog
-  (define-relation (appendo l1# l2# l3#)
+  (defrel (appendo l1# l2# l3#)
     (conde
       ((== l1 '()) (== l2 l3))
       ((fresh (a# d1# d2#)

@@ -15,7 +15,7 @@
 ;; the pass gets to see the binding of every logic variable.
 ;;
 
-#;(define-relation (bar y)
+#;(defrel (bar y)
   (apply-relation
    (relation (x)
      (== x y))

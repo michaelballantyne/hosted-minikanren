@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide (for-space mk matche) defrel/match (rename-out [defrel/match defrel/matche]))
+(provide (for-space mk matche) defrel/matche)
 
 (require
   "main.rkt"
@@ -40,7 +40,7 @@
        #'[(cons p1^ p2^) (x1 ... x2 ...)]]
       [(list p ...)
        (define/syntax-parse ((p^ (x ...)) ...) (map compile-pattern (attribute p)))
-       #'[(p^ ...) (x ... ...)]]
+       #'[(list p^ ...) (x ... ...)]]
       [(quote lit) #'[(quote lit) ()]]))
 
   (define-syntax-class (pattern-group vars)
@@ -61,7 +61,7 @@
          (== ls (list arg ...))
          (conde [(fresh xs (== pats^ ls) g ...)] ...))]))
 
-(define-syntax defrel/match
+(define-syntax defrel/matche
   (syntax-parser
     [(_ (name:id arg:id ...)
         clause ...)
@@ -73,6 +73,15 @@
 (module+ test
   (require (except-in rackunit fail)
            syntax/macro-testing)
+
+
+  (defrel (testo l1)
+    (matche (l1)
+      [((list a b))]))
+
+  (check-equal?
+   (run 1 (q) (testo q))
+   '((_.0 _.1)))
 
   (defrel (appendo l1 l2 l3)
     (matche (l1 l3)

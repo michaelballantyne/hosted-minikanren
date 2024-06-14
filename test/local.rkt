@@ -5,7 +5,7 @@
 
 (define r
   (let ()
-    (define-relation (foo x)
+    (defrel (foo x)
       (== x 5))
 
     (run 1 (q) (foo q))

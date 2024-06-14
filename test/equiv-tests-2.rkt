@@ -25,7 +25,7 @@
                             (== `(,a . ,d) q)))
                '((5 . _.0) (_.0 . 6)))
 
-  (define-relation (appendo l s out)
+  (defrel (appendo l s out)
     (conde
      [(== '() l) (== s out)]
      [(fresh (a d res)

@@ -27,8 +27,7 @@
    (only-in syntax/parse [define/syntax-parse def/stx])
    "syntax-classes.rkt"))
 
-(provide run run*  define-relation
-         (rename-out [define-relation defrel])
+(provide run run* defrel
          quote cons
          succeed fail
          absento symbolo stringo numbero =/= ==
@@ -50,7 +49,7 @@
   (define-local-symbol-table expanded-relation-code)
   (define-local-symbol-table compiled-relation-code))
 
-; run, run*, and define-relation are the interface with Racket
+; run, run*, and defrel are the interface with Racket
 
 (syntax-spec
  (host-interface/expression
@@ -82,7 +81,7 @@
   #`(relation-value #,(compile-relation #'(ir-rel (x ...) g) #f)))
 
  (host-interface/definition
-  (define-relation (name:relation-name x:term-variable ...) g:goal)
+  (defrel (name:relation-name x:term-variable ...) g:goal)
   #:binding [(export name) (scope (bind x) g)]
 
   #:lhs

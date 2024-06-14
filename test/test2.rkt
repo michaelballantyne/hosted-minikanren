@@ -2,7 +2,7 @@
 
 (require "../main.rkt")
 
-(define-relation (appendo l1 l2 l3)
+(defrel (appendo l1 l2 l3)
   (conde
    [(== l1 '()) (== l3 l2)]  ; base case
    [(fresh (head rest) ; recursive case

@@ -12,10 +12,10 @@
        #'(fresh (tmpv)
            (core-#%rel-app name arg ...))]))
 
-  (define-relation (bar x)
+  (defrel (bar x)
     (== x 5))
 
-  (define-relation (foo x)
+  (defrel (foo x)
     (bar x))
 
   (check-equal?

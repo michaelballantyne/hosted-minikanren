@@ -10,7 +10,7 @@
          "private/runtime.rkt"
          (for-syntax (only-in "private/compile.rkt" set-optimization-mode!)))
 
-(provide run run* relation define-relation defrel
+(provide run run* relation defrel
          quote cons
          succeed fail
          absento symbolo stringo numbero =/= ==

@@ -3,7 +3,7 @@
 (require "../main.rkt"
          "../matche.rkt")
 
-(define-relation (appendo l1 l2 l3)
+(defrel (appendo l1 l2 l3)
   (conde
    [(== l1 '()) (== l3 l2)]  ; base case
    [(fresh (head rest result) ; recursive case
@@ -16,12 +16,12 @@
     (let ()
       (run 1 (q) (fresh () (fresh () (fresh (x) (appendo '(1) '(2) q))))))))
 
-(define-relation (appendo2 l1 l2 l3)
+(defrel (appendo2 l1 l2 l3)
   (matche [l1 l3]
     [[() ,??] (== l3 l2)]
     [[(,head . ,rest) (,head . ,result)] (appendo2 rest l2 result)]))
 
-(define-relation (eval-expo exp env val)
+(defrel (eval-expo exp env val)
   (conde
    ((fresh (v)
       (== `(quote ,v) exp)
@@ -45,7 +45,7 @@
       (not-in-envo 'lambda env)
       (== `(closure ,x ,body ,env) val)))))
 
-(define-relation (not-in-envo x env)
+(defrel (not-in-envo x env)
   (conde
    ((fresh (y v rest)
       (== `((,y . ,v) . ,rest) env)
@@ -53,7 +53,7 @@
       (not-in-envo x rest)))
    ((== '() env))))
 
-(define-relation (proper-listo exp env val)
+(defrel (proper-listo exp env val)
   (conde
    ((== '() exp)
     (== '() val))
@@ -63,14 +63,14 @@
       (eval-expo a env t-a)
       (proper-listo d env t-d)))))
 
-(define-relation (lookupo x env t)
+(defrel (lookupo x env t)
   (fresh (rest y v)
     (== `((,y . ,v) . ,rest) env)
     (conde
      ((== y x) (== v t))
      ((=/= y x) (lookupo x rest t)))))
 
-(define-relation (appendo3 l1 l2 l3)
+(defrel (appendo3 l1 l2 l3)
   (conde
    [(== l1 '()) (== l3 l2)]
    [(fresh (head rest result)
@@ -84,7 +84,7 @@
              [(== n c)]
              [(apply-relation (make-naturals (+ c 1)) n)])))
 
-(define-relation (naturals n)
+(defrel (naturals n)
   (apply-relation (make-naturals 0) n))
 
 (module+ test
