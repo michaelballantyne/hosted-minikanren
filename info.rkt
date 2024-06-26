@@ -13,5 +13,7 @@
 (define compile-omit-paths '("bench/benchmarks"))
 (define binary-omit-files '("bench" "demos"))
 
+(define license 'MIT)
+
 ;(define build-deps '("racket-doc" "scribble-lib"))
 ;(define scribblings '(("main.scrbl" ())))
