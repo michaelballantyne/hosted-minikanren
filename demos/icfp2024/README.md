@@ -1,48 +1,59 @@
-# 
+# FILES
+
+`./paper-code.rkt`: ICFP 2024 paper miniKanren code. All code from the paper except external host-language libraries and the language implementation itself are here.
+
+`./facts.rkt`: A Racket-language SQLite database library. This is used for the flights database examples in the paper, but is useful generally.
+
+`./flights-db.rkt` A Racket-language flights database. This is used for the FFI-host interop examples in the paper. The FFI examples themselves are in `paper-code.kt`
+
+`./minikanren-spec-compiler.rkt` A trivial "demonstration-purposes" compiler for illustrating the language implementation code examples from the paper itself.
+
+`../../racket-matche.rkt` A `matche` implementation corresponding to that from the paper. The `matche` examples themselves are in `paper-code.kt`
+
+## Compiler implementation correspondence
+
+The correspondence between the code snippets of the demonstration purposes compiler and the real thing is as follows:
+
+Code snippets not otherwise mentioned here are as described above.
 
 ## Section 1
 
-## Section 2
+### Figure 1: The architecture for realizing compiled, extensible multi-language DSLs.
 
-### Figure 2
+## Section 2.1
 
-## Section 3
+### Figure 4: An EBNF-style grammar for miniKanren (left) and the corresponding `syntax-spec` version (right).
 
-### Figure 3
+## Section 3.2
 
-### Figure 4
+### Figure 5: Host interface forms creating the boundary between Racket and miniKanren.
 
-### Figure 5
+## Section 3.3
 
-## Section 4
+### Elaboration and extension portions of the spec
 
-### Figure 6
+### `list` and `fresh` implementations
 
-See `../racket-matche.rkt`
+### module system re-use
 
-### Figure 7
+## Section 4.2
 
-### Figure 8
+### Figure 9: Extension to the grammar of [Figure 4](#figure-4) with additional multi-language boundary forms
 
-### Figure 9
+### Figure 10: The above `goal-from-expression` sub-form from the example in [Figure 8](#figure-8) compiles to the below Racket implementation code.
 
-### Figure 10
-
-### Figure 11
-
-### Figure 12
-
-### Figure 13
-
-### Figure 14
+### Figure 11: The compile-time function `compile-goal` and its helper function.
 
 ## Section 5
 
-### Figure 15
+### Constant folding
 
-## Section 6
+### Dead code elimination
 
-## Section 7
+### Unification analysis
 
+### Specialization
 
+## Section 5.3
 
+### Optimizing at the boundary with Racket

@@ -1,28 +1,106 @@
-# README 
+# miniKanren-ee
 
+Welcome to the miniKanren-ee repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper](link_to_paper). This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
 
-## Test 
+## Table of Contents
 
-`raco test ++arg <some-module-file> ++ <some-output-file>  -c minikanren-ee` 
+- [Introduction](#introduction)
+- [Documentation](#documentation)
+- [Resources](#resources)
+- [Artifact from ICFP Paper](#artifact-from-icfp-paper)
+- [Building the Project](#building-the-project)
+- [Running the Project](#running-the-project)
+- [Testing the Project](#testing-the-project)
+- [Contributing](#contributing)
+- [License](#license)
 
-E.g., from within base directory, 
+## Introduction
 
-`raco setup minikanren-ee && raco test ++arg mk/private-unstable.rkt ++arg out.txt -c minikanren-ee`
+miniKanren is a family of domain-specific languages for logic programming. This repository contains the `miniKanren-ee` implementation, which utilizes a compiler-based approach for improved performance and flexibility. The primary goals of this implementation are to:
 
-## Setup 
+- Provide a robust and efficient platform for logic programming.
+- Enable users to experiment with and extend the miniKanren language.
+- Serve as a reference implementation for research and educational purposes.
 
-`raco setup -j 3` for some number of cores you want to use in install 
+## Documentation
 
-## faster-minikanren subtree
+Detailed documentation for miniKanren-ee can be found in the `docs` directory. This includes:
 
-The directory `mk/` is a `git subtree` of the `faster-minikanren` repo. To use it, first add `faster-minikanren` as a remote:
+- [User Guide](docs/user_guide.md): Comprehensive instructions on using miniKanren-ee.
+- [Developer Guide](docs/developer_guide.md): Information on the internal architecture and how to contribute to the project.
+
+## Resources
+
+Here are some useful resources related to miniKanren and logic programming generally:
+
+- [miniKanren Website](http://minikanren.org): Official website with tutorials, papers, and community links.
+- [ICFP Paper](link_to_paper): The paper describing this implementation.
+- [miniKanren GitHub Organization](https://github.com/miniKanren): Other projects and implementations related to miniKanren.
+
+## Artifact from ICFP Paper
+
+An artifact from our ICFP paper is available in the `artifact` sub-directory. This includes:
+
+- Source code used in the paper's experiments.
+- Data sets and scripts for reproducing results.
+- Instructions on how to use the artifact.
+
+You can find the artifact [here](artifact/README.md).
+
+## Building the Project
+
+To build `miniKanren-ee`,
+
+1. Ensure you have Racket installed and `racket` and `raco`  available on PATH.
+
+2. Clone the repository:
+   ```sh
+   git clone https://github.com/jasonhemann/minikanren-ee.git
+   cd minikanren-ee
+   ```
+
+3. Setup:
+   ```sh
+   raco setup minikanren-ee
+   ```
+
+## Running the Project
+
+With this implementation, running a miniKanren program is as easy as running another Racket program. Save a file like `test-mk.rkt`
+
+```racket
+#lang racket
+(require minikanren-ee)
+
+(defrel (cato x)
+  (== x 'cat))
+
+(run 1 (q) (cato q))
 ```
-git remote add faster-minikanren git@github.com:michaelballantyne/faster-minikanren.git
+
+For more examples and usage instructions, refer to the [User Guide](docs/user_guide.md).
+
+## Testing the Project
+
+Beyond the tests that come with `faster-minikanren`, we also use an additional compiler-specific suite of tests. To run both sets of tests, execute:
+
+```sh
+   raco test -c minikanren-ee
 ```
 
-Then, to pull in new commits from upstream, pull with:
-```
-git subtree pull --prefix mk faster-minikanren master --squash
-```
-The syntax properties provided to be used for code-gen are listed in `/private/compile/prop-vars.rkt`
+You can also run specific tests or test categories as described in the [Developer Guide](docs/developer_guide.md).
 
+For the code from the ICFP paper, see the documentation in the [artifact associated with the paper](./demos/icfp2024/README.md).
+
+To run our benchmark tests see [the associated documentation](./bench/README.md)
+
+## Contributing
+
+We welcome contributions from the community! PRs welcome!
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+
+[link-to-paper]: https://mballantyne.net/publications/icfp2024.pdf
