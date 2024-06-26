@@ -1,6 +1,6 @@
 # miniKanren-ee
 
-Welcome to the miniKanren-ee repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper](link_to_paper). This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
+Welcome to the miniKanren-ee repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper][link-to-paper]. This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ Detailed documentation for miniKanren-ee can be found in the `docs` directory. T
 Here are some useful resources related to miniKanren and logic programming generally:
 
 - [miniKanren Website](http://minikanren.org): Official website with tutorials, papers, and community links.
-- [ICFP Paper](link_to_paper): The paper describing this implementation.
+- [ICFP Paper][link-to-paper]: The paper describing this implementation.
 - [miniKanren GitHub Organization](https://github.com/miniKanren): Other projects and implementations related to miniKanren.
 
 ## Artifact from ICFP Paper
