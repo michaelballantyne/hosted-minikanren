@@ -7,10 +7,11 @@
                "threading"
                "git://github.com/michaelballantyne/syntax-spec.git#main"))
 
-(define build-deps '("db" "sql"))
+(define build-deps '("db" "sql" "csv-reading" "text-table"))
 
-(define test-omit-paths '("mk" "bench/benchmarks" "bench/process-bench.rkt"))
-(define compile-omit-paths '("bench/benchmarks" "bench/process-bench.rkt"))
+(define test-omit-paths '("mk" "bench/benchmarks"))
+(define compile-omit-paths '("bench/benchmarks"))
+(define binary-omit-files '("bench" "demos"))
 
 ;(define build-deps '("racket-doc" "scribble-lib"))
 ;(define scribblings '(("main.scrbl" ())))
