@@ -55,7 +55,7 @@ To build `miniKanren-ee`,
 
 2. Clone the repository:
    ```sh
-   git clone https://github.com/jasonhemann/minikanren-ee.git
+   git clone https://github.com/michaelballantyne/minikanren-ee.git
    cd minikanren-ee
    ```
 
