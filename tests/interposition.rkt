@@ -2,7 +2,7 @@
 
 ;; interposing works
 (module a racket
-  (require (rename-in minikanren-ee [#%rel-app core-#%rel-app])
+  (require (rename-in "../main.rkt" [#%rel-app core-#%rel-app])
            (for-syntax racket/base syntax/parse)
            (except-in rackunit fail))
 
@@ -27,7 +27,7 @@
 
 ;; syntax without the interposition point in scope expands okay
 (module b racket
-  (require (except-in minikanren-ee #%lv-ref)
+  (require (except-in "../main.rkt" #%lv-ref)
            (except-in rackunit fail))
 
   (check-equal?

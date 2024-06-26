@@ -1,6 +1,6 @@
-# miniKanren-ee
+# Hosted miniKanren
 
-Welcome to the miniKanren-ee repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper][link-to-paper]. This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
+Welcome to the Hosted miniKanren repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper][link-to-paper]. This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Welcome to the miniKanren-ee repository! This project is a compiler-based implem
 
 ## Introduction
 
-miniKanren is a family of domain-specific languages for logic programming. This repository contains the `miniKanren-ee` implementation, which utilizes a compiler-based approach for improved performance and flexibility. The primary goals of this implementation are to:
+miniKanren is a family of domain-specific languages for logic programming. This repository contains the `hosted-minikanren` implementation, which utilizes a compiler-based approach for improved performance and flexibility. The primary goals of this implementation are to:
 
 - Provide a robust and efficient platform for logic programming.
 - Enable users to experiment with and extend the miniKanren language.
@@ -24,9 +24,9 @@ miniKanren is a family of domain-specific languages for logic programming. This 
 
 ## Documentation
 
-Detailed documentation for miniKanren-ee can be found in the `docs` directory. This includes:
+Detailed documentation for Hosted miniKanren can be found in the `docs` directory. This includes:
 
-- [User Guide](docs/user_guide.md): Comprehensive instructions on using miniKanren-ee.
+- [User Guide](docs/user_guide.md): Comprehensive instructions on using Hosted miniKanren.
 - [Developer Guide](docs/developer_guide.md): Information on the internal architecture and how to contribute to the project.
 
 ## Resources
@@ -49,19 +49,19 @@ You can find the artifact [here](artifact/README.md).
 
 ## Building the Project
 
-To build `miniKanren-ee`,
+To build `hosted-minikanren`,
 
 1. Ensure you have Racket installed and `racket` and `raco`  available on PATH.
 
 2. Clone the repository:
    ```sh
-   git clone https://github.com/michaelballantyne/minikanren-ee.git
-   cd minikanren-ee
+   git clone https://github.com/michaelballantyne/hosted-minikanren.git
+   cd hosted-minikanren
    ```
 
 3. Setup:
    ```sh
-   raco setup minikanren-ee
+   raco setup hosted-minikanren
    ```
 
 ## Running the Project
@@ -70,7 +70,7 @@ With this implementation, running a miniKanren program is as easy as running ano
 
 ```racket
 #lang racket
-(require minikanren-ee)
+(require hosted-minikanren)
 
 (defrel (cato x)
   (== x 'cat))
@@ -85,7 +85,7 @@ For more examples and usage instructions, refer to the [User Guide](docs/user_gu
 Beyond the tests that come with `faster-minikanren`, we also use an additional compiler-specific suite of tests. To run both sets of tests, execute:
 
 ```sh
-   raco test -c minikanren-ee
+   raco test -c hosted-minikanren
 ```
 
 You can also run specific tests or test categories as described in the [Developer Guide](docs/developer_guide.md).

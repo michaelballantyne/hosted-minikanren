@@ -5,7 +5,7 @@
 (provide appendo-forwards appendo-forwards-manual appendo-uninstantiated appendo-uninstantiated-manual)
 
 ;; A benchmark produced by staging the following in staged minikanren,
-;; manually fixed up a bit to fit within the language of minikanren-ee.
+;; manually fixed up a bit to fit within the language of hosted-minikanren.
 
 #;(defrel (appendo xs ys zs)
   (staged

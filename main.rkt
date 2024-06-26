@@ -1,6 +1,6 @@
 #lang racket/base
 
-; This module adds sugar atop minikanren-ee/core and
+; This module adds sugar atop hosted-minikanren/core and
 ; exports the complete language.
 
 (require

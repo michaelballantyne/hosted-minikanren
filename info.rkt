@@ -1,6 +1,6 @@
 #lang info
 
-(define name "minikanren-ee")
+(define name "hosted-minikanren")
 
 (define deps '("base"
                "rackunit-lib"

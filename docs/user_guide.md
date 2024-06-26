@@ -12,15 +12,15 @@ Special restrictions on host-language interop (aka FFI) and new kinds of static 
 
 The miniKanren relational arithmetic suite and two different implementations of a `matche` pattern matching extension are also available. Require them to make them available.
 
-- `(require minikanren-ee/numbers)` provides the miniKanren relational arithmetic suite described in [Kiselyov et al.](https://link.springer.com/chapter/10.1007/978-3-540-78969-7_7) and "The Reasoned Schemer".
-- `(require minikanren-ee/matche)` provides a Chez-scheme style `matche` implementation like that described in [Keep et al.'s](https://digitalcommons.calpoly.edu/csse_fac/83/) 2009 Scheme Workshop paper.
-- `(require minikanren-ee/racket-matche)` provides the more Racket-like `matche` implementation described in the ICFP paper.
+- `(require hosted-minikanren/numbers)` provides the miniKanren relational arithmetic suite described in [Kiselyov et al.](https://link.springer.com/chapter/10.1007/978-3-540-78969-7_7) and "The Reasoned Schemer".
+- `(require hosted-minikanren/matche)` provides a Chez-scheme style `matche` implementation like that described in [Keep et al.'s](https://digitalcommons.calpoly.edu/csse_fac/83/) 2009 Scheme Workshop paper.
+- `(require hosted-minikanren/racket-matche)` provides the more Racket-like `matche` implementation described in the ICFP paper.
 
 Both of the latter two provide the name `matche` and `defrel/matche`; choose one or prefix the imports to distinguish them.
 
 ## miniKanren unit tests
 
-Because the primitive goal `fail` is also a name exported by `rackunit`, minikanren-ee users also writing unit tests should import `rackunit` as
+Because the primitive goal `fail` is also a name exported by `rackunit`, hosted-minikanren users also writing unit tests should import `rackunit` as
 
 ```racket
 (require (except-in rackunit fail))
