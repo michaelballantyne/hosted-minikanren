@@ -15,5 +15,7 @@
 
 (define license 'MIT)
 
+(define scribblings '(("scribblings/main.scrbl" () (experimental) "hosted-minikanren")))
+
 ;(define build-deps '("racket-doc" "scribble-lib"))
 ;(define scribblings '(("main.scrbl" ())))
