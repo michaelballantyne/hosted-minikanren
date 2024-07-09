@@ -19,9 +19,9 @@
 MB NB:
 order to do:
 - build up like we do in the paper
-1. spec w/a no-op compiler call (expand to 'of syntax)
-2. write syntax-in-syntax-out tests
-3. add allow extension and extension classes
+* DONE 1. spec w/a no-op compiler call (expand to 'of syntax)
+* DONE 2. write syntax-in-syntax-out tests
+* DONE 3. add allow extension and extension classes
 3a. try writing macros
 
 add compiler forms one-at-a-time.
@@ -90,7 +90,6 @@ variable arity conj.
  (host-interface/expression
   (run n:racket-expr (x:term-variable ...) g:goal)
   #:binding (scope (bind x) g)
-
   (compile-run #'(run n (x ...) g)))
 
 
@@ -113,11 +112,10 @@ variable arity conj.
     (expression-from-goal g:goal)
     (compile-expression-from-goal #'g))
 
-
-
  #;(host-interface/expression
     (expression-from-term t:term)
     (compile-expression-from-term #'t))
+
  )
 
 (begin-for-syntax
@@ -148,11 +146,12 @@ variable arity conj.
     [succeed #'mku:succeed]
     [(== t1 t2) #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2))]
     [(absento t1 t2) #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2))]
-    [(disj g ...) #'mku:succeed]
-    [(conj g ...) #'mku:succeed]
-    [(fresh1 (x ...) g) #'mku:succeed]
+    [(disj g ...) #'mku:succeed] ;; TODO
+    [(conj g ...) #'mku:succeed] ;; TODO
+    [(fresh1 (x ...) g) #`(fresh (x ...) #,(compile-goal #'g))]
     #;[(goal-from-expression e) ]
-    [(rel-name t ...) #'mku:succeed]))
+    [(rel-name t ...) #'mku:succeed ;; TODO
+     #;#`(rel-name #,(compile-term #'t) ...)]))
 
 (define/hygienic (compile-term stx) #:expression
   (syntax-parse stx
