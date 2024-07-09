@@ -1,7 +1,7 @@
 #lang racket/base
 
 (provide (all-defined-out)
-         ;; conj
+         #;(except-out fresh1 quote-core) ;; TODO better way to include all but the following (w/above and below)
          (for-space mk (all-defined-out))
          unquote
          (for-syntax term-macro
@@ -120,12 +120,6 @@ variable arity conj.
 
 (begin-for-syntax
 
-  #;(define (compile-expression-from-goal stx)
-    #'3)
-
-  #;(define (compile-expression-from-term stx)
-    #'3)
-
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
     #:literals (run run*)
@@ -146,11 +140,11 @@ variable arity conj.
     [succeed #'mku:succeed]
     [(== t1 t2) #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2))]
     [(absento t1 t2) #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2))]
-    [(disj g ...) #'mku:succeed] ;; TODO
-    [(conj g ...) #'mku:succeed] ;; TODO
+    [(disj g ...) #'mku:succeed] ;; TODO -- mplus*?
+    [(conj g ...) #'(mku:conj #,(compile-goal #'g) ...)]
     [(fresh1 (x ...) g) #`(fresh (x ...) #,(compile-goal #'g))]
     #;[(goal-from-expression e) ]
-    [(rel-name t ...) #'mku:succeed ;; TODO
+    [(rel-name t ...) #'mku:succeed ;; TODO -- why doesn't this work?
      #;#`(rel-name #,(compile-term #'t) ...)]))
 
 (define/hygienic (compile-term stx) #:expression
@@ -161,6 +155,12 @@ variable arity conj.
     [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
     #;[(term-from-expression e)
        #'(check-and-unseal-vars-in-term e #'e)]))
+
+  #;(define (compile-expression-from-goal stx)
+    #'3)
+
+  #;(define (compile-expression-from-term stx)
+    #'3)
 
 )
 
