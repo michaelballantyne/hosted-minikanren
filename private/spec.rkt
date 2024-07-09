@@ -10,11 +10,6 @@
 
 ;; TODO: should build in support to syntax-spec
 (begin-for-syntax
-  (define-syntax-class boolean/c
-    (pattern (~or #t #f)))
-  (define-syntax-class string/c
-    (pattern s:string))
-
   (define (maybe-interposition form-id ctx-stx)
     (let ([interposition-id ((in-space 'mk) (datum->syntax ctx-stx (syntax-e form-id)))])
       (if (lookup interposition-id (lambda (v) #t))
@@ -34,8 +29,8 @@
    #:description "quoted value"
    s:id
    n:number
-   s:string/c
-   b:boolean/c
+   s:string
+   b:boolean
    ())
 
  (nonterminal term
