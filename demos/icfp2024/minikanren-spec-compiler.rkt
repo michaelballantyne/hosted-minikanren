@@ -42,8 +42,16 @@ don't ~literal things in the spec, but (obv) do in the parse
 
 variable arity conj.
 
-in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
+* DONE in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
 
+|#
+
+#| JBH Qs
+
+mk-literals fixed order in file
+Isn't there an easier way than (re)write the whole tree-walk to produce mku:_ syntax forms?
+I feel like I made a (syntactically-valid) variable arity ~compile-goal~, but my use disagrees. Why?
+What do I need to do to get my term and goal macros to be recognized? Right now they don't seem to be.
 
 |#
 
@@ -75,9 +83,6 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
              #:fail-when (check-duplicate-identifier (syntax->list #'(v ...)))
              "duplicate parameter name"))
 
-  )
-
-(begin-for-syntax
 
   (define-syntax-class boolean/c
     (pattern (~or #t #f)))
@@ -85,11 +90,13 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
   (define-syntax-class string/c
     (pattern s:string))
 
-  (define (maybe-interposition form-id ctx-stx)
-    (let ([interposition-id ((in-space 'mk) (datum->syntax ctx-stx (syntax-e form-id)))])
-      (if (lookup interposition-id (lambda (v) #t))
-          interposition-id
-          form-id))))
+  #;(define (maybe-interposition form-id ctx-stx)
+      (let ([interposition-id ((in-space 'mk) (datum->syntax ctx-stx (syntax-e form-id)))])
+        (if (lookup interposition-id (lambda (v) #t))
+            interposition-id
+            form-id)))
+  )
+
 
 (syntax-spec
 
@@ -137,13 +144,16 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
   (r:rel-name t:term ...+)
   #;(goal-from-expression e:racket-expr))
 
+ (nonterminal ir-relation
+   (ir-rel (x:term-variable ...) g:goal))
+
  (host-interface/expression
   (run n:racket-expr (x:term-variable ...) g:goal)
   #:binding (scope (bind x) g)
 
   (compile-run #'(run n (x ...) g)))
 
- ;; TODO: probably have just one core run, do run* as a macro?
+
  (host-interface/expression
   (run* (x:term-variable ...) g:goal)
   #:binding (scope (bind x) g)
@@ -170,12 +180,14 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
  )
 
 (begin-for-syntax
+  (define-literal-set mk-literals
+    #:literal-sets (term-literals goal-literals)
+    ()))
 
-  (define (compile-goal stx)
+(begin-for-syntax
+
+  (define (compile-goal . stx)
     #'(mku:== 7 7))
-
-  (define (compile-relation stx)
-    #'3)
 
   #;(define (compile-expression-from-goal stx)
     #'3)
@@ -189,12 +201,10 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
      #`(mku:run* (q ...) #,(compile-goal #'g))]
     [(run n (q ...) g)
      #`(mku:run n (q ...) #,(compile-goal #'g))]))
-  )
 
+(define/hygienic (compile-relation stx name) #:expression
+  (syntax-parse stx
+    [(ir-rel (x ...) g)
+     #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
 
-
-
-(begin-for-syntax
-  (define-literal-set mk-literals
-    #:literal-sets (term-literals goal-literals)
-    ()))
+)
