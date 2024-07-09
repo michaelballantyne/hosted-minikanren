@@ -1,23 +1,18 @@
 #lang racket/base
 
 (provide (all-defined-out)
-         ;; conj (for-space mk quote quasiquote list)
-         run run* unquote
-         (for-syntax (all-defined-out)))
+         ;; conj
+         (for-space mk (all-defined-out))
+         unquote
+         (for-syntax term-macro
+                     goal-macro))
 
 (require syntax-spec
-         (rename-in racket/base
-                    [quasiquote rkt:quasiquote]
-                    [quote quote-core]
-                    [quote rkt:quote]
-                    [list rkt:list])
-         (prefix-in mku: "../../mk/private-unstable.rkt")
+         (prefix-in mku: "../../mk/mk.rkt")
          (for-syntax racket/base
                      syntax/parse
                      (only-in syntax-spec/private/ee-lib/main
-                              define/hygienic
-                              in-space
-                              lookup)))
+                              define/hygienic)))
 
 #|
 
@@ -33,7 +28,7 @@ add compiler forms one-at-a-time.
 (don't worry about FFI forms at first)
 
 tests earlier on, separate host interface form - goal-stx. quoted-stx.
-
+special no
 
 don't t relapps in syntax-spec
 relapp needs to be last in syntpax parse dealies
@@ -45,58 +40,6 @@ variable arity conj.
 * DONE in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
 
 |#
-
-#| JBH Qs
-
-mk-literals fixed order in file
-Isn't there an easier way than (re)write the whole tree-walk to produce mku:_ syntax forms?
-I feel like I made a (syntactically-valid) variable arity ~compile-goal~, but my use disagrees. Why?
-What do I need to do to get my term and goal macros to be recognized? Right now they don't seem to be.
-
-|#
-
-(begin-for-syntax
-
-  (define-syntax-class goal/c
-    #:description "goal expression"
-    (pattern _))
-
-  (define-syntax-class term/c
-    #:description "term expression"
-    (pattern _))
-
-  (define-syntax-class bindings/c
-    #:description "binding list (<id> ...)"
-    (pattern (x:id ...)
-             #:fail-when (check-duplicate-identifier (syntax->list #'(x ...)))
-             "duplicate variable name"))
-
-  (define-syntax-class bindings+/c
-    #:description "binding list (<id> ...+)"
-    (pattern (x:id ...+)
-             #:fail-when (check-duplicate-identifier (syntax->list #'(x ...)))
-             "duplicate variable name"))
-
-  (define-syntax-class define-header/c
-    #:description "header (<name:id> <arg:id> ...)"
-    (pattern (name:id v:id ...)
-             #:fail-when (check-duplicate-identifier (syntax->list #'(v ...)))
-             "duplicate parameter name"))
-
-
-  (define-syntax-class boolean/c
-    (pattern (~or #t #f)))
-
-  (define-syntax-class string/c
-    (pattern s:string))
-
-  #;(define (maybe-interposition form-id ctx-stx)
-      (let ([interposition-id ((in-space 'mk) (datum->syntax ctx-stx (syntax-e form-id)))])
-        (if (lookup interposition-id (lambda (v) #t))
-            interposition-id
-            form-id)))
-  )
-
 
 (syntax-spec
 
@@ -113,14 +56,14 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
   #:description "quoted value"
   s:id
   n:number
-  s:string/c
-  b:boolean/c
+  s:string
+  b:boolean
   ())
 
  (nonterminal term
   #:description "miniKanren term"
-  #:bind-literal-set term-literals
   #:allow-extension term-macro
+  #:binding-space mk
 
   x:term-variable
   (quote t:quoted)
@@ -130,8 +73,8 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
 
  (nonterminal goal
   #:description "miniKanren goal"
-  #:bind-literal-set goal-literals
   #:allow-extension goal-macro
+  #:binding-space mk
 
   succeed
   fail
@@ -143,9 +86,6 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
   #:binding (scope (bind x) b)
   (r:rel-name t:term ...+)
   #;(goal-from-expression e:racket-expr))
-
- (nonterminal ir-relation
-   (ir-rel (x:term-variable ...) g:goal))
 
  (host-interface/expression
   (run n:racket-expr (x:term-variable ...) g:goal)
@@ -160,19 +100,20 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
 
   (compile-run #'(run* (x ...) g)))
 
- (host-interface/definition
-  (defrel (name:rel-name x:term-variable ...) g:goal)
-  #:binding [(export name) (scope (bind x) g)]
+ (host-interface/definition (defrel (r:rel-name x:term-variable ...) g:goal)
+  #:binding [(export r) (scope (bind x) g)]
+  #:lhs [#'r]
+  #:rhs [(compile-relation #'(x ...) #'g)])
 
-  #:lhs
-  [#'name]
-  #:rhs
-  [(define compiled (compile-relation #'(ir-rel (x ...) g) #'name))
-   compiled])
+ (host-interface/expression
+   (test-goal-syntax g:goal)
+   #''g)
 
  #;(host-interface/expression
     (expression-from-goal g:goal)
     (compile-expression-from-goal #'g))
+
+
 
  #;(host-interface/expression
     (expression-from-term t:term)
@@ -180,14 +121,6 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
  )
 
 (begin-for-syntax
-  (define-literal-set mk-literals
-    #:literal-sets (term-literals goal-literals)
-    ()))
-
-(begin-for-syntax
-
-  (define (compile-goal . stx)
-    #'(mku:== 7 7))
 
   #;(define (compile-expression-from-goal stx)
     #'3)
@@ -197,14 +130,79 @@ What do I need to do to get my term and goal macros to be recognized? Right now 
 
 (define/hygienic (compile-run stx) #:expression
   (syntax-parse stx
+    #:literals (run run*)
     [(run* (q ...) g)
      #`(mku:run* (q ...) #,(compile-goal #'g))]
     [(run n (q ...) g)
      #`(mku:run n (q ...) #,(compile-goal #'g))]))
 
-(define/hygienic (compile-relation stx name) #:expression
+(define/hygienic (compile-relation args body) #:expression
+  (syntax-parse (list args body)
+    [((x ...) g)
+     #`(lambda (x ...) #,(compile-goal #'g))]))
+
+(define/hygienic (compile-goal stx) #:expression
   (syntax-parse stx
-    [(ir-rel (x ...) g)
-     #`(lambda (x ...) #,(compile-goal name #'g (attribute x) #f))]))
+    #:datum-literals (== absento disj conj fresh1 succeed fail)
+    [fail #'mku:fail]
+    [succeed #'mku:succeed]
+    [(== t1 t2) #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2))]
+    [(absento t1 t2) #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2))]
+    [(disj g ...) #'mku:succeed]
+    [(conj g ...) #'mku:succeed]
+    [(fresh1 (x ...) g) #'mku:succeed]
+    #;[(goal-from-expression e) ]
+    [(rel-name t ...) #'mku:succeed]))
+
+(define/hygienic (compile-term stx) #:expression
+  (syntax-parse stx
+    #:datum-literals (quote cons)
+    [v:id #'v]
+    [(quote d) #'(quote d)]
+    [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
+    #;[(term-from-expression e)
+       #'(check-and-unseal-vars-in-term e #'e)]))
 
 )
+
+(define-extension conde goal-macro
+  (syntax-parser
+    [(_ (g+ ...+) ...+)
+     #'(disj (conj g+ ...) ...)]))
+
+;; quote-core, quote, the-quote
+(define-extension the-quote term-macro
+  (syntax-parser
+    [(_ q)
+     (let recur ([stx #'q])
+       (syntax-parse stx #:datum-literals ()
+         [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
+         [(~or* v:id v:number v:boolean v:string) #'(quote v)]
+         [() #'(quote ())]))]))
+
+(define-extension quasiquote term-macro
+  (syntax-parser
+    [(_ q)
+     (let recur ([stx #'q] [level 0])
+       (syntax-parse stx #:datum-literals (unquote quasiquote)
+         [(unquote e)
+          (if (= level 0)
+              #'e
+              #`(cons (quote unquote) #,(recur #'(e) (- level 1))))]
+         [(unquote . rest)
+          (raise-syntax-error 'unquote "bad unquote syntax" stx)]
+         [(quasiquote e)
+          #`(cons (quote quasiquote) #,(recur #'(e) (+ level 1)))]
+         [(a . d)
+          #`(cons #,(recur #'a level) #,(recur #'d level))]
+         [(~or* v:id v:number v:boolean v:string) #'(quote v)]
+         [() #'(quote ())]))]))
+
+(define-extension list term-macro
+  (syntax-parser
+    [(_) #'(quote ())]
+    [(_ t t-rest ...) #'(cons t (list t-rest ...))]))
+
+(define-extension fresh goal-macro
+  (syntax-parser
+    [(_ (x ...) g* ...+) #'(fresh1 (x ...) (conj g* ...))]))
