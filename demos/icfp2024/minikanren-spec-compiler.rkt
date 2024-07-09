@@ -1,18 +1,23 @@
 #lang racket/base
 
-
 (provide (all-defined-out)
+         ;; conj (for-space mk quote quasiquote list)
+         run run* unquote
          (for-syntax (all-defined-out)))
 
 (require syntax-spec
          (rename-in racket/base
                     [quasiquote rkt:quasiquote]
+                    [quote quote-core]
                     [quote rkt:quote]
                     [list rkt:list])
          (prefix-in mku: "../../mk/private-unstable.rkt")
          (for-syntax racket/base
                      syntax/parse
-                     (only-in syntax-spec/private/ee-lib/main lookup in-space)))
+                     (only-in syntax-spec/private/ee-lib/main
+                              define/hygienic
+                              in-space
+                              lookup)))
 
 #|
 
@@ -167,10 +172,7 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
 (begin-for-syntax
 
   (define (compile-goal stx)
-    #'3)
-
-  (define (compile-run stx)
-    #'(mku:run 1 (q) (mku:== q q)))
+    #'(mku:== 7 7))
 
   (define (compile-relation stx)
     #'3)
@@ -181,59 +183,18 @@ in the real compiler literal set can go in spec.rkt, and eliminate forms.rkt
   #;(define (compile-expression-from-term stx)
     #'3)
 
+(define/hygienic (compile-run stx) #:expression
+  (syntax-parse stx
+    [(run* (q ...) g)
+     #`(mku:run* (q ...) #,(compile-goal #'g))]
+    [(run n (q ...) g)
+     #`(mku:run n (q ...) #,(compile-goal #'g))]))
   )
+
+
+
 
 (begin-for-syntax
   (define-literal-set mk-literals
     #:literal-sets (term-literals goal-literals)
     ()))
-
-(define-syntax-rule
-  (define-goal-macro m f)
-  (define-extension m goal-macro f))
-
-(define-syntax-rule
-  (define-term-macro m f)
-  (define-extension m term-macro f))
-
-(define-term-macro quote
-  (syntax-parser
-    [(~describe
-      "'<datum>"
-      (_ q))
-     (let recur ([stx #'q])
-       (syntax-parse stx #:datum-literals ()
-         [(a . d) #`(cons #,(recur #'a) #,(recur #'d))]
-         [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-         [() #'(quote-core ())]))]))
-
-(define-term-macro quasiquote
-  (syntax-parser
-    [(~describe
-      "`<datum>"
-      (_ q))
-     (let recur ([stx #'q] [level 0])
-       (syntax-parse stx #:datum-literals (unquote quasiquote)
-         [(unquote e)
-          (if (= level 0)
-              #'e
-              #`(cons (quote-core unquote) #,(recur #'(e) (- level 1))))]
-         [(unquote . rest)
-          (raise-syntax-error 'unquote "bad unquote syntax" stx)]
-         [(quasiquote e)
-          #`(cons (quote-core quasiquote) #,(recur #'(e) (+ level 1)))]
-         [(a . d)
-          #`(cons #,(recur #'a level) #,(recur #'d level))]
-         [(~or* v:identifier v:number v:boolean v:string) #'(quote-core v)]
-         [() #'(quote-core ())]))]))
-
-(define-term-macro list
-  (syntax-parser
-    [(~describe
-      "(list <term> ...)"
-      (_))
-     #'(quote-core ())]
-    [(~describe
-      "(list <term> ...)"
-      (_ t t-rest ...))
-     #'(cons t (list t-rest ...))]))
