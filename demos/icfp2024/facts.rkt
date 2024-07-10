@@ -1,77 +1,116 @@
 #lang racket/base
 
-(provide define-facts-table assert-fact query-facts)
+(provide define-facts-table assert-fact (for-space mk query-facts))
 
 (require "../../main.rkt" db sql
+         (only-in syntax-spec define-extension)
          syntax/macro-testing
          syntax/parse/define
          (except-in racket/match ==)
          (for-syntax racket/base syntax/parse))
-;; Does this also need a private runtime kind of module?
-(struct facts-table [conn insert query])
+
+;; TODO: might be nice to check contracts on the public API.
+
+(struct facts-table [conn insert-statement table-name field-names])
 (struct wildcard ())
 
-(define (connect-and-create create-statement)
-  (define conn (sqlite3-connect #:database 'memory))
-  (query-exec conn create-statement)
-  conn)
-
-(define-syntax-rule (create-table/connect . args)
-  (connect-and-create (create-table . args)))
-
-(define-syntax-rule (make-facts-table conn name field ...)
-  (facts-table
-   conn
-   (insert #:into name #:set [field ?] ...)
-   (select field ... #:from name)))
-
-
-;; SIGHELP OPT [Listof [Listof String]]
-;; the data Length of internal is equal to columns of table
 (define-syntax-parse-rule
   (define-facts-table name:id [field:id ...]
     (~optional (~seq #:initial-data source:expr)))
   (define name
-    (let* ([conn (create-table/connect #:temporary name #:columns [field text] ...)]
-           [ft (make-facts-table conn name field ...)])
-      (~? (for ([row (in-list source)])
-            (apply assert-fact ft row)))
+    (let ([ft (connect-and-create-facts-table
+               (create-table #:temporary name #:columns [field text] ...)
+               (insert #:into name #:set [field ?] ...)
+               'name 'field ...)])
+      (~? (insert-initial-data ft source))
       ft)))
 
-;; define/contract
+;; StatementAST StatementAST Symbol . (Listof Symbol) -> Table
+(define (connect-and-create-facts-table
+         create-statement insert-statement name . field-names)
+  (define conn (sqlite3-connect #:database 'memory))
+  (query-exec conn create-statement)
+  (facts-table conn insert-statement
+               (make-ident-ast name) (map make-ident-ast field-names)))
+
+(define (insert-initial-data ft source)
+  (for ([row (in-list source)])
+    (apply assert-fact ft row)))
+
+;; Table (Listof Atom) -> (void)
 (define (assert-fact ft . args)
-  (match ft
-    [(facts-table c i _)
-     (apply query-exec c i args)]))
+  (apply query-exec
+         (facts-table-conn ft)
+         (facts-table-insert-statement ft)
+         args))
 
-(define-syntax query-facts
-  (goal-macro
-   (syntax-parser
-     [(_ ft arg ...)
-      #'(goal-from-expression
-         (query-facts-rt ft (list (expression-from-term arg) ...)))])))
+(define-extension query-facts goal-macro
+  (syntax-parser
+    [(_ ft:id term-expr ...)
+     #'(goal-from-expression
+        (query-facts-rt ft (list (expression-from-term term-expr) ...)))]))
 
+;; Table (Listof TermVal) -> GoalVal
 (define (query-facts-rt ft terms)
   (define matching-rows (do-query ft (map wildcardify terms)))
   (unify-query-results matching-rows terms))
 
-;; define/contract
-;; Term -> (Or Atom Wildcard)
-;; THROWS when Term is instantiated to a non-atom
-(define (wildcardify t)
-  (match t
-    [(? mk-atom?) t]
+;; TermVal -> (Or Atom Wildcard)
+;; THROWS when term is instantiated to a non-atom
+(define (wildcardify term)
+  (match term
+    [(? mk-atom?) term]
     [(? mk-lvar?) (wildcard)]
     [_ (error 'query-facts "Term must be an atom or variable")]))
 
-;; TODO: currently this uses a prebuilt query that doesn't leverage
-;; known information about the arguments to filter at all! That should be improved.
+;; Table (Listof (Or Atom Wildcard)) -> (Listof (Listof Atom))
 (define (do-query ft args)
-  (match ft
-    [(facts-table c _ q)
-     (map vector->list (query-rows c q))]))
+  (define fields
+    (facts-table-field-names ft))
+  (define-values (filtered-fields filtered-args)
+    (filter-non-wildcard fields args))
+  (define query
+    (build-query (facts-table-table-name ft)
+                 fields
+                 filtered-fields))
+  (map vector->list
+       (apply query-rows (facts-table-conn ft) query filtered-args)))
 
-;; [Listof [Listof Atom]] [Listof TermVal] -> GoalVal
+;; (Listof IdentAST) (Listof (Or Atom Wildcard))
+;;    -> (values (Listof IdentAST) (Listof Atom))
+;; Filter the two lists, keeping corresponding elements of each where the `arg`
+;; is not a wildcard.
+(define (filter-non-wildcard fields args)
+  (for/lists (filtered-fields filtered-args)
+             ([field fields]
+              [arg args]
+              #:when (not (wildcard? arg)))
+    (values field arg)))
+
+;; IdentAST (Listof IdentAST) (Listof IdentAST) -> StatementAST
+;; Build an SQL query selecting all the fields from the given table, with `where`
+;; clauses filtering on equality with the filtered-fields vs a query parameter.
+(define (build-query table-name fields filtered-fields)
+  (if (null? filtered-fields)
+      (select (SelectItem:AST ,fields)
+              #:from (Ident:AST ,table-name))
+      (select (SelectItem:AST ,fields)
+              #:from (Ident:AST ,table-name)
+              #:where (ScalarExpr:AST ,(build-and filtered-fields)))))
+
+;; (Listof IdentAST) -> ScalarExprAST
+;; `fields` should have at least one element.
+;; Build an sql `and` expression with equalities for all of the given fields;
+;; these should include only fields with non-wildcard values.
+(define (build-and fields)
+  (match fields
+    [(list f) (scalar-expr-qq (= (Ident:AST ,f) ?))]
+    [(cons f rest) (scalar-expr-qq
+                    (and
+                     (= (Ident:AST ,f) ?)
+                     (ScalarExpr:AST ,(build-and rest))))]))
+
+;; (Listof (Listof Atom)) (Listof TermVal) -> GoalVal
 (define (unify-query-results query-res args)
   (match query-res
     ['() (expression-from-goal fail)]
