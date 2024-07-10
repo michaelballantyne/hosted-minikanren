@@ -17,13 +17,6 @@
 #|
 
 MB NB:
-order to do:
-- build up like we do in the paper
-* DONE 1. spec w/a no-op compiler call (expand to 'of syntax)
-* DONE 2. write syntax-in-syntax-out tests
-* DONE 3. add allow extension and extension classes
-3a. try writing macros
-
 add compiler forms one-at-a-time.
 (don't worry about FFI forms at first)
 
@@ -96,7 +89,6 @@ variable arity conj.
  (host-interface/expression
   (run* (x:term-variable ...) g:goal)
   #:binding (scope (bind x) g)
-
   (compile-run #'(run* (x ...) g)))
 
  (host-interface/definition (defrel (r:rel-name x:term-variable ...) g:goal)
@@ -104,6 +96,7 @@ variable arity conj.
   #:lhs [#'r]
   #:rhs [(compile-relation #'(x ...) #'g)])
 
+ ;; Added for testing.
  (host-interface/expression
    (test-goal-syntax g:goal)
    #''g)
@@ -155,12 +148,6 @@ variable arity conj.
     [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
     #;[(term-from-expression e)
        #'(check-and-unseal-vars-in-term e #'e)]))
-
-  #;(define (compile-expression-from-goal stx)
-    #'3)
-
-  #;(define (compile-expression-from-term stx)
-    #'3)
 
 )
 
