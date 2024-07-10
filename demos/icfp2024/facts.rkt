@@ -9,6 +9,15 @@
          (except-in racket/match ==)
          (for-syntax racket/base syntax/parse))
 
+
+;; The SQL interaction used in this extension is equivalent to something like this:
+#;(begin
+   (define conn (sqlite3-connect #:database 'memory))
+   (query-exec conn (create-table #:temporary flights #:columns [a text] [b text]))
+   (query-exec conn (insert #:into flights #:set [a ?] [b ?]) "BOS" "SLC")
+   (query-exec conn (insert #:into flights #:set [a ?] [b ?]) "BOS" "SEA")
+   (select a b #:from flights #:where (= b ?)))
+
 ;; TODO: might be nice to check contracts on the public API.
 
 (struct facts-table [conn insert-statement table-name field-names])
