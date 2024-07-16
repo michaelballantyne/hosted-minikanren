@@ -100,7 +100,7 @@
 
 ;; In this demo compiler, we simply generate faster-minikanren code without performing
 ;; optimizations. There's still some interesting code for implementing the safe
-;; multi-language boundaires, however!
+;; multi-language boundaries, however!
 
 (define-syntax-parameter surrounding-current-state-var #'mku:empty-state)
 
