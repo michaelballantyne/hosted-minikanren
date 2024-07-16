@@ -22,6 +22,11 @@
  (run 1 (q) (== q (term-from-expression (expression-from-term q))))
  '(_.0))
 
+(test-equal?
+ "The `expression-from-term` isn't necessary here b/c with-reference-compilers puts it for us"
+ (run 1 (q) (== q (term-from-expression q)))
+ '(_.0))
+
 (check-equal?
  (run 1 (q) (== q (term-from-expression (expression-from-term 'cat))))
  '(cat))

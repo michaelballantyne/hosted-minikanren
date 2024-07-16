@@ -120,6 +120,7 @@
              st))
         generated-goal))
 
+(define (compile-goal stx)
   (define/hygienic (compile-goal stx) #:expression
     (syntax-parse stx
       #:datum-literals (== absento disj conj fresh1 succeed fail)
@@ -147,6 +148,9 @@
         (ormap contains-term-from-expression? (attribute t))
         #'(rel-name t^ ...))]))
 
+  #`(with-reference-compilers ([term-variable compile-term-variable-reference])
+      #,(compile-goal stx)))
+
   (define/hygienic (compile-term stx) #:expression
     (syntax-parse stx
       #:datum-literals (core-quote cons term-from-expression)
@@ -163,6 +167,9 @@
     #`(translate-term
         (mku:walk* #,(compile-term term-exp)
                    (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var)))))
+
+  (define (compile-term-variable-reference compiled-term-var-id)
+    (compile-expression-from-term compiled-term-var-id))
 
   (define (contains-term-from-expression? t)
     (syntax-parse t
