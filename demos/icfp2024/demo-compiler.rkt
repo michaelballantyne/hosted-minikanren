@@ -14,6 +14,10 @@
                      (only-in syntax-spec/private/ee-lib/main
                               define/hygienic)))
 
+;;
+;; The syntax-spec declaration of the core syntax
+;;
+
 (syntax-spec
 
  (binding-class term-variable)
@@ -75,11 +79,6 @@
   #:lhs [#'r]
   #:rhs [(compile-relation #'(x ...) #'g)])
 
- ;; Added for testing.
- (host-interface/expression
-   (test-goal-syntax g:goal)
-   #''g)
-
  (host-interface/expression
    (expression-from-goal g:goal)
    (compile-expression-from-goal #'g))
@@ -88,13 +87,24 @@
    (expression-from-term t:term)
    (compile-expression-from-term #'t))
 
- )
+ ;; Added for testing.
+ (host-interface/expression
+   (test-goal-syntax g:goal)
+   #''g)
+)
 
+
+;;
+;; The compiler back-end
+;;
+
+;; In this demo compiler, we simply generate faster-minikanren code without performing
+;; optimizations. There's still some interesting code for implementing the safe
+;; multi-language boundaires, however!
 
 (define-syntax-parameter surrounding-current-state-var #'mku:empty-state)
 
 (begin-for-syntax
-
   (define/hygienic (compile-run stx) #:expression
     (syntax-parse stx
       #:literals (run run*)
@@ -108,9 +118,40 @@
       [((x ...) g)
        #`(lambda (x ...) #,(compile-goal #'g))]))
 
+  (define (compile-goal stx)
+    (define/hygienic (compile-goal stx) #:expression
+      (syntax-parse stx
+        #:datum-literals (== absento disj conj fresh1 succeed fail)
+        [fail #'mku:fail]
+        [succeed #'mku:succeed]
+        [(== t1 t2)
+         (maybe-bind-surrounding-current-state-var
+          (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
+          #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2)))]
+        [(absento t1 t2)
+         (maybe-bind-surrounding-current-state-var
+          (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
+          #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2)))]
+        [(disj g ...)
+         (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
+         #'(mku:conde (g^) ...)]
+        [(conj g ...)
+         (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
+         #'(mku:conj g^ ...)]
+        [(fresh1 (x ...) g) #`(mku:fresh (x ...) #,(compile-goal #'g))]
+        [(goal-from-expression e) (maybe-bind-surrounding-current-state-var #t #'(unseal-goal e))]
+        [(rel-name t ...)
+         (define/syntax-parse (t^ ...) (map compile-term (attribute t)))
+         (maybe-bind-surrounding-current-state-var
+          (ormap contains-term-from-expression? (attribute t))
+          #'(rel-name t^ ...))]))
+  
+    #`(with-reference-compilers ([term-variable compile-expression-from-term])
+        #,(compile-goal stx)))
+  
   (define (maybe-bind-surrounding-current-state-var should-bind? generated-goal)
-    ;; Doing this macro-y thing so that we can convey stuff from one part of racket expansion (of the generated λ(st))
-    ;; to another part of racket expansion (when we racket-expand the re-entry into miniKanren from Racket at an expression-from-term).
+    ;; The syntax parameter conveys information from one part of Racket expansion (of the generated λ(st))
+    ;; to another part of Racket expansion (when we racket-expand the re-entry into miniKanren from Racket at an expression-from-term).
     ;;
     ;; What we're trying to convey is a reference to the racket variable 'st'
     (if should-bind?
@@ -120,36 +161,15 @@
              st))
         generated-goal))
 
-(define (compile-goal stx)
-  (define/hygienic (compile-goal stx) #:expression
-    (syntax-parse stx
-      #:datum-literals (== absento disj conj fresh1 succeed fail)
-      [fail #'mku:fail]
-      [succeed #'mku:succeed]
-      [(== t1 t2)
-       (maybe-bind-surrounding-current-state-var
-        (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
-        #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2)))]
-      [(absento t1 t2)
-       (maybe-bind-surrounding-current-state-var
-        (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
-        #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2)))]
-      [(disj g ...)
-       (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
-       #'(mku:conde (g^) ...)]
-      [(conj g ...)
-       (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
-       #'(mku:conj g^ ...)]
-      [(fresh1 (x ...) g) #`(mku:fresh (x ...) #,(compile-goal #'g))]
-      [(goal-from-expression e) (maybe-bind-surrounding-current-state-var #t #'(unseal-goal e))]
-      [(rel-name t ...)
-       (define/syntax-parse (t^ ...) (map compile-term (attribute t)))
-       (maybe-bind-surrounding-current-state-var
-        (ormap contains-term-from-expression? (attribute t))
-        #'(rel-name t^ ...))]))
-
-  #`(with-reference-compilers ([term-variable compile-expression-from-term])
-      #,(compile-goal stx)))
+  (define (contains-term-from-expression? t)
+    (syntax-parse t
+      #:datum-literals (core-quote cons term-from-expression)
+      [v:id #f]
+      [(core-quote _) #f]
+      [(cons t1 t2)
+       (or (contains-term-from-expression? #'t1)
+           (contains-term-from-expression? #'t2))]
+      [(term-from-expression _) #t]))
 
   (define/hygienic (compile-term stx) #:expression
     (syntax-parse stx
@@ -167,22 +187,73 @@
     #`(translate-term
         (mku:walk* #,(compile-term term-exp)
                    (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var)))))
-
-  (define (contains-term-from-expression? t)
-    (syntax-parse t
-      #:datum-literals (core-quote cons term-from-expression)
-      [v:id #f]
-      [(core-quote _) #f]
-      [(cons t1 t2)
-       (or (contains-term-from-expression? #'t1)
-           (contains-term-from-expression? #'t2))]
-      [(term-from-expression _) #t]))
 )
+
+
+;;
+;; Runtime support for the multi-language boundaries
+;;
+
+(struct mk-goal [proc])
+
+(define (seal-goal g)
+  (mk-goal g))
+
+(define (unseal-goal goal-val)
+  (if (mk-goal? goal-val)
+      (mk-goal-proc goal-val)
+      (raise-argument-error
+       'goal-from-expression
+       "mk-goal?"
+       goal-val)))
+
+(struct mk-lvar [var]
+  #:methods gen:equal+hash
+  [(define (equal-proc this other rec)
+     (eq? (mk-lvar-var this) (mk-lvar-var other)))
+   (define (hash-proc this rec)
+     (rec (mk-lvar-var this)))
+   (define (hash2-proc this rec)
+     (rec (mk-lvar-var this)))])
+
+(define (translate-term t)
+  (cond
+    [(mku:var? t) (mk-lvar t)]
+    [(pair? t) (cons (translate-term (car t))
+                     (translate-term (cdr t)))]
+    [else t]))
+
+(define (check-and-unseal-vars-in-term v)
+  (cond
+    [(or (symbol? v)
+         (string? v)
+         (number? v)
+         (null? v)
+         (boolean? v))
+     v]
+    [(mk-lvar? v) (mk-lvar-var v)]
+    [(pair? v) (cons (check-and-unseal-vars-in-term (car v))
+                     (check-and-unseal-vars-in-term (cdr v)))]
+    [else (raise-argument-error 'term "mk-value?" v)]))
+
+
+;;
+;; Macros that extend the DSL core syntax
+;;
 
 (define-extension conde goal-macro
   (syntax-parser
     [(_ (g+ ...+) ...+)
      #'(disj (conj g+ ...) ...)]))
+
+(define-extension fresh goal-macro
+  (syntax-parser
+    [(_ (x ...) g* ...+) #'(fresh1 (x ...) (conj g* ...))]))
+
+(define-extension list term-macro
+  (syntax-parser
+    [(_) #'(core-quote ())]
+    [(_ t t-rest ...) #'(cons t (list t-rest ...))]))
 
 (define-extension quote term-macro
   (syntax-parser
@@ -210,55 +281,3 @@
           #`(cons #,(recur #'a level) #,(recur #'d level))]
          [(~or* v:id v:number v:boolean v:string) #'(core-quote v)]
          [() #'(core-quote ())]))]))
-
-(define-extension list term-macro
-  (syntax-parser
-    [(_) #'(core-quote ())]
-    [(_ t t-rest ...) #'(cons t (list t-rest ...))]))
-
-(define-extension fresh goal-macro
-  (syntax-parser
-    [(_ (x ...) g* ...+) #'(fresh1 (x ...) (conj g* ...))]))
-
-
-(struct mk-goal [proc])
-(struct mk-lvar [var]
-  #:methods gen:equal+hash
-  [(define (equal-proc this other rec)
-     (eq? (mk-lvar-var this) (mk-lvar-var other)))
-   (define (hash-proc this rec)
-     (rec (mk-lvar-var this)))
-   (define (hash2-proc this rec)
-     (rec (mk-lvar-var this)))])
-
-(define (translate-term t)
-  (cond
-    [(mku:var? t) (mk-lvar t)]
-    [(pair? t) (cons (translate-term (car t))
-                     (translate-term (cdr t)))]
-    [else t])
-  )
-
-(define (check-and-unseal-vars-in-term v)
-  (cond
-    [(or (symbol? v)
-         (string? v)
-         (number? v)
-         (null? v)
-         (boolean? v))
-     v]
-    [(mk-lvar? v) (mk-lvar-var v)]
-    [(pair? v) (cons (check-and-unseal-vars-in-term (car v))
-                     (check-and-unseal-vars-in-term (cdr v)))]
-    [else (raise-argument-error 'term "mk-value?" v)]))
-
-(define (seal-goal g)
-  (mk-goal g))
-
-(define (unseal-goal goal-val)
-  (if (mk-goal? goal-val)
-      (mk-goal-proc goal-val)
-      (raise-argument-error
-       'goal-from-expression
-       "mk-goal?"
-       goal-val)))
