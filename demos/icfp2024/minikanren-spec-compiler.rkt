@@ -8,7 +8,7 @@
 
 (require syntax-spec
          racket/stxparam
-         (prefix-in mku: "../../mk/mk.rkt")
+         (prefix-in mku: "../../mk/private-unstable.rkt")
          (for-syntax racket/base
                      syntax/parse
                      (only-in syntax-spec/private/ee-lib/main
@@ -109,8 +109,12 @@
     [((x ...) g)
      #`(lambda (x ...) #,(compile-goal #'g))]))
 
-(define (maybe-bind-surrounding-current-state-var g generated-goal)
-  (if (contains-term-from-expression? g)
+(define (maybe-bind-surrounding-current-state-var should-bind? generated-goal)
+  ;; Doing this macro-y thing so that we can convey stuff from one part of racket expansion (of the generated λ(st))
+  ;; to another part of racket expansion (when we racket-expand the re-entry into miniKanren from Racket at an expression-from-term).
+  ;;
+  ;; What we're trying to convey is a reference to the racket variable 'st'
+  (if should-bind?
       #`(λ (st)
           ((syntax-parameterize ([surrounding-current-state-var #'st])
              #,generated-goal)
@@ -122,11 +126,14 @@
     #:datum-literals (== absento disj conj fresh1 succeed fail)
     [fail #'mku:fail]
     [succeed #'mku:succeed]
-    [(== t1 t2) ;; OKAY this will be repetitive maybe-bind-surrounding. ~or patterns for
+    [(== t1 t2)
      (maybe-bind-surrounding-current-state-var
-      stx
+      (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
       #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2)))]
-    [(absento t1 t2) #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2))]
+    [(absento t1 t2)
+     (maybe-bind-surrounding-current-state-var
+      (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
+      #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2)))]
     [(disj g ...)
      (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
      #'(mku:conde (g^) ...)]
@@ -134,18 +141,16 @@
      (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
      #'(mku:conj g^ ...)]
     [(fresh1 (x ...) g) #`(mku:fresh (x ...) #,(compile-goal #'g))]
-    [(goal-from-expression e)
-     #'(λ (st) ;; OKAY? Why did we need to do this?
-         ((syntax-parameterize ([surrounding-current-state-var st])
-            e)
-          st))]
+    [(goal-from-expression e) (maybe-bind-surrounding-current-state-var #t #'e)]
     [(rel-name t ...)
      (define/syntax-parse (t^ ...) (map compile-term (attribute t)))
-     #'(rel-name t^ ...)]))
+     (maybe-bind-surrounding-current-state-var
+      (ormap contains-term-from-expression? (attribute t))
+      #'(rel-name t^ ...))]))
 
 (define/hygienic (compile-term stx) #:expression
   (syntax-parse stx
-    #:datum-literals (core-quote cons)
+    #:datum-literals (core-quote cons term-from-expression)
     [v:id #'v]
     [(core-quote d) #'(quote d)]
     [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
@@ -159,41 +164,15 @@
   #`(mku:walk* #,(compile-term term-exp)
                (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var))))
 
-(define (contains-term-from-expression? g)
-  (define (goal-contains? g)
-    (syntax-parse g
-      #:datum-literals (== absento disj conj fresh1 succeed fail)
-      [succeed #f]
-      [fail #f]
-      [(== t1 t2)
-       (or (term-contains? #'t1)
-           (term-contains? #'t2))]
-      [(absento t1 t2)
-       (or (term-contains? #'t1)
-           (term-contains? #'t2))]
-      [(conj g ...)  ;; OKAY? ISN'T THIS NOW NO LONGER A FOLD OVER SYNTAX?
-                     ;; BUG! Unbound identifiers?? Why isn't this a static error?
-       (or (goal-contains? #'g1)
-           (goal-contains? #'g2))]
-      [(disj g1 g2)
-       (or (goal-contains? #'g1)
-           (goal-contains? #'g2))]
-      [(fresh (x ...) g) (goal-contains? #'g)]
-      [(goal-from-expression e) #t]
-      [(rel-name t ...)
-       (ormap term-contains? (syntax->list #'(t ...)))]))
-
-  (define (term-contains? t)
-    (syntax-parse t
-      #:datum-literals (core-quote cons)
-      [v:id #f]
-      [(core-quote _) #f]
-      [(cons t1 t2)
-       (or (term-contains? #'t1)
-           (term-contains? #'t2))]
-      [(term-from-expression _) #t]))
-
-  (goal-contains? g))
+(define (contains-term-from-expression? t)
+  (syntax-parse t
+    #:datum-literals (core-quote cons term-from-expression)
+    [v:id #f]
+    [(core-quote _) #f]
+    [(cons t1 t2)
+     (or (contains-term-from-expression? #'t1)
+         (contains-term-from-expression? #'t2))]
+    [(term-from-expression _) #t]))
 )
 
 (define-extension conde goal-macro
@@ -201,7 +180,6 @@
     [(_ (g+ ...+) ...+)
      #'(disj (conj g+ ...) ...)]))
 
-;; OKAY? quote-core, quote, quote I /did/ need a 2nd quote, b/c 2 versions, to walk syntax.
 (define-extension quote term-macro
   (syntax-parser
     [(_ q)

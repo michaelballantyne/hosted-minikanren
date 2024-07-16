@@ -14,18 +14,17 @@
  (run 1 (q) (== q 'cat))
  '(cat))
 
-#;(check-equal?
- (run 1 (q) (goal-from-expression (expression-from-goal succeed)))
- 'cat)
-
-#;(check-equal?
+(check-equal?
  (run 1 (q) (== q (term-from-expression 'cat)))
  '(cat))
 
-#;(check-equal?
+(check-equal?
  (run 1 (q) (== q (term-from-expression (expression-from-term 'cat))))
  '(cat))
 
+(check-equal?
+ (run 1 (q) (goal-from-expression (expression-from-goal succeed)))
+ 'cat)
 
 (test-equal? "list macro expands correctly"
  (test-goal-syntax (fresh (y) (absento (list 'cat 'cat 'cat) y)))
