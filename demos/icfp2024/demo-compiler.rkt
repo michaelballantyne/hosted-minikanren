@@ -241,21 +241,21 @@
 ;; Macros that extend the DSL core syntax
 ;;
 
-(define-extension conde goal-macro
+(define-dsl-syntax conde goal-macro
   (syntax-parser
     [(_ (g+ ...+) ...+)
      #'(disj (conj g+ ...) ...)]))
 
-(define-extension fresh goal-macro
+(define-dsl-syntax fresh goal-macro
   (syntax-parser
     [(_ (x ...) g* ...+) #'(fresh1 (x ...) (conj g* ...))]))
 
-(define-extension list term-macro
+(define-dsl-syntax list term-macro
   (syntax-parser
     [(_) #'(core-quote ())]
     [(_ t t-rest ...) #'(cons t (list t-rest ...))]))
 
-(define-extension quote term-macro
+(define-dsl-syntax quote term-macro
   (syntax-parser
     [(_ q)
      (let recur ([stx #'q])
@@ -264,7 +264,7 @@
          [(~or* v:id v:number v:boolean v:string) #'(core-quote v)]
          [() #'(core-quote ())]))]))
 
-(define-extension quasiquote term-macro
+(define-dsl-syntax quasiquote term-macro
   (syntax-parser
     [(_ q)
      (let recur ([stx #'q] [level 0])

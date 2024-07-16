@@ -3,7 +3,7 @@
 (provide define-facts-table assert-fact (for-space mk query-facts))
 
 (require "../../main.rkt" db sql
-         (only-in syntax-spec define-extension)
+         (only-in syntax-spec define-dsl-syntax)
          syntax/macro-testing
          syntax/parse/define
          (except-in racket/match ==)
@@ -53,7 +53,7 @@
          (facts-table-insert-statement ft)
          args))
 
-(define-extension query-facts goal-macro
+(define-dsl-syntax query-facts goal-macro
   (syntax-parser
     [(_ ft:id term-expr ...)
      #'(goal-from-expression

@@ -100,11 +100,11 @@
 
 (define-syntax-rule
   (define-goal-macro m f)
-  (define-extension m goal-macro f))
+  (define-dsl-syntax m goal-macro f))
 
 (define-syntax-rule
   (define-term-macro m f)
-  (define-extension m term-macro f))
+  (define-dsl-syntax m term-macro f))
 
 (syntax-spec
  (host-interface/expression

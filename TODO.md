@@ -1,6 +1,6 @@
 # TODO as of 2023-08-04
 
-## Implement and use `define-extension`
+## Implement and use `define-dsl-syntax`
 
 ## Replace the `apply-relation` ffi w/project
 
