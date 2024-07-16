@@ -6,7 +6,7 @@ We adopt the surface syntax of ["The Reasoned Schemer 2nd Edition"](https://mitp
 
 This aims to be answer-order equivalent with the [faster-minikanren](https://github.com/michaelballantyne/faster-minikanren) implementation. As such [the documentation there](./mk/README.md) is correct for writing plain miniKanren programs in this implementation of the language. This equivalence is modulo the small syntactic differences between that dialect and ours (e.g. `define` vs `defrel`).
 
-Special restrictions on host-language interop (aka FFI) and new kinds of static error messages are described in the [ICFP paper](link_to_paper).
+Special restrictions on host-language interop (aka FFI) and new kinds of static error messages are described in the [ICFP paper](https://mballantyne.net/publications/icfp2024.pdf).
 
 ## Additional libraries
 

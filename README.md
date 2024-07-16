@@ -1,6 +1,6 @@
 # Hosted miniKanren
 
-Welcome to the Hosted miniKanren repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP paper][link-to-paper]. This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
+Welcome to the Hosted miniKanren repository! This project is a compiler-based implementation of the miniKanren language, partly described in our [ICFP 2024 paper][link-to-paper]. This README provides an overview of the language implementation, documentation, resources, and instructions on how to build, run, and test the project.
 
 ## Table of Contents
 
@@ -21,6 +21,8 @@ miniKanren is a family of domain-specific languages for logic programming. This 
 - Provide a robust and efficient platform for logic programming.
 - Enable users to experiment with and extend the miniKanren language.
 - Serve as a reference implementation for research and educational purposes.
+
+The implementation relies on a new technique for implementing embedded DSLs realized in the [`syntax-spec` metalanguage](https://github.com/michaelballantyne/syntax-spec). 
 
 ## Documentation
 
