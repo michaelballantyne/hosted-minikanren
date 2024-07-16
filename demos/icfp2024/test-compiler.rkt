@@ -19,6 +19,10 @@
  '(cat))
 
 (check-equal?
+ (run 1 (q) (== q (term-from-expression (expression-from-term q))))
+ '(_.0))
+
+(check-equal?
  (run 1 (q) (== q (term-from-expression (expression-from-term 'cat))))
  '(cat))
 

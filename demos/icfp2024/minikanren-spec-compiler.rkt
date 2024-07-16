@@ -154,7 +154,7 @@
       [(core-quote d) #'(quote d)]
       [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
       [(term-from-expression e)
-       #'e]))
+       #'(check-and-unseal-vars-in-term e)]))
 
   (define (compile-expression-from-goal g)
     #`(seal-goal #,(compile-goal g)))
@@ -234,6 +234,19 @@
                      (translate-term (cdr t)))]
     [else t])
   )
+
+(define (check-and-unseal-vars-in-term v)
+  (cond
+    [(or (symbol? v)
+         (string? v)
+         (number? v)
+         (null? v)
+         (boolean? v))
+     v]
+    [(mk-lvar? v) (mk-lvar-var v)]
+    [(pair? v) (cons (check-and-unseal-vars-in-term (car v))
+                     (check-and-unseal-vars-in-term (cdr v)))]
+    [else (raise-argument-error 'term "mk-value?" v)]))
 
 (define (seal-goal g)
   (mk-goal g))
