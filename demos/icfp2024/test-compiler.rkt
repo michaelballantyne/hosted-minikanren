@@ -24,7 +24,20 @@
 
 (check-equal?
  (run 1 (q) (goal-from-expression (expression-from-goal succeed)))
- 'cat)
+ '(_.0))
+
+(check-equal?
+ (with-output-to-string
+   (λ ()
+     (displayln
+      (run 1 (q)
+        (fresh (x)
+          (== q (list x x))
+          (goal-from-expression
+           (let ()
+             (printf "q is ~s:\n" (expression-from-term q))
+             (expression-from-goal succeed))))))))
+ "q is (#((unbound) (scope) 7) #((unbound) (scope) 7)):\n((_.0 _.0))\n")
 
 (test-equal? "list macro expands correctly"
  (test-goal-syntax (fresh (y) (absento (list 'cat 'cat 'cat) y)))
