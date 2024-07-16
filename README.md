@@ -37,15 +37,9 @@ Here are some useful resources related to miniKanren and logic programming gener
 - [ICFP Paper][link-to-paper]: The paper describing this implementation.
 - [miniKanren GitHub Organization](https://github.com/miniKanren): Other projects and implementations related to miniKanren.
 
-## Artifact from ICFP Paper
+## Code from ICFP 2024 Paper
 
-An artifact from our ICFP paper is available in the `artifact` sub-directory. This includes:
-
-- Source code used in the paper's experiments.
-- Data sets and scripts for reproducing results.
-- Instructions on how to use the artifact.
-
-You can find the artifact [here](artifact/README.md).
+The code corresponding to our ICFP 2024 paper is available in the [`demos/icfp2024` sub-directory](demos/icfp2024).
 
 ## Building the Project
 

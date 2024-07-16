@@ -4,17 +4,15 @@
 
 [A Racket-language SQLite database library](./facts.rkt). This is used for the flights database examples in the paper, but is useful generally.
 
-[A Racket-language flights database](./flights-db.rkt). This is used for the FFI-host interop examples in the paper. The FFI examples themselves are in `paper-code.rkt`
+[A small "demonstration-purposes" compiler](./demo-compiler.rkt). For illustrating the language implementation code examples from the paper itself, but omitting the compiler optimizations.
 
-[A trivial "demonstration-purposes" compiler](./minikanren-spec-compiler.rkt). For illustrating the language implementation code examples from the paper itself.
-
-[Tests for the "demonstration-purposes" compiler](./test-compiler.rkt). Tests specifically for the aforementioned demonstration compiler.
+[Tests for the "demonstration-purposes" compiler](./demo-compiler-tests.rkt). Tests specifically for the aforementioned demonstration compiler.
 
 [A `matche` implementation corresponding to that from the paper](../../racket-matche.rkt) The `matche` examples themselves are in `paper-code.kt`
 
 ## Compiler implementation correspondence
 
-Code snippets not otherwise mentioned here are as described above. The demonstration compiler implements the architecture for realizing compiled, extensible multi-language DSLs in a single file. The code snippets mentioned below are in the `minikanren-spec-compiler.rkt` file. The code snippets correspond to the real implementation as follows:
+The [demo compiler](./demo-compiler.rkt) implements the architecture for realizing compiled, extensible multi-language DSLs in a single file, but omits the compiler optimizations. It corresponds directly to the snippets shown in the paper. The locations of the equivalent code in the full, optimizing implementation of the compiler are as follows:
 
 ## Section 2.1
 
@@ -51,17 +49,19 @@ Code snippets not otherwise mentioned here are as described above. The demonstra
 
 ### Figure 10: The above `goal-from-expression` sub-form from the example in [Figure 8](#figure-8) compiles to the below Racket implementation code.
 
-runtime.rkt for unseal-and-apply
-generate-code.rkt for the goal-from-expression
-compile.rkt for expression-from-term and expression-from-goal.
+The runtime support functions `apply-goal` and `unseal-goal` are combined as [`unseal-and-apply-goal`](../../private/runtime.rkt).
 
-### Figure 11: The compile-time function `compile-goal` and its helper function.
+Code generation for `goal-from-expression` is in [`generate-goal`](../../private/compile/generate-code.rkt).
 
-[`compile-goal` and `compile-term-variable-reference`](../../private/compile.rkt)
+Code generation for `expression-from-term` and `expression-from-goal` are in [`compile-expression-from-term` and `compile-expression-from-goal`](../../private/compile.rkt)
+
+### Figure 11: The compile-time function `compile-goal`.
+
+[`compile-goal`](../../private/compile.rkt)
 
 ## Section 5
 
-These only exist in the real compiler; the `minikanren-spec-compiler.rkt` has a trivial back-end.
+These only exist in the real compiler; the `demo-compiler.rkt` has a trivial back-end.
 
 ### Constant folding
 
@@ -84,9 +84,3 @@ This actually consists of four separate passes
 ### Specialization
 
 [Specialization and code generation both](../../private/compile/generate-code.rkt)
-
-## Section 5.3
-
-### Optimizing at the boundary with Racket
-
-The aforementioned passes gently degrade optimizations in the presence of unknown code.
