@@ -38,7 +38,7 @@
  "this is a goal: #<mk-goal>:\n(_.0)\n")
 
 (check-exn
- #rx"goal-value?"
+ #rx"mk-goal?"
  (λ ()
    (run 1 (q)
      (goal-from-expression
@@ -55,7 +55,7 @@
            (let ()
              (printf "q is ~s:\n" (expression-from-term q))
              (expression-from-goal succeed))))))))
- "q is (#((unbound) (scope) 7) #((unbound) (scope) 7)):\n((_.0 _.0))\n")
+ "q is (#<mk-lvar> #<mk-lvar>):\n((_.0 _.0))\n")
 
 (test-equal? "list macro expands correctly"
  (test-goal-syntax (fresh (y) (absento (list 'cat 'cat 'cat) y)))

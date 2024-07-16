@@ -45,7 +45,7 @@
       (mk-goal-proc goal-val)
       (raise-argument-error/stx
        'goal-from-expression
-       "goal-value?"
+       "mk-goal?"
        goal-val
        blame-stx)))
 

@@ -160,8 +160,9 @@
     #`(seal-goal #,(compile-goal g)))
 
   (define (compile-expression-from-term term-exp)
-    #`(mku:walk* #,(compile-term term-exp)
-                 (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var))))
+    #`(translate-term
+        (mku:walk* #,(compile-term term-exp)
+                   (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var)))))
 
   (define (contains-term-from-expression? t)
     (syntax-parse t
@@ -226,6 +227,14 @@
    (define (hash2-proc this rec)
      (rec (mk-lvar-var this)))])
 
+(define (translate-term t)
+  (cond
+    [(mku:var? t) (mk-lvar t)]
+    [(pair? t) (cons (translate-term (car t))
+                     (translate-term (cdr t)))]
+    [else t])
+  )
+
 (define (seal-goal g)
   (mk-goal g))
 
@@ -234,5 +243,5 @@
       (mk-goal-proc goal-val)
       (raise-argument-error
        'goal-from-expression
-       "goal-value?"
+       "mk-goal?"
        goal-val)))
