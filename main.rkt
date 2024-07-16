@@ -93,7 +93,7 @@
          [() #'(quote-core ())]))]))
 
 (define-term-macro quasiquote
-  (syntax-parser 
+  (syntax-parser
     [(~describe
       "`<datum>"
       (_ q))

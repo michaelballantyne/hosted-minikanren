@@ -37,14 +37,20 @@
 (define (seal-goal g)
   (mk-goal g))
 
-(define (unseal-and-apply-goal val blame-stx state)
-  (if (mk-goal? val)
-      ((mk-goal-proc val) state)
+(define (unseal-and-apply-goal goal-val blame-stx state)
+  (apply-goal (unseal-goal goal-val blame-stx) state))
+
+(define (unseal-goal goal-val blame-stx)
+  (if (mk-goal? goal-val)
+      (mk-goal-proc goal-val)
       (raise-argument-error/stx
        'goal-from-expression
-       "goal-value?"
-       val
+       "mk-goal?"
+       goal-val
        blame-stx)))
+
+(define (apply-goal proc state)
+  (proc state))
 
 (define (mk-atom? t)
   (or (string? t)
@@ -74,7 +80,7 @@
     [else (raise-argument-error/stx 'term "mk-value?" v blame-stx)]))
 
 (define (expression-from-term-rt t st)
-  (seal-vars-in-term (mku:walk* t (mku:state-S st))))
+  (translate-term (mku:walk* t (mku:state-S st))))
 
 (define (unify2/no-occur-check/check-unseal-vars v e e-stx st)
   (mku:unify2-no-occur-check v (check-and-unseal-vars-in-term e e-stx) st))
@@ -85,10 +91,10 @@
 (define-syntax-parameter surrounding-term-vars-in-scope '())
 (define-syntax-parameter surrounding-current-state-var #'mku:empty-state)
 
-(define (seal-vars-in-term t)
+(define (translate-term t)
   (cond
-    [(pair? t) (cons (seal-vars-in-term (car t))
-                     (seal-vars-in-term (cdr t)))]
+    [(pair? t) (cons (translate-term (car t))
+                     (translate-term (cdr t)))]
     [(mku:var? t) (mk-lvar t)]
     [else t])
   )

@@ -301,22 +301,22 @@
 
 (define (unify2 u v st)
   (let ((S (state-S st)))
-  (let ((u (walk u S))
-        (v (walk v S)))
-    (cond
-      ((eq? u v) st)
-      ((and (var? u) (var? v))
-       (if (> (var-idx u) (var-idx v))
-         (ext-st-check-occurs-check-c u v st)
-         (ext-st-check-occurs-check-c v u st)))
-      ((var? u) (ext-st-check-occurs-check-c u v st))
-      ((var? v) (ext-st-check-occurs-check-c v u st))
-      ((and (pair? u) (pair? v))
-       (let ((st (unify2 (car u) (car v) st)))
-         (and st
-              (unify2 (cdr u) (cdr v) st))))
-      ((equal? u v) st)
-      (else #f)))))
+    (let ((u (walk u S))
+          (v (walk v S)))
+      (cond
+        ((eq? u v) st)
+        ((and (var? u) (var? v))
+         (if (> (var-idx u) (var-idx v))
+           (ext-st-check-occurs-check-c u v st)
+           (ext-st-check-occurs-check-c v u st)))
+        ((var? u) (ext-st-check-occurs-check-c u v st))
+        ((var? v) (ext-st-check-occurs-check-c v u st))
+        ((and (pair? u) (pair? v))
+         (let ((st (unify2 (car u) (car v) st)))
+           (and st
+                (unify2 (cdr u) (cdr v) st))))
+        ((equal? u v) st)
+        (else #f)))))
 
 
 (define (unify2-no-occur-check u v st)

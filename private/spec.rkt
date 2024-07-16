@@ -19,12 +19,12 @@
 (syntax-spec
  (binding-class term-variable #:description "miniKanren term variable")
  (binding-class relation-name #:description "miniKanren relation name")
-  
+
  (extension-class term-macro
                   #:binding-space mk)
  (extension-class goal-macro
                   #:binding-space mk)
-  
+
  (nonterminal quoted
    #:description "quoted value"
    s:id
@@ -44,7 +44,7 @@
    ((~literal cons) t1:term t2:term)
 
    ;; TODO: officially supported way of doing these matches
-   (~> x:id               
+   (~> x:id
        #:when (lookup #'x (binding-class-predicate term-variable))
        #:with #%lv-ref (maybe-interposition #'#%lv-ref this-syntax)
        #'(#%lv-ref x))
@@ -64,18 +64,18 @@
 
    succeed
    fail
-    
+
    (symbolo t:term)
    (numbero t:term)
    (stringo t:term)
-    
+
    (== t1:term t2:term)
    (=/= t1:term t2:term)
    (absento t1:term t2:term)
 
    (disj g:goal ...+)
    (conj g1:goal g2:goal)
-  
+
    (fresh (x:term-variable ...) b:goal)
    #:binding (scope (bind x) b)
 

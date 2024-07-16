@@ -2,6 +2,8 @@
 
 (provide run run* defrel
          == =/=
+         succeed
+         fail
          fresh
          conde
          symbolo numbero stringo

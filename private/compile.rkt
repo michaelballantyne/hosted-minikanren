@@ -69,8 +69,7 @@
                              #,(syntax-parameter-value #'surrounding-current-state-var)))
 
 (define (compile-term-variable-reference compiled-term-var-id)
-  #`(expression-from-term-rt #,compiled-term-var-id
-                             #,(syntax-parameter-value #'surrounding-current-state-var)))
+  (compile-expression-from-term #`(#%lv-ref #,compiled-term-var-id)))
 
 (define (compile-goal name g fvs fvs-fresh?)
   (define g^ (optimize-goal name g fvs fvs-fresh?))

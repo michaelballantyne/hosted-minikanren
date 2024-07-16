@@ -42,6 +42,12 @@
   (project (q)
     (print-out 'q q)))
 
+(check-exn
+ #rx"mk-goal?"
+ (λ ()
+   (run 1 (q)
+     (goal-from-expression
+      (λ (st) st)))))
 
 (check-equal?
  (with-output-to-string

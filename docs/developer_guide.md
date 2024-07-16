@@ -8,6 +8,7 @@ This document is mainly for those wishing to hack on the implementation.
 - More powerful extensions
 - More powerful extension hooks-stream abstraction? extensible unify?
 - Additional optimizations
+- Consider: export miniKanren goals like `fail` in the mk binding space?
 
 PR's welcome! Easiest way to join in is to just email one of the ICFP paper authors!
 
