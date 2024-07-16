@@ -31,6 +31,24 @@
    (λ ()
      (displayln
       (run 1 (q)
+        (goal-from-expression
+         (let ()
+           (printf "this is a goal: ~s:\n" (expression-from-goal succeed))
+           (expression-from-goal succeed)))))))
+ "this is a goal: #<mk-goal>:\n(_.0)\n")
+
+(check-exn
+ #rx"goal-value?"
+ (λ ()
+   (run 1 (q)
+     (goal-from-expression
+      (λ (st) st)))))
+
+(check-equal?
+ (with-output-to-string
+   (λ ()
+     (displayln
+      (run 1 (q)
         (fresh (x)
           (== q (list x x))
           (goal-from-expression

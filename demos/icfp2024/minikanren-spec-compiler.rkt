@@ -65,7 +65,6 @@
   #:binding (scope (bind x) g)
   (compile-run #'(run n (x ...) g)))
 
-
  (host-interface/expression
   (run* (x:term-variable ...) g:goal)
   #:binding (scope (bind x) g)
@@ -96,83 +95,83 @@
 
 (begin-for-syntax
 
-(define/hygienic (compile-run stx) #:expression
-  (syntax-parse stx
-    #:literals (run run*)
-    [(run* (q ...) g)
-     #`(mku:run* (q ...) #,(compile-goal #'g))]
-    [(run n (q ...) g)
-     #`(mku:run n (q ...) #,(compile-goal #'g))]))
+  (define/hygienic (compile-run stx) #:expression
+    (syntax-parse stx
+      #:literals (run run*)
+      [(run* (q ...) g)
+       #`(mku:run* (q ...) #,(compile-goal #'g))]
+      [(run n (q ...) g)
+       #`(mku:run n (q ...) #,(compile-goal #'g))]))
 
-(define/hygienic (compile-relation args body) #:expression
-  (syntax-parse (list args body)
-    [((x ...) g)
-     #`(lambda (x ...) #,(compile-goal #'g))]))
+  (define/hygienic (compile-relation args body) #:expression
+    (syntax-parse (list args body)
+      [((x ...) g)
+       #`(lambda (x ...) #,(compile-goal #'g))]))
 
-(define (maybe-bind-surrounding-current-state-var should-bind? generated-goal)
-  ;; Doing this macro-y thing so that we can convey stuff from one part of racket expansion (of the generated λ(st))
-  ;; to another part of racket expansion (when we racket-expand the re-entry into miniKanren from Racket at an expression-from-term).
-  ;;
-  ;; What we're trying to convey is a reference to the racket variable 'st'
-  (if should-bind?
-      #`(λ (st)
-          ((syntax-parameterize ([surrounding-current-state-var #'st])
-             #,generated-goal)
-           st))
-      generated-goal))
+  (define (maybe-bind-surrounding-current-state-var should-bind? generated-goal)
+    ;; Doing this macro-y thing so that we can convey stuff from one part of racket expansion (of the generated λ(st))
+    ;; to another part of racket expansion (when we racket-expand the re-entry into miniKanren from Racket at an expression-from-term).
+    ;;
+    ;; What we're trying to convey is a reference to the racket variable 'st'
+    (if should-bind?
+        #`(λ (st)
+            ((syntax-parameterize ([surrounding-current-state-var #'st])
+               #,generated-goal)
+             st))
+        generated-goal))
 
-(define/hygienic (compile-goal stx) #:expression
-  (syntax-parse stx
-    #:datum-literals (== absento disj conj fresh1 succeed fail)
-    [fail #'mku:fail]
-    [succeed #'mku:succeed]
-    [(== t1 t2)
-     (maybe-bind-surrounding-current-state-var
-      (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
-      #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2)))]
-    [(absento t1 t2)
-     (maybe-bind-surrounding-current-state-var
-      (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
-      #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2)))]
-    [(disj g ...)
-     (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
-     #'(mku:conde (g^) ...)]
-    [(conj g ...)
-     (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
-     #'(mku:conj g^ ...)]
-    [(fresh1 (x ...) g) #`(mku:fresh (x ...) #,(compile-goal #'g))]
-    [(goal-from-expression e) (maybe-bind-surrounding-current-state-var #t #'e)]
-    [(rel-name t ...)
-     (define/syntax-parse (t^ ...) (map compile-term (attribute t)))
-     (maybe-bind-surrounding-current-state-var
-      (ormap contains-term-from-expression? (attribute t))
-      #'(rel-name t^ ...))]))
+  (define/hygienic (compile-goal stx) #:expression
+    (syntax-parse stx
+      #:datum-literals (== absento disj conj fresh1 succeed fail)
+      [fail #'mku:fail]
+      [succeed #'mku:succeed]
+      [(== t1 t2)
+       (maybe-bind-surrounding-current-state-var
+        (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
+        #`(mku:== #,(compile-term #'t1) #,(compile-term #'t2)))]
+      [(absento t1 t2)
+       (maybe-bind-surrounding-current-state-var
+        (or (contains-term-from-expression? #'t1) (contains-term-from-expression? #'t2))
+        #`(mku:absento #,(compile-term #'t1) #,(compile-term #'t2)))]
+      [(disj g ...)
+       (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
+       #'(mku:conde (g^) ...)]
+      [(conj g ...)
+       (define/syntax-parse (g^ ...) (map compile-goal (attribute g)))
+       #'(mku:conj g^ ...)]
+      [(fresh1 (x ...) g) #`(mku:fresh (x ...) #,(compile-goal #'g))]
+      [(goal-from-expression e) (maybe-bind-surrounding-current-state-var #t #'(unseal-goal e))]
+      [(rel-name t ...)
+       (define/syntax-parse (t^ ...) (map compile-term (attribute t)))
+       (maybe-bind-surrounding-current-state-var
+        (ormap contains-term-from-expression? (attribute t))
+        #'(rel-name t^ ...))]))
 
-(define/hygienic (compile-term stx) #:expression
-  (syntax-parse stx
-    #:datum-literals (core-quote cons term-from-expression)
-    [v:id #'v]
-    [(core-quote d) #'(quote d)]
-    [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
-    [(term-from-expression e)
-     #'e]))
+  (define/hygienic (compile-term stx) #:expression
+    (syntax-parse stx
+      #:datum-literals (core-quote cons term-from-expression)
+      [v:id #'v]
+      [(core-quote d) #'(quote d)]
+      [(cons t1 t2) #`(cons #,(compile-term #'t1) #,(compile-term #'t2))]
+      [(term-from-expression e)
+       #'e]))
 
-(define (compile-expression-from-goal g)
-  (compile-goal g))
+  (define (compile-expression-from-goal g)
+    #`(seal-goal #,(compile-goal g)))
 
-(define (compile-expression-from-term term-exp)
-  #`(mku:walk* #,(compile-term term-exp)
-               (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var))))
+  (define (compile-expression-from-term term-exp)
+    #`(mku:walk* #,(compile-term term-exp)
+                 (mku:state-S #,(syntax-parameter-value #'surrounding-current-state-var))))
 
-(define (contains-term-from-expression? t)
-  (syntax-parse t
-    #:datum-literals (core-quote cons term-from-expression)
-    [v:id #f]
-    [(core-quote _) #f]
-    [(cons t1 t2)
-     (or (contains-term-from-expression? #'t1)
-         (contains-term-from-expression? #'t2))]
-    [(term-from-expression _) #t]))
+  (define (contains-term-from-expression? t)
+    (syntax-parse t
+      #:datum-literals (core-quote cons term-from-expression)
+      [v:id #f]
+      [(core-quote _) #f]
+      [(cons t1 t2)
+       (or (contains-term-from-expression? #'t1)
+           (contains-term-from-expression? #'t2))]
+      [(term-from-expression _) #t]))
 )
 
 (define-extension conde goal-macro
@@ -215,3 +214,25 @@
 (define-extension fresh goal-macro
   (syntax-parser
     [(_ (x ...) g* ...+) #'(fresh1 (x ...) (conj g* ...))]))
+
+
+(struct mk-goal [proc])
+(struct mk-lvar [var]
+  #:methods gen:equal+hash
+  [(define (equal-proc this other rec)
+     (eq? (mk-lvar-var this) (mk-lvar-var other)))
+   (define (hash-proc this rec)
+     (rec (mk-lvar-var this)))
+   (define (hash2-proc this rec)
+     (rec (mk-lvar-var this)))])
+
+(define (seal-goal g)
+  (mk-goal g))
+
+(define (unseal-goal goal-val)
+  (if (mk-goal? goal-val)
+      (mk-goal-proc goal-val)
+      (raise-argument-error
+       'goal-from-expression
+       "goal-value?"
+       goal-val)))
