@@ -8,6 +8,8 @@
 
 [A trivial "demonstration-purposes" compiler](./minikanren-spec-compiler.rkt). For illustrating the language implementation code examples from the paper itself.
 
+[Tests for the "demonstration-purposes" compiler](./test-compiler.rkt). Tests specifically for the aforementioned demonstration compiler.
+
 [A `matche` implementation corresponding to that from the paper](../../racket-matche.rkt) The `matche` examples themselves are in `paper-code.kt`
 
 ## Compiler implementation correspondence
