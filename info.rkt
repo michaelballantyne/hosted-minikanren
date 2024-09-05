@@ -7,7 +7,7 @@
                "threading"
                "git://github.com/michaelballantyne/syntax-spec.git#main"))
 
-(define build-deps '("db" "sql" "csv-reading" "text-table"))
+(define build-deps '("db" "sql" "csv-reading" "text-table" "fmt"))
 
 (define test-omit-paths '("mk" "bench/benchmarks"))
 (define compile-omit-paths '("bench/benchmarks"))
