@@ -57,9 +57,9 @@
       "(matche (<term> ...n) [(<pat> ...n) <goal> ...] ...+)"
       (_ (arg:term/c ...+) [(~var pats (pattern-group #'(arg ...))) g:goal/c ...] ...+))
      #:with ([pats^ xs] ...) (map compile-pats (attribute pats))
-     #'(fresh (ls)
-         (== ls (list arg ...))
-         (conde [(fresh xs (== pats^ ls) g ...)] ...))]))
+     #'(fresh (match-args)
+         (== match-args (list arg ...))
+         (conde [(fresh xs (== pats^ match-args) g ...)] ...))]))
 
 (define-syntax defrel/matche
   (syntax-parser
