@@ -6,7 +6,9 @@
          racket/port
          fmt)
 
-(provide print-relation-code print-relation-code/after-dead-code)
+(provide print-relation-code
+         print-relation-code/after-dead-code
+         print-relation-code/after-occurs-check)
 
 (define (prettify stx name)
   (define (prettify stx)
@@ -16,7 +18,7 @@
        #`(defrel (#,name arg ...) #,(prettify #'g))]
       [(== arg ...)
        #:when (syntax-property stx 'skip-occurs-check)
-       #`(==/no-check . #,(map prettify (attribute arg)))]
+       #`(==/no-occurs . #,(map prettify (attribute arg)))]
       [(#%lv-ref v)
        #:when (syntax-property stx 'first-ref)
        #'(first-ref v)]
@@ -70,3 +72,10 @@
                    (relation-code/optimized r)))
             #'r))
 
+
+(define-syntax-rule
+  (print-relation-code/after-occurs-check r)
+  (do-print (cadr (assoc
+                   'occurs-check
+                   (relation-code/optimized r)))
+            #'r))
