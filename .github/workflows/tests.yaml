@@ -10,7 +10,6 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.9
         with:
           version: 8.7
-      - run: raco pkg install --auto https://github.com/michaelballantyne/syntax-spec.git
       - run: raco pkg install --auto
       - run: raco setup hosted-minikanren
       - run: raco test -c hosted-minikanren
@@ -22,7 +21,6 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.6
         with:
           version: 8.7
-      - run: raco pkg install --auto https://github.com/michaelballantyne/syntax-spec.git
       - run: raco pkg install --auto
       - run: raco setup hosted-minikanren
       - run: raco test private/compile/*.rkt

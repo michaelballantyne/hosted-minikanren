@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require syntax/parse
-         syntax-spec/private/ee-lib/main
+         syntax-spec-v2/private/ee-lib/main
          (only-in racket/sequence in-syntax)
          (for-template racket/base "../forms.rkt")
          (only-in "prop-vars.rkt" TERM-VARS-IN-SCOPE)

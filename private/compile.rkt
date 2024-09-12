@@ -1,14 +1,14 @@
 #lang racket/base
 
 (require
- syntax-spec/private/ee-lib/main
+ syntax-spec-v2/private/ee-lib/main
  syntax/stx
  syntax/parse
  syntax/id-table
  racket/function
  racket/stxparam-exptime
  (for-template "runtime.rkt")
- (for-template "spec.rkt" (only-in syntax-spec with-reference-compilers))
+ (for-template "spec.rkt" (only-in syntax-spec-v2 with-reference-compilers))
  (for-template racket/base)
  (for-template (prefix-in mku: "../mk/private-unstable.rkt"))
  (only-in syntax/parse [define/syntax-parse def/stx])

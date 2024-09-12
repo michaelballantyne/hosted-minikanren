@@ -8,7 +8,7 @@
                        "../runtime.rkt")
          "prop-vars.rkt"
          "utils.rkt"
-         syntax-spec/private/ee-lib/main
+         syntax-spec-v2/private/ee-lib/main
          "../forms.rkt"
          "test/unit-test-progs.rkt"
          syntax/id-table

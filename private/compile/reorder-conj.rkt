@@ -2,7 +2,7 @@
 
 (require (for-template racket/base
                        "../forms.rkt")
-         syntax-spec/private/ee-lib/main
+         syntax-spec-v2/private/ee-lib/main
          syntax/parse
          (only-in syntax/parse
                   (define/syntax-parse def/stx))

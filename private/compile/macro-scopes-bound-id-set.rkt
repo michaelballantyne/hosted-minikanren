@@ -4,7 +4,7 @@
          racket/sequence
          racket/set
          racket/pretty
-         syntax-spec/private/ee-lib/main)
+         syntax-spec-v2/private/ee-lib/main)
 
 (provide
  ;; export syntax

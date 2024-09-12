@@ -6,12 +6,12 @@
          (for-syntax term-macro
                      goal-macro))
 
-(require syntax-spec
+(require syntax-spec-v2
          racket/stxparam
          (prefix-in mku: "../../mk/private-unstable.rkt")
          (for-syntax racket/base
                      syntax/parse
-                     (only-in syntax-spec/private/ee-lib/main
+                     (only-in syntax-spec-v2/private/ee-lib/main
                               define/hygienic)))
 
 ;;

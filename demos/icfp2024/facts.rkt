@@ -3,7 +3,7 @@
 (provide define-facts-table assert-fact (for-space mk query-facts))
 
 (require "../../main.rkt" db sql
-         (only-in syntax-spec define-dsl-syntax)
+         (only-in syntax-spec-v2 define-dsl-syntax)
          syntax/macro-testing
          syntax/parse/define
          (except-in racket/match ==)

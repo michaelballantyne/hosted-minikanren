@@ -7,19 +7,19 @@
 ;
 
 (require
-  syntax-spec/private/ee-lib/define
+  syntax-spec-v2/private/ee-lib/define
   syntax/parse/define
   racket/math
   (prefix-in mk: "../mk/mk.rkt")
   "spec.rkt"
   "forms.rkt"
   "runtime.rkt"
-  syntax-spec
+  syntax-spec-v2
   (for-syntax
    syntax/stx
    racket/syntax
    syntax/id-table
-   (only-in syntax-spec/private/ee-lib/main lookup)
+   (only-in syntax-spec-v2/private/ee-lib/main lookup)
    racket/base
    syntax/parse
    racket/generic

@@ -3,10 +3,10 @@
 (provide (all-defined-out)
          (for-syntax (all-defined-out)))
 
-(require syntax-spec
+(require syntax-spec-v2
          (for-syntax racket/base
                      syntax/parse
-                     (only-in syntax-spec/private/ee-lib/main lookup in-space)))
+                     (only-in syntax-spec-v2/private/ee-lib/main lookup in-space)))
 
 ;; TODO: should build in support to syntax-spec
 (begin-for-syntax
