@@ -122,6 +122,9 @@
         (loop g-rest (cons the-== ==s))
         (values (reverse ==s) g))))
 
+;; Split the given `vars` list into two bound-id sets: the first contains
+;; those that are referenced within the given unify-gs, and the second contains
+;; those that are not.
 (define (split-vars vars unify-gs)
   (define refed-vars
     (for/fold ([ids (immutable-bound-id-set)]) ([unify-g unify-gs])
@@ -245,14 +248,19 @@ syntax for which we have not yet introduced any bindings
   (syntax-parse t2
     #:literal-sets (mk-literals)
     #:literals (quote cons)
+    ;; Note: we need to use fresh-unify-vars rather than FIRST-REF because
+    ;;  A variable may be a FIRST-REF but not a fresh-unify-var when it is
+    ;;  fresh-bound in an outer fresh, outside the current block.
     [(#%lv-ref w:id)
      #:when (bound-id-set-member? fresh-unify-vars #'w)
      #`(let ([w #,v]) (#,join-point-name #,@join-point-vars #,st))]
     [(#%lv-ref w:id)
      #:when (syntax-property this-syntax FIRST-REF)
-     ;; If/when we can analyse term from expression to see its free vars, then we could use first refs prop on the term from expression,
-     ;; and then we really would be able to allocate them at that point and we wouldn't need the fresh-unify-vars part here in code gen
-     (error 'generate-matching-unify-body "FIRST-REF should also be a fresh-unify-var and be handled by that case.")]
+     ;; When it's a first-ref but not a local fresh-unify-var, we can't just
+     ;; let-bind (because it's already bound outside) but we can directly extend
+     ;; the substitution rather than incur the unify dispatch, and we can avoid
+     ;; both occurs check and constraint checks.
+     #`(#,join-point-name #,@join-point-vars (mku:ext-st-no-check w (walk-in-state #,v #,st) #,st))]
     [(#%lv-ref w:id)
      #`(#,join-point-name #,@join-point-vars #,(generate-runtime-unify v #'w st no-occur?))]
     [(term-from-expression e)
