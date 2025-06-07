@@ -8,6 +8,7 @@
    "core.rkt"
    [conj conj2]
    [fresh fresh1]
+   [defrel defrel-core]
    [run run-core]
    [run* run*-core]
    [quote quote-core])
@@ -33,7 +34,18 @@
   (all-from-out "core.rkt")
   conj2 fresh1 run-core run*-core quote-core)
  (for-space mk conj fresh conde quote quasiquote list)
- run run* unquote)
+ defrel run run* unquote)
+
+(define-syntax defrel
+  (syntax-parser
+    [(~describe
+      "(defrel (<name> <id> ...+) <goal> ...+)"
+      (_ h:define-header/c g:goal/c))
+     #'(defrel-core h g)]
+    [(~describe
+      "(defrel (<name> <id> ...+) <goal> ...+)"
+      (_ h:define-header/c g+:goal/c ...+))
+     #'(defrel-core h (fresh () g+ ...))]))
 
 (define-syntax run
   (syntax-parser
