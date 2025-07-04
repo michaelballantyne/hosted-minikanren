@@ -6,6 +6,7 @@
                        (prefix-in mku: "../../mk/private-unstable.rkt")
                        "../forms.rkt"
                        "../runtime.rkt")
+         "../relation-arity.rkt"
          "prop-vars.rkt"
          "utils.rkt"
          syntax-spec-v2/private/ee-lib/main
@@ -17,15 +18,9 @@
          (only-in syntax/parse
                   (define/syntax-parse def/stx))
          syntax/stx
-         "../syntax-classes.rkt"
-         syntax-spec-v2)
+         "../syntax-classes.rkt")
 
-(provide generate-goal/entry generate-relation generate-term
-         relation-arity)
-
-
-
-(define-persistent-symbol-table relation-arity)
+(provide generate-goal/entry generate-relation generate-term)
 
 (define specialize-unify? (make-parameter #t))
 
@@ -74,15 +69,7 @@
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t1) #,(generate-term #'t2)))]
     [(#%rel-app n:id t ...)
-     (define actual (length (attribute t)))
-     (define expected (symbol-table-ref relation-arity #`n))
-     
-     (when (not (= actual expected ))
-       (raise-syntax-error
-        #f
-        (format "wrong number of arguments to relation; actual ~a, expected ~a" actual expected)
-        (compiled-from #'n)))
-     
+     (check-rel-app-arity #'n (attribute t))
      (maybe-bind-surrounding-current-state-var stx #`(n #,@ (stx-map generate-term #'(t ...))))]
     [(disj g ...)
      #`(mk:conde
