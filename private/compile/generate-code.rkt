@@ -6,6 +6,7 @@
                        (prefix-in mku: "../../mk/private-unstable.rkt")
                        "../forms.rkt"
                        "../runtime.rkt")
+         "../relation-arity.rkt"
          "prop-vars.rkt"
          "utils.rkt"
          syntax-spec-v2/private/ee-lib/main
@@ -20,7 +21,6 @@
          "../syntax-classes.rkt")
 
 (provide generate-goal/entry generate-relation generate-term)
-
 
 (define specialize-unify? (make-parameter #t))
 
@@ -69,6 +69,7 @@
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t1) #,(generate-term #'t2)))]
     [(#%rel-app n:id t ...)
+     (check-rel-app-arity #'n (attribute t))
      (maybe-bind-surrounding-current-state-var stx #`(n #,@ (stx-map generate-term #'(t ...))))]
     [(disj g ...)
      #`(mk:conde
