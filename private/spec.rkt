@@ -86,7 +86,7 @@
    (apply-relation e:racket-expr t:term ...)
    #;(project (x:term-variable ...) e:racket-expr ...)
 
-   (#%rel-app r:relation-name t:term ...+)
+   (#%rel-app r:relation-name t:term ...)
 
    (~> (r:id t ...)
        ;; TODO: this guard didn't work here, not sure why
