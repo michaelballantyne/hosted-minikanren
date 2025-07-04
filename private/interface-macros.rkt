@@ -25,7 +25,8 @@
    racket/generic
    "compile.rkt"
    (only-in syntax/parse [define/syntax-parse def/stx])
-   "syntax-classes.rkt"))
+   "syntax-classes.rkt"
+   (only-in "../private/compile/generate-code.rkt" relation-arity)))
 
 (provide run run* defrel
          quote cons
@@ -85,7 +86,11 @@
   #:binding [(export name) (scope (bind x) g)]
 
   #:lhs
-  [#'name]
+  [(symbol-table-set!
+      relation-arity
+      #'name
+      (length (syntax->list #'(x ...))))
+     #'name]
   #:rhs
   [(symbol-table-set! expanded-relation-code
                       #'name

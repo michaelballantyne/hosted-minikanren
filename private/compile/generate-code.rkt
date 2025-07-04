@@ -17,10 +17,15 @@
          (only-in syntax/parse
                   (define/syntax-parse def/stx))
          syntax/stx
-         "../syntax-classes.rkt")
+         "../syntax-classes.rkt"
+         syntax-spec-v2)
 
-(provide generate-goal/entry generate-relation generate-term)
+(provide generate-goal/entry generate-relation generate-term
+         relation-arity)
 
+
+
+(define-persistent-symbol-table relation-arity)
 
 (define specialize-unify? (make-parameter #t))
 
@@ -69,6 +74,15 @@
      (def/stx c^ (free-id-table-ref constraint-impls #'c))
      (maybe-bind-surrounding-current-state-var stx #`(c^ #,(generate-term #'t1) #,(generate-term #'t2)))]
     [(#%rel-app n:id t ...)
+     (define actual (length (attribute t)))
+     (define expected (symbol-table-ref relation-arity #`n))
+     
+     (when (not (= actual expected ))
+       (raise-syntax-error
+        #f
+        (format "wrong number of arguments to relation; actual ~a, expected ~a" actual expected)
+        (compiled-from #'n)))
+     
      (maybe-bind-surrounding-current-state-var stx #`(n #,@ (stx-map generate-term #'(t ...))))]
     [(disj g ...)
      #`(mk:conde
