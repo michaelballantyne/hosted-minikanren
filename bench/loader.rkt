@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide run-with-redirections)
+(provide run-with-redirections
+         expand-with-redirections)
 
 (define (resolve-redirects table)
   (for/hash ([(k v) table])
@@ -40,6 +41,11 @@
     (namespace-attach-module (namespace-anchor->namespace runner-ns) 'rackunit)
 
     (namespace-require module-path)))
+
+(define (expand-with-redirections module-path redirects)
+  (parameterize ([current-namespace (make-base-empty-namespace)]
+                 [current-module-name-resolver (make-redirecting-resolver redirects)])
+    (namespace-require/expansion-time module-path)))
 
 (module+ main
   (require racket/match)
