@@ -1,0 +1,31 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  run_tests_racket:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Bogdanp/setup-racket@v1.9
+        with:
+          version: 9.2
+      - run: raco pkg install -j 2 --auto
+      - run: raco test -j 2 -p faster-minikanren
+
+  run_tests_chez:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y chezscheme
+      - run: chezscheme --script test-all-chez.scm
+
+  run_tests_guile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y guile-3.0
+      # The (faster-minikanren mk-guile) module lives in the checkout
+      # directory (named faster-minikanren), so its parent must be on the
+      # load path.
+      - run: guile-3.0 -L .. test-all-guile.scm

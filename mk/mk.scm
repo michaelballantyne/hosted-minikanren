@@ -177,6 +177,9 @@
 
 (define empty-state (state empty-subst empty-C))
 
+(define (state-with-S st S^)
+  (state S^ (state-C st)))
+
 (define (state-with-C st C^)
   (state (state-S st) C^))
 
@@ -430,7 +433,15 @@
      (lambda (st)
        (suspend
          (let ((scope (subst-scope (state-S st))))
-           (let ((x (var scope)) ...)
+           ; Unification picks the representative element for unification
+           ; of two variables based on which one was allocated earlier, so
+           ; evaluation order here matters. We use let* to ensure a consistent
+           ; order across Scheme implementations. Using let* does mean that a
+           ; (fresh (x x) ...) works rather than raises an error, but ensuring
+           ; the error requires either adding dead generated code or extra
+           ; syntax-case macrology. See also the comment on sort-d: disequality
+           ; reification currently depends on allocation order.
+           (let* ((x (var scope)) ...)
              (bind* (g0 st) g ...))))))))
 
 ; (conde [g:Goal ...] ...+) -> Goal
@@ -635,8 +646,8 @@
        (let ((x (walk* x (state-S st))) ...)
          ((fresh () g g* ...) st))))))
 
-(define succeed (lambda (st) st))
-(define fail (lambda (st) #f))
+(define (succeed st) st)
+(define (fail st) #f)
 
 
 ; Reification
@@ -661,12 +672,13 @@
               (walk* A R))))))
 
 (define (vars term)
-  (let rec ((term term) (acc '()))
-    (cond
-      ((var? term) (cons term acc))
-      ((pair? term)
-       (rec (cdr term) (rec (car term) acc)))
-      (else (remove-duplicates acc)))))
+  (remove-duplicates
+	(let rec ((term term) (acc '()))
+	  (cond
+		((var? term) (cons term acc))
+		((pair? term)
+		 (rec (cdr term) (rec (car term) acc)))
+		(else acc)))))
 
 (define (extract-and-normalize st relevant-vars x)
   (define T (map (lambda (tc-type)
@@ -851,6 +863,14 @@
 (define (sort-D D)
   (sort-lex (map sort-d D)))
 
+; Note that sorting only orders the pairs within a disequality and orients each
+; pair; it does not canonicalize which variable represents an equivalence class.
+; For example (=/= `(,q ,q) `(,p ,r)) could be represented as either ((q . p) (q . r))
+; or ((q . p) (p . r)). Which one appears in the disequality store depends on what
+; unification chooses as the representative element, and reification currently
+; does not rewrite with a new representative based on the reification sort order.
+; If we want the same constraint to always be reified the same no matter how it is
+; derived, we really should canonicalize.
 (define (sort-d d)
   (list-sort lex<=? (map sort-pr d)))
 
@@ -905,7 +925,7 @@
   (let-values ([(idx pr) (index+element-where type-orderings (lambda (pr) ((lhs pr) v)))])
     (if idx
       (values idx (rhs pr))
-      (error 'type-index "missing ordering for type of value ~s" v))))
+      (format-error 'type-index "missing ordering for type of value ~s" v))))
 
 ; (Term, Term) -> (or CompareResult error)
 ; defined when arguments are pairs, null, or atomic types addressed by type-constraints;

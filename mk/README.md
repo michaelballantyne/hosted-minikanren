@@ -14,7 +14,7 @@ Eigen was removed.
 
 #### From the Package Server
 
-This is available on the [Racket package server](https://pkgn.racket-lang.org/package/faster-minikanren), so it can be installed with Racket's package manager:
+This is available on the [Racket package server](https://pkgs.racket-lang.org/package/faster-minikanren), so it can be installed with Racket's package manager:
 
 ```
 raco pkg install faster-minikanren
@@ -40,7 +40,7 @@ to load tests:
 racket test-all.rktl
 ```
 
-### Vicare and Chez Scheme
+### Chez Scheme
 
 ```
 (load "mk-vicare.scm")
@@ -55,18 +55,20 @@ To run tests:
 (load "test-all.scm")
 ```
 
+(The file is named `mk-vicare.scm` for historical reasons and has not been renamed to avoid breaking users relying on that filename.)
+
 ### Guile
 
 After putting the directory in Guile's load path:
 
 ```
-(use-modules (faster-miniKanren mk-guile))
+(use-modules (faster-minikanren mk-guile))
 ```
 
-To run tests:
+To run tests (with the directory's parent on the load path):
 
 ```
-guile test-guile.scm
+guile -L .. test-all-guile.scm
 ```
 
 ## Other code

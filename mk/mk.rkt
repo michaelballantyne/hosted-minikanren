@@ -1,6 +1,7 @@
 #lang racket/base
 
 (provide run run* defrel
+         fail succeed
          == =/=
          succeed
          fail

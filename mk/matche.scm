@@ -3,7 +3,7 @@
 ;
 ; https://github.com/calvis/cKanren/blob/dev/cKanren/matche.rkt#L54
 
-; Note that this definition is available at syntax phase in chez and vicare due to implicit
+; Note that this definition is available at syntax phase in Chez due to implicit
 ; phasing, but not in Racket (which uses explicit phasing). Racket already has a version available
 ; by default though, so that's fine. This definition isn't just isn't used in Racket.
 (define syntax->list
@@ -46,7 +46,7 @@
                   (with-syntax ([([pat^ ...] (c^ ...) (x^ ...))
                                  (parse-pattern #'(args ...) #'[pat ...])])
                     #'([p^ pat^ ...] (c ... c^ ...) (x ... x^ ...))))]
-               [x (error 'parse-pattern "bad syntax ~s ~s" args pat)])))
+               [x (format-error 'parse-pattern "bad syntax ~s ~s" args pat)])))
          (define parse-patterns-for-arg
            (lambda (v pat)
              (define loop
@@ -57,13 +57,13 @@
                       #'((unquote _new) () (_new)))]
                    [(unquote x)
                     (when (free-identifier=? #'x v)
-                      (error 'matche "argument ~s appears in pattern at an invalid depth"
-                             (syntax->datum #'x)))
+                      (format-error 'matche "argument ~s appears in pattern at an invalid depth"
+                                    (syntax->datum #'x)))
                     #'((unquote x) () (x))]
                    [(unquote (? c x))
                     (when (free-identifier=? #'x v)
-                      (error 'matche "argument ~s appears in pattern at an invalid depth"
-                             (syntax->datum #'x)))
+                      (format-error 'matche "argument ~s appears in pattern at an invalid depth"
+                                    (syntax->datum #'x)))
                     #'((unquote x) ((c x)) (x))]
                    [(a . d)
                     (with-syntax ([((pat1 (c1 ...) (x1 ...))
@@ -88,7 +88,7 @@
          (unless
              (andmap (lambda (y) (= (length (syntax->datum #'(v ...))) (length y)))
                      (syntax->datum #'([pat ...] ...)))
-           (error 'matche "pattern wrong length blah"))
+           (format-error 'matche "pattern wrong length blah"))
          (with-syntax ([(([pat^ ...] (c ...) (x ...)) ...)
                         (map (lambda (y) (parse-pattern #'(v ...) y))
                              (syntax->list #'([pat ...] ...)))])
