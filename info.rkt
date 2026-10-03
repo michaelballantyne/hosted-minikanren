@@ -2,12 +2,19 @@
 
 (define name "hosted-minikanren")
 
-(define deps '("base"
+(define deps '("csv-reading"
+               "db-lib"
+               "fmt"
+               "sql"
+               "text-table"
+               "base"
                "rackunit-lib"
                "threading"
                "syntax-spec-v2"))
 
-(define build-deps '("db" "sql" "csv-reading" "text-table" "fmt"))
+(define build-deps '("racket-doc"
+                     "scribble-lib"
+                     "db" "sql" "csv-reading" "text-table" "fmt"))
 
 (define test-omit-paths '("mk" "bench/benchmarks"))
 (define compile-omit-paths '("bench/benchmarks"))
